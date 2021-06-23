@@ -11,7 +11,7 @@ P4W_APP='lvsio'
 # ----------------------------------------------------------------
 
 sio = socketio.AsyncServer(async_mode='asgi',  cors_allowed_origins='*', SameSite=None )
-app = socketio.ASGIApp(sio, static_files={ '/': './templates/sync_id.html' })
+app = socketio.ASGIApp(sio, static_files={ '/': './public/' })
 
 #--------------------------- utils ----------------------------------------------
 import requests
