@@ -26,6 +26,7 @@ def index():
     menu = DIV(
         P(":) sio !!!"),
         DIV(A("sync_id", _role="button", _href=URL("sync_id_ctrl"))),
+        DIV(A("flask_chat", _role="button", _href=URL("flask_chat"))),
     )
     return dict(message=message, menu=menu)
 
@@ -39,6 +40,16 @@ def sync_id_ctrl():
     values = {"slider1": 25, "slider2": 0, "counter": 100, 'data_str': ':)'}
 
     return locals()
+
+
+@action("flask_chat", method=["GET", "POST"])
+@action.uses(db, session, T, "flask_chat.html")
+def flask_chat():
+    #print("flask_chat")
+    return locals()
+
+
+
 
 # --------------------------------------------------------------------------------------
 @action("from_uvicorn", method=["GET", "POST"])

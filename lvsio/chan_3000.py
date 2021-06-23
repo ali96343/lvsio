@@ -3,23 +3,17 @@
 import uvicorn
 import socketio
 
-
 #--------------- global ------------------------------------------
 
 PORT=3000
 SERV_APP_FILE = "chan_3000:app"
 P4W_APP='lvsio'
-sio_debug = True
 # ----------------------------------------------------------------
 
 sio = socketio.AsyncServer(async_mode='asgi',  cors_allowed_origins='*', SameSite=None )
 app = socketio.ASGIApp(sio, static_files={ '/': './templates/sync_id.html' })
 
-# https://stackoverflow.com/questions/57579110/how-to-fix-access-control-allow-origin-error-in-a-python-socket-io-server
-# https://stackoverflow.com/questions/52596096/flask-socketio-redis-subscribe
-
 #--------------------------- utils ----------------------------------------------
-# https://stackoverflow.com/questions/46675351/how-to-emit-events-from-celery-task
 import requests
 
 # https://pypi.org/project/stirfried/
@@ -46,6 +40,7 @@ async def sio_event_post(event_name, post_url= None,  data=None, room=None, post
 
 
 
+sio_debug = True
 
 values = {
     'slider1': 25,
@@ -86,6 +81,23 @@ async def value_changed(sid, message):
     values[message['who']] = message['data']
     await sio_event_post('sample-event', data='emit-data', room='some_room')
     await sio.emit('update_value', message, broadcast=True, include_self=False)
+
+# -----------------------------------------------------------------------------------------------
+
+
+def messageReceived(methods=["GET", "POST"]):
+    sio_debug and print("message was received!!!")
+
+
+@sio.on("my_event")
+async def handle_my_custom_event(sid, json):
+    sio_debug and print("received my_event: " + str(json))
+    await sio.emit("my_response", json, callback=messageReceived)
+
+
+
+# -----------------------------------------------------------------------------------------------
+
 
 
 
