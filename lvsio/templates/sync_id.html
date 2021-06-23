@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Synchronized Sliders</title>
+     <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2PYF773PwAGewLSGezkXwAAAABJRU5ErkJggg=="/>
+    <!-- script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.socket.io/3.1.3/socket.io.min.js"></script>
+
+    <script>
+        $(document).ready(function(){
+
+            var socket = io.connect('http://localhost:3000');
+
+            socket.on('connect', function() {
+                socket.emit('sync_hello_connect', {data: 'from browser: connected!'});
+                // console.log('sync connected')
+            });
+
+            $('input.sync').on('input', function(event) {
+                socket.emit('value_changed', {who: $(this).attr('id'), data: $(this).val()});
+                let bla = document.getElementById('txt1').value 
+                $('p'+'#txt2').html( bla)  
+                //console.log(bla);
+                return false;
+            });
+
+            $('input#number').on('change', function(event) {
+              console.log(  $(this).val()  );
+              socket.emit('counter_changed', {'counter':  $(this).val()  });
+ 
+            });
+
+            socket.on('update_value', function(msg) {
+                //console.log( msg  );
+                $('input#'+msg.who).val(msg.data)
+                let w1 = document.getElementById('slider1').value 
+                let h1 = document.getElementById('slider2').value 
+                $('img#'+'logo_id').css("width", w1 * 10 + 100)  
+                $('img#'+'logo_id').css("height", h1 * 10 + 100 )  
+            });
+
+        });
+    </script>
+
+<script>
+function gen_event() {
+    const e = new Event("change");
+    const element = document.querySelector('#number')
+    element.dispatchEvent(e);
+}
+
+function incrementValue()
+{
+    let value = parseInt(document.getElementById('number').value, 10);
+    value = isNaN(value) ? 0 : value;
+    value++;
+    document.getElementById('number').value = value;
+    gen_event();
+}
+
+function decrementValue()
+{
+    let value = parseInt(document.getElementById('number').value, 10);
+    value = isNaN(value) ? 0 : value;
+    value--;
+    document.getElementById('number').value = value;
+    gen_event();
+   // https://www.tutorialspoint.com/how-can-i-trigger-an-onchange-event-manually-in-javascript
+}
+
+
+
+</script>
+
+</head>
+<body>
+
+<form>
+   <input type="button" onclick="decrementValue()" value="-" />
+   <input type="text" id="number" maxlength="4" size="4" value="[[ =values['counter'] ]]" readonly />
+   <input type="button" onclick="incrementValue()" value="+" />
+</form>
+
+
+    <p>py4web Synchronized Sliders, 
+    https://www.matthieuamiguet.ch/blog/synchronize-clients-flask-application-websockets</p>
+
+    <input id="slider1" class="sync" type="range" min="0" max="50" style="width:70%" value="[[ =values['slider1'] ]]" /> <br>
+    <input id="slider2" class="sync" type="range" min="0" max="50" style="width:70%" value="[[ =values['slider2'] ]]" /> <br>
+
+    <input id="txt1" class="sync" type="text" value="[[ =values['data_str'] ]]" style="width:70%"  /> <br>
+    <p id="txt2" class="sync" style="width:70%">[[ =values['data_str'] ]]</p> <br>
+
+    <img id="logo_id" src="[[ =URL('static/logop4w.png') ]]" width="450" height="450" alt="">
+
+</body>
+</html>
+
