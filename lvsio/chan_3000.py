@@ -20,7 +20,6 @@ import requests
 
 async def sio_event_post(event_name, post_url= None,  data=None, room=None, post= True):
     BROADCAST_SECRET='123secret'
-    P4W_APP = 'mig' #os.getenv('P4W_APP')
     post_url = f'http://127.0.0.1:8000/{P4W_APP}/from_uvicorn'
 
     json_data = {
