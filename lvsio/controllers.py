@@ -16,6 +16,21 @@ from .common import (
 
 # https://testdriven.io/blog/asynchronous-tasks-with-falcon-and-celery/
 
+
+import socketio
+
+
+@action("redis_put", method=["GET", "POST"])
+def redis_put():
+    import datetime
+    data_str = datetime.datetime.now().strftime("%d.%m.%y %H:%M:%S")
+    r_url = 'redis://'
+    mgr = socketio.RedisManager(r_url, write_only=True)
+    mgr.emit('frompydal',  data_str, broadcast=True, include_self=False )
+    return f'redis_put {data_str}'
+    #  http localhost:8000/lvsio/redis_put
+
+
 sio_serv_url = "http://localhost:3000"
 
 @unauthenticated("index", "index.html")

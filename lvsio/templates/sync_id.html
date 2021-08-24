@@ -16,6 +16,11 @@
                 // console.log('sync connected')
             });
 
+            socket.on('frompydal', function(msg) {
+                console.log('frompydal !!!!!!!!!!!!!!!!!!!!!');
+                console.log(msg);
+            });
+
             $('input.sync').on('input', function(event) {
                 socket.emit('value_changed', {who: $(this).attr('id'), data: $(this).val()});
                 let bla = document.getElementById('txt1').value 
