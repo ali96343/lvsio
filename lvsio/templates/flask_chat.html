@@ -13,16 +13,16 @@
 
     <script>
 
-      let socket = io.connect('http://localhost:3000');
+      const socket = io.connect('http://localhost:3000');
 
       socket.on( 'connect', function() {
         console.log('flask_chat connected');
         socket.emit( 'my_event', { data: 'User Connected' } );
         // socket.emit( 'sync_hello_connect', { data: 'User Connected' } );
-        let form = $( 'form' ).on( 'submit', function( e ) {
+        const form = $( 'form' ).on( 'submit', function( e ) {
           e.preventDefault()
-          let user_name = $( 'input.username' ).val()
-          let user_input = $( 'input.message' ).val()
+          const user_name = $( 'input.username' ).val()
+          const user_input = $( 'input.message' ).val()
           socket.emit( 'my_event', {
             user_name : user_name,
             message : user_input

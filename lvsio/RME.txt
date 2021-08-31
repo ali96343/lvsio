@@ -1,0 +1,8 @@
+client.js - Extra arg required:
+
+let socket = io("http://localhost:8080",
+{transports: ['websocket', 'polling', 'flashsocket']}
+)
+
+-------------------------------------
+

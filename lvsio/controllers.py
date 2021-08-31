@@ -18,17 +18,17 @@ from .common import (
 
 
 import socketio
+r_url = 'redis://'
+r_mgr = socketio.RedisManager(r_url, write_only=True)
 
 
-@action("redis_put", method=["GET", "POST"])
-def redis_put():
+@action("sio_pusher", method=["GET", "POST"])
+def sio_pusher():
     import datetime
     data_str = datetime.datetime.now().strftime("%d.%m.%y %H:%M:%S")
-    r_url = 'redis://'
-    mgr = socketio.RedisManager(r_url, write_only=True)
-    mgr.emit('frompydal',  data_str, broadcast=True, include_self=False )
-    return f'redis_put {data_str}'
-    #  http localhost:8000/lvsio/redis_put
+    r_mgr.emit('frompydal',  data_str, broadcast=True, include_self=False )
+    return f'sio_pusher {data_str}'
+    #  http localhost:8000/lvsio/sio_pusher
 
 
 sio_serv_url = "http://localhost:3000"

@@ -9,7 +9,7 @@
     <script>
         $(document).ready(function(){
 
-            var socket = io.connect('http://localhost:3000');
+            const socket = io.connect('http://localhost:3000');
 
             socket.on('connect', function() {
                 socket.emit('sync_hello_connect', {data: 'from browser: connected!'});
@@ -17,8 +17,9 @@
             });
 
             socket.on('frompydal', function(msg) {
-                console.log('frompydal !!!!!!!!!!!!!!!!!!!!!');
-                console.log(msg);
+                window.location.reload(true);
+                // myreload();
+                console.log('sio_pusher: ' + msg);
             });
 
             $('input.sync').on('input', function(event) {
@@ -48,6 +49,15 @@
     </script>
 
 <script>
+function myreload(){
+    var container = document.getElementById("bodyid");
+    var content = container.innerHTML;
+    container.innerHTML= content; 
+    
+   //this line is to watch the result in console , you can remove it later  
+    console.log("Refreshed"); 
+}
+
 function gen_event() {
     const e = new Event("change");
     const element = document.querySelector('#number')
@@ -76,8 +86,12 @@ function decrementValue()
 
 </script>
 
+    <style>
+        body {font-size: 1.0rem;} li {margin: 0.3rem;}
+    </style>
+
 </head>
-<body>
+<body id="bodyid">
 
 <div>
 

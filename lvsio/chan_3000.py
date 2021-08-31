@@ -134,16 +134,18 @@ async def value_changed(sid, message):
 # -----------------------------------------------------------------------------------------------
 
 
-def messageReceived(methods=["GET", "POST"]):
+def messageReceived(methods=["GET", "POST"], ):
     sio_debug and print("message was received!!!")
 
 
 @sio.on("my_event")
 async def handle_my_custom_event(sid, json):
     sio_debug and print("received my_event: " + str(json))
-    await sio.emit("my_response", json, callback=messageReceived)
+    #await sio.emit("my_response", json, )
+    await sio.emit("my_response", json, room=sid, callback=messageReceived)
 
-
+# https://github.com/miguelgrinberg/python-socketio/issues/160
+# https://stackoverflow.com/questions/43301977/flask-socket-io-result-of-emit-callback-is-the-response-of-my-rest-endpoint
 # -----------------------------------------------------------------------------------------------
 
 
