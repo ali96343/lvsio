@@ -1,6 +1,7 @@
 from py4web import action, request, abort, redirect, URL
 from yatl.helpers import A, DIV, P
 from py4web.core import bottle
+import datetime
 from .common import (
     db,
     session,
@@ -24,10 +25,10 @@ r_mgr = socketio.RedisManager(r_url, write_only=True)
 
 @action("sio_pusher", method=["GET", "POST"])
 def sio_pusher():
-    import datetime
     data_str = datetime.datetime.now().strftime("%d.%m.%y %H:%M:%S")
     r_mgr.emit('frompydal',  data_str, broadcast=True, include_self=False )
-    return f'sio_pusher {data_str}'
+    return None
+    #return f'sio_pusher {data_str}'
     #  http localhost:8000/lvsio/sio_pusher
 
 

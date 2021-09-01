@@ -41,6 +41,12 @@
         }
       }) 
 
+      socket.on('frompydal', function(msg) {
+                window.location.reload(true);
+                console.log('sio_pusher: ' + msg);
+            });
+
+
 
      </script>
   </head>
