@@ -26,7 +26,7 @@ r_mgr = socketio.RedisManager(r_url, write_only=True)
 @action("sio_pusher", method=["GET", "POST"])
 def sio_pusher():
     data_str = datetime.datetime.now().strftime("%d.%m.%y %H:%M:%S")
-    r_mgr.emit('frompydal',  data_str, broadcast=True, include_self=False )
+    r_mgr.emit('pgs_reload',  data_str, broadcast=True, include_self=False )
     return None
     #return f'sio_pusher {data_str}'
     #  http localhost:8000/lvsio/sio_pusher

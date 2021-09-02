@@ -16,7 +16,7 @@
                 // console.log('sync connected')
             });
 
-            socket.on('frompydal', function(msg) {
+            socket.on('pgs_reload', function(msg) {
                 window.location.reload(true);
                 // myreload();
                 console.log('sio_pusher: ' + msg);
