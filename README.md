@@ -1,6 +1,6 @@
 ## lvsio - py4web app
 
-chan_3000.py - uvicorn channel server
+chan_3000.py - uvicorn chanel server
 
 cp lvsio to apps/
 
