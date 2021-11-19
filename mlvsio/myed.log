@@ -1,0 +1,33 @@
+/home/w3p/set5ombott/py4web/apps/zlvsio/chan_conf.py
+    strlen=26
+     -27:    BROADCAST_SECRET = "71a30ce5d354bf38a303643212af3bf1d826821539331b091ce7e4218d83d35c"
+     +27:    XXXXX = "71a30ce5d354bf38a303643212af3bf1d826821539331b091ce7e4218d83d35c"
+
+/home/w3p/set5ombott/py4web/apps/zlvsio/chan_conf.py
+    strlen=26
+     -28:    POST_SECRET = BROADCAST_SECRET 
+     +28:    POST_SECRET = XXXXX 
+
+/home/w3p/set5ombott/py4web/apps/zlvsio/chan_conf.py
+    strlen=26
+     -56:    "broadcast_secret": BROADCAST_SECRET,
+     +56:    "broadcast_secret": XXXXX,
+
+/home/w3p/set5ombott/py4web/apps/zlvsio/chan_sio.py
+    strlen=28
+     -48:    "broadcast_secret": C.BROADCAST_SECRET,
+     +48:    "broadcast_secret": C.XXXXX,
+
+/home/w3p/set5ombott/py4web/apps/zlvsio/controllers.py
+    strlen=30
+     -211:    if json_data["broadcast_secret"] == C.BROADCAST_SECRET:
+     +211:    if json_data["broadcast_secret"] == C.XXXXX:
+
+  ---------------------------- work_dir: /home/w3p/set5ombott/py4web/apps/zlvsio --------------
+
+ find: BROADCAST_SECRET
+ replace: XXXXX
+
+ extensions_tuple: ('.md', '.un', '.js', '.jsx', '.py', '.html', '.css', '.ts', '.tsx', '.sh', '.json', '.vue', '.scss', '.json')
+ view_only: True
+ found_in_files: 5

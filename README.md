@@ -1,13 +1,13 @@
 ## lvsio - py4web app
 
-chan_3000.py - uvicorn chanel server
+chan_sio.py - uvicorn channel server
 
-cp lvsio to apps/
+cp mlvsio to apps/
 
-cd apps/lvsio && ./chan_3000.py
+cd apps/mlvsio && ./chan_sio.py
 
 run py4web
 
-firefox localhost:8000/lvsio
+firefox localhost:8000/mlvsio
 
 
