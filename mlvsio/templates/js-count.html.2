@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <!-- Css file -->
+<style>
+
+body{
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    background: #cccccc;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+main{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#counter-board{
+    font-size: 30px;
+}
+
+
+
+</style>
+
+
+    <title>Counter</title>
+</head>
+<body>
+    <main>
+
+        <h3>Counter System</h3>
+        <section>
+            <p id="sio-status">disconnect</p>
+        
+        </section>
+        <section class="counter">
+            <!-- where the counter will be displayed-->
+            <p id="counter-board">0</p>
+        </section>
+        <!-- Button section -->
+        <section class="buttons-section">
+            <button id="increase-btn">Increase</button>
+            <button id="reset-btn">Reset</button>
+            <button id="decrease-btn">Decrease</button>
+        </section>
+    </main>
+
+
+ <script> 
+ ! function () {
+        // variable holding the counter value
+        let counterValue = 0;
+        
+        // get the increase and decrease button
+        const incrementButton = document.getElementById("increase-btn");
+        const decrementButton = document.getElementById("decrease-btn");
+        const resetButton = document.getElementById("reset-btn");
+        
+        // function that increases the counter by 1
+        const increaseCounter = () =>{
+            counterBoard.innerHTML = ++counterValue;
+        }
+        
+        // function that decreases the counter by 1
+        const decreaseCounter = () =>{
+            counterBoard.innerHTML = --counterValue;
+        }
+        
+        const resetCounter = () =>{
+            // Update the UI
+            counterBoard.innerHTML = 0;
+            // Update the variable container
+            counterValue = 0;
+        }
+        
+        
+        // get the counter board value
+        const counterBoard = document.getElementById("counter-board");
+        
+        
+        // Add event listener to the buttons
+        incrementButton.addEventListener('click', increaseCounter);
+        decrementButton.addEventListener('click', decreaseCounter);
+        resetButton.addEventListener('click', resetCounter);
+        
+        } ();
+        
+ </script>
+</body>
+</html>
+        
+        

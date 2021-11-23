@@ -20,7 +20,7 @@ p, input[type="text"]
 }
 
 
-p { padding: 1.2em; }
+p { padding: 1em; }
 
 .sync {
 width: 100%;
@@ -51,13 +51,13 @@ function debounce(func, timeout = 250){
     <p id="status"></p>
 
     <!-- label for="slider1">(from 0 and 100):</label -->
-    <input id="slider1" class="sync" type="range" min="0" max="100" value="40" /> <br>
+    <input id="slider1" class="sync" type="range" min="0" max="100" value="[[=  t_vars['slider1'] ]]" /> <br>
 
     <!-- label for="slider2">(from 0 and 100):</label -->
-    <input id="slider2" class="sync" type="range" min="0" max="100" value="60" />
+    <input id="slider2" class="sync" type="range" min="0" max="100" value="[[=  t_vars['slider2'] ]]" />
 
     <!-- label for="txt1">(text):</label  -->
-    <input id="txt1" class="sync" type="text" value = ':)' />
+    <input id="txt1" class="sync" type="text" value="[[=  t_vars['txt1'] ]]" />
     <p id="sync_txt1"></p>
 
 
@@ -73,6 +73,9 @@ function debounce(func, timeout = 250){
                   txt1 = document.getElementById('txt1'),
                   sync_txt1 = document.getElementById('sync_txt1'),
                   info =  document.getElementById('status');
+                 
+            info.innerHTML= 'disconnected; run chan_sio.py';
+            info.style.color='red';
 
             const set_values= function(x) {
                let msg = null;
@@ -92,19 +95,24 @@ function debounce(func, timeout = 250){
 
 
             const get_values= function() {
-               return [ slider1.value   , slider2.value,  txt1.value ];
+               const js_vars = [ slider1.value   , slider2.value,  txt1.value ];
+               //console.log('!!!: ' , js_vars )
+               return  js_vars ; 
             }
+
 
 
             set_values( init_vars  );
 
             socket.on('connect', ()=> {
                 socket.emit('sync_connect', {data: 'hello from ' + py_var });
-                document.getElementById("status").innerHTML = 'connect, sio_channel=  ' + sio_url
+                info.innerHTML = 'connect, sio_channel=  ' + sio_url
+                info.style.color='blue';
             });
 
             socket.on('disconnect', ()=> {
-                document.getElementById("status").innerHTML = 'disconnect!'
+                info.innerHTML= 'disconnected; run chan_sio.py';
+                info.style.color='red';
             });
 
             socket.on('reconnect', ()=>{

@@ -2,7 +2,6 @@ from py4web import action, request, abort, redirect, URL
 from yatl.helpers import A, I, SPAN, XML, DIV, P
 from py4web import action, request, response, abort, redirect, URL, Field
 from py4web.utils.form import Form, FormStyleBulma
-import inspect
 import copy
 
 
@@ -53,13 +52,6 @@ def read_db(tbl='my_tbl'):
 #read_db('Sliders')
 
 
-@action("sio_pusher", method=["GET", ])
-def sio_pusher():
-    data_str = datetime.datetime.now().strftime("%d.%m.%y %H:%M:%S")
-    r_mgr.emit('pgs_reload',  data_str, broadcast=True, include_self=False )
-    return None
-
-
 @unauthenticated("index", "index.html")
 def index():
     user = auth.get_user()
@@ -67,17 +59,20 @@ def index():
     actions = {"allowed_actions": auth.param.allowed_actions}
 
     menu = DIV(
-        P("from pydal to js-UI with socketio"),
+        P("test socketio, value from pydal to js-UI"),
         DIV(
             A("js_image_resize", _role="button", _href=URL("js_image_resize",),),
             A("js_count", _role="button", _href=URL("js_count",),),
-            A("js_sutocomplete", _role="button", _href=URL("js_autocomplete",),),
+            A("js_autocomplete", _role="button", _href=URL("js_autocomplete",),),
             A("js_sliders", _role="button", _href=URL("js_sliders",),),
         ),
     )
 
     return dict(message=message, actions=actions, menu=menu)
 
+
+
+# https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_autocomplete
 
 @action("js_autocomplete", method=["GET", "POST"])
 @action.uses(db, session, auth, T, "js-autocomplete.html")
@@ -90,6 +85,7 @@ def js_autocomplete():
     if f_autocomplete.accepted:
         f0 = f_autocomplete.vars.get('f0' )
         auth.flash.set(f'f0={f0}', sanitize=True)
+        #print (f'f0={f0}')
     elif f_autocomplete.errors:
         print(f"f_autocomplete has errors: {f_autocomplete.errors}")
 
@@ -103,8 +99,8 @@ def js_sliders():
 
     tbl = "Sliders"
     r = db(db[tbl].id == 1).select().first()
-    t_vars["slider1"] = r.f0 if r else 404 
-    t_vars["slider2"] = r.f1 if r else 404 
+    t_vars["slider1"] = r.f0 if r else 100 
+    t_vars["slider2"] = r.f1 if r else 0 
     t_vars["txt1"] = r.f2 if r else '404' 
 
     flds =  [ e for e in  db[tbl].fields if e !='id' ] 
@@ -120,6 +116,7 @@ def js_sliders():
 
 def str2type(s, dst_type):
 
+       #print ('=== dst_type: ',dst_type)
        if dst_type == 'integer':
            res = 0
            try:
@@ -148,11 +145,13 @@ def str2type(s, dst_type):
 # ------------------------------------------------------------------------
 
 def do_event(*args, **kwargs):
+    # print ("do_event: ",  kwargs)
     tbl = kwargs['t_name'] #'Counter'
 
     flds =  [ e for e in  db[tbl].fields if e !='id' ]
     ftypes =  [ db[tbl][e].type for e in  flds ]
 
+    #print ('---------- do_event ',args)
     data_dict = { f'f{i}': str2type(e, ftypes[i])  for i, e in enumerate( args) }
 
     db(db[tbl].id == 1).update(**db[tbl]._filter_fields(data_dict))
@@ -161,7 +160,11 @@ def do_event(*args, **kwargs):
     vars_list =  [ db[tbl][1][e]  for e in  flds ]
 
     json_data = json.dumps({ 'vars': vars_list }  )
+    #print ( json_data )
+    #print ( kwargs['update'] )
     r_mgr.emit(kwargs['update'], json_data, broadcast=True, include_self=False)
+    #r_mgr.emit(kwargs['update'], data_str, broadcast=True, include_self=False)
+    #r_mgr.emit('js_data', json_data, broadcast=True, include_self=False)
 
 
 allow_post = { 'js_image_resize', 'js_count', 'js_sliders'  }
@@ -201,6 +204,10 @@ def sio_chan_post():
         event_name = json_data["event_name"]
         room = json_data["room"]
         data = json_data["data"]
+        #print(event_name)
+        #if isinstance( data, dict  ) and 'data' in data :
+        #     data= data['data']
+        #     print('++++++++: ',data)
             
         if json_data["broadcast_secret"] == C.POST_SECRET:
             cat_value = ""  # request.get_header('app-param')
@@ -208,11 +215,17 @@ def sio_chan_post():
             # C.sio_debug and print("from sio_chan_post header: ", cat_value)
             # C.sio_debug and print("json-post-data: ", json_data)
             if not event_name in allow_post:
-                 print ('=== bad event === ', event_name )
+                 print ('=== bad event === ', event_name       )
                  print ( json_data  )
             else:
+                 #print (event_name)
+                 #print (data)
                  update_key= ev2update[event_name]
                  t_name = ev2table[event_name]
+                 #do_dict[ event_name ]( data.get('data'), t1='abc', update=update_key, t_name=t_name )
+                 #print ('do_event -----------')
+                 #print (update_key  )
+                 #print ( t_name  )
                  js_data = data.get('data')
                  if isinstance( js_data, list ):
                      do_event( *js_data,  update=update_key, t_name=t_name )
@@ -224,6 +237,13 @@ def sio_chan_post():
         print(sys.exc_info())
         return "bad"
 
+    # print ('ok post')
     return "ok"
+
+#To overwrite existing route you can 
+#@action('/route/to/overwrite',  overwrite=True)
+@action("/socket.io", overwrite=True)
+def socketio_txt():
+    return ''
 
 

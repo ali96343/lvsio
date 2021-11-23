@@ -15,7 +15,7 @@ from renoir import Renoir
 
 
 # --------------- global ------------------------------------------
-sio_debug = False
+sio_debug = True
 
 this_dir = os.path.dirname( os.path.abspath(__file__) )
 if not this_dir in sys.path:
