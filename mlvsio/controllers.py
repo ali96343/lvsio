@@ -5,6 +5,9 @@ from py4web.utils.form import Form, FormStyleBulma
 import copy
 
 
+# workers https://developers.refinitiv.com/en/article-catalog/article/how-implement-elektron-websocket-api-javascript-application-html-web-workers
+
+
 from .common import (
     db,
     session,
@@ -19,7 +22,8 @@ from .common import (
 
 
 from .settings import APP_NAME
-# import ombott  
+
+# import ombott
 
 import os, sys
 
@@ -41,15 +45,15 @@ html_vars = {
 }
 
 
-def read_db(tbl='my_tbl'):
-    rs = db( db[tbl] ).select()
-    print (rs)
-     
+def read_db(tbl="my_tbl"):
+    rs = db(db[tbl]).select()
+    print(rs)
 
-#read_db('Counter')
-#read_db('ImaSize')
-#read_db('Autocomplete')
-#read_db('Sliders')
+
+# read_db('Counter')
+# read_db('ImaSize')
+# read_db('Sliders')
+# read_db('Autocomplete')
 
 
 @unauthenticated("index", "index.html")
@@ -59,7 +63,7 @@ def index():
     actions = {"allowed_actions": auth.param.allowed_actions}
 
     menu = DIV(
-        P("test socketio, value from pydal to js-UI"),
+        P("test socketio, value from pydal to js-UI, pls run ./chan_sio"),
         DIV(
             A("js_image_resize", _role="button", _href=URL("js_image_resize",),),
             A("js_count", _role="button", _href=URL("js_count",),),
@@ -71,26 +75,27 @@ def index():
     return dict(message=message, actions=actions, menu=menu)
 
 
-
 # https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_autocomplete
+
 
 @action("js_autocomplete", method=["GET", "POST"])
 @action.uses(db, session, auth, T, "js-autocomplete.html")
 def js_autocomplete():
     t_vars = copy.deepcopy(html_vars)
-    tbl = 'Autocomplete'
-    countries = [ e.f0 for e in db( db[tbl] ).select()  ]
+    tbl = "Autocomplete"
+    countries = [e.f0 for e in db(db[tbl]).select()]
 
     f_autocomplete = Form(db[tbl], dbio=False, formstyle=FormStyleBulma)
     if f_autocomplete.accepted:
-        f0 = f_autocomplete.vars.get('f0' )
-        auth.flash.set(f'f0={f0}', sanitize=True)
-        #print (f'f0={f0}')
+        f0 = f_autocomplete.vars.get("f0")
+        auth.flash.set(f"f0={f0}", sanitize=True)
+        # print (f'f0={f0}')
     elif f_autocomplete.errors:
         print(f"f_autocomplete has errors: {f_autocomplete.errors}")
 
-    t_vars['tnm'] = tbl
+    t_vars["tnm"] = tbl
     return locals()
+
 
 @action("js_sliders", method=["GET", "POST"])
 @action.uses(db, session, T, "js-sliders.html")
@@ -99,77 +104,78 @@ def js_sliders():
 
     tbl = "Sliders"
     r = db(db[tbl].id == 1).select().first()
-    t_vars["slider1"] = r.f0 if r else 100 
-    t_vars["slider2"] = r.f1 if r else 0 
-    t_vars["txt1"] = r.f2 if r else '404' 
+    t_vars["slider1"] = r.f0 if r else 100
+    t_vars["slider2"] = r.f1 if r else 0
+    t_vars["txt1"] = r.f2 if r else "404"
 
-    flds =  [ e for e in  db[tbl].fields if e !='id' ] 
-    vars_list = [ db[tbl][1][e]  for e in  flds ]
-    t_vars["vars"] = json.dumps({ 'vars': vars_list  }  )
-    t_vars['_fi_'] = sys._getframe().f_code.co_name
+    flds = [e for e in db[tbl].fields if e != "id"]
+    vars_list = [db[tbl][1][e] for e in flds]
+    t_vars["vars"] = json.dumps({"vars": vars_list})
+    t_vars["_fi_"] = sys._getframe().f_code.co_name
     return locals()
 
 
-
-
 # ------------------------------------------------------------------------
+
 
 def str2type(s, dst_type):
 
-       #print ('=== dst_type: ',dst_type)
-       if dst_type == 'integer':
-           res = 0
-           try:
-               res = int(s)
-               if res < 0: 
-                    res = 0
-               if res > 100: 
-                    res = 100
-           except Exception as ex:
-               res = 0
-               print ('ex dst_type: ',ex)
-       elif dst_type == 'string':
-           res = ''
-           cut_len = 250
-           try:
-              res = (s[:cut_len] + '..') if s and len(s) > cut_len else s
-           except Exception as ex:
-               res = 'string 404!'
-               print (ex)
-       else:
-           res = 0
-           fname = sys._getframe().f_code.co_name
-           print (f'{fname}: unk type! {dst_type}')
-       return res
-            
+    if dst_type == "integer":
+        res = 0
+        try:
+            res = int(s)
+            if res < -100:
+                res = -100
+            if res > 100:
+                res = 100
+        except Exception as ex:
+            res = 0
+            print("ex dst_type: ", ex)
+    elif dst_type == "string":
+        res = ""
+        cut_len = 250
+        try:
+            res = (s[:cut_len] + "..") if s and len(s) > cut_len else s
+        except Exception as ex:
+            res = "string 404!"
+            print(ex)
+    else:
+        res = 0
+        fname = sys._getframe().f_code.co_name
+        print(f"{fname}: unk type! {dst_type}")
+    return res
+
+
 # ------------------------------------------------------------------------
 
+
 def do_event(*args, **kwargs):
-    # print ("do_event: ",  kwargs)
-    tbl = kwargs['t_name'] #'Counter'
+    tbl = kwargs["t_name"]  #'Counter'
 
-    flds =  [ e for e in  db[tbl].fields if e !='id' ]
-    ftypes =  [ db[tbl][e].type for e in  flds ]
+    flds = [e for e in db[tbl].fields if e != "id"]
+    ftypes = [db[tbl][e].type for e in flds]
 
-    #print ('---------- do_event ',args)
-    data_dict = { f'f{i}': str2type(e, ftypes[i])  for i, e in enumerate( args) }
+    data_dict = {f"f{i}": str2type(e, ftypes[i]) for i, e in enumerate(args)}
 
     db(db[tbl].id == 1).update(**db[tbl]._filter_fields(data_dict))
     db.commit()
 
-    vars_list =  [ db[tbl][1][e]  for e in  flds ]
+    vars_list = [db[tbl][1][e] for e in flds]
 
-    json_data = json.dumps({ 'vars': vars_list }  )
-    #print ( json_data )
-    #print ( kwargs['update'] )
-    r_mgr.emit(kwargs['update'], json_data, broadcast=True, include_self=False)
-    #r_mgr.emit(kwargs['update'], data_str, broadcast=True, include_self=False)
-    #r_mgr.emit('js_data', json_data, broadcast=True, include_self=False)
+    json_data = json.dumps({"vars": vars_list})
+    r_mgr.emit(kwargs["update"], json_data, broadcast=True, include_self=False)
 
 
-allow_post = { 'js_image_resize', 'js_count', 'js_sliders'  }
-ev2update = { 'js_image_resize': 'update_image', 'js_count': 'update_counter', 'js_sliders': 'update_sliders'  }
-ev2table = { 'js_image_resize': 'ImaSize', 'js_count': 'Counter', 'js_sliders': 'Sliders'  }
+# allow_post = { 'js_image_resize', 'js_count', 'js_sliders'  }
+# ev2update = { 'js_image_resize': 'update_image', 'js_count': 'update_counter', 'js_sliders': 'update_sliders'  }
+# ev2table = { 'js_image_resize': 'ImaSize', 'js_count': 'Counter', 'js_sliders': 'Sliders'  }
+
+
+event2data = {
+    "js_image_resize": ["update_image", "ImaSize"],
+    "js_count": ["update_counter", "Counter"],
+    "js_sliders": ["update_sliders", "Sliders"],
+}
 
 
 @action("js_image_resize", method=["GET", "POST"])
@@ -178,8 +184,8 @@ def js_image_resize():
     t_vars = copy.deepcopy(html_vars)
     tbl = "ImaSize"
     r = db(db[tbl].id == 1).select().first()
-    t_vars["value"] = r.f0 if r else 44 
-    t_vars['_fi_'] = sys._getframe().f_code.co_name
+    t_vars["value"] = r.f0 if r else 44
+    t_vars["_fi_"] = sys._getframe().f_code.co_name
     return locals()
 
 
@@ -189,12 +195,12 @@ def js_count():
     t_vars = copy.deepcopy(html_vars)
     tbl = "Counter"
     r = db(db[tbl].id == 1).select().first()
-    t_vars["value"] = r.f0 if r else 404 
-    t_vars['_fi_'] = sys._getframe().f_code.co_name
+    t_vars["value"] = r.f0 if r else 404
+    t_vars["_fi_"] = sys._getframe().f_code.co_name
     return locals()
 
 
-@action("sio_chan_post", method=["POST", ])
+@action("sio_chan_post", method=["POST",])
 @action.uses()
 def sio_chan_post():
 
@@ -204,33 +210,20 @@ def sio_chan_post():
         event_name = json_data["event_name"]
         room = json_data["room"]
         data = json_data["data"]
-        #print(event_name)
-        #if isinstance( data, dict  ) and 'data' in data :
-        #     data= data['data']
-        #     print('++++++++: ',data)
-            
+
         if json_data["broadcast_secret"] == C.POST_SECRET:
-            cat_value = ""  # request.get_header('app-param')
             cat_value = request.headers.get("app-param", "xxxxxxxx")
-            # C.sio_debug and print("from sio_chan_post header: ", cat_value)
-            # C.sio_debug and print("json-post-data: ", json_data)
-            if not event_name in allow_post:
-                 print ('=== bad event === ', event_name       )
-                 print ( json_data  )
+            if not event_name in event2data:
+                print("=== bad event === ", event_name)
+                print(json_data)
             else:
-                 #print (event_name)
-                 #print (data)
-                 update_key= ev2update[event_name]
-                 t_name = ev2table[event_name]
-                 #do_dict[ event_name ]( data.get('data'), t1='abc', update=update_key, t_name=t_name )
-                 #print ('do_event -----------')
-                 #print (update_key  )
-                 #print ( t_name  )
-                 js_data = data.get('data')
-                 if isinstance( js_data, list ):
-                     do_event( *js_data,  update=update_key, t_name=t_name )
-                 else:
-                     do_event( js_data,  update=update_key, t_name=t_name )
+                update_key = event2data[event_name][0]
+                t_name = event2data[event_name][1]
+                js_data = data.get("data")
+                if isinstance(js_data, list):
+                    do_event(*js_data, update=update_key, t_name=t_name)
+                else:
+                    do_event(js_data, update=update_key, t_name=t_name)
 
     except Exception as ex:
         print("ex! sio_chan_post: ", ex)
@@ -240,10 +233,9 @@ def sio_chan_post():
     # print ('ok post')
     return "ok"
 
-#To overwrite existing route you can 
-#@action('/route/to/overwrite',  overwrite=True)
+
+# To overwrite existing route you can
+# @action('/route/to/overwrite',  overwrite=True)
 @action("/socket.io", overwrite=True)
 def socketio_txt():
-    return ''
-
-
+    return ""

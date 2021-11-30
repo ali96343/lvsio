@@ -16,36 +16,49 @@ from pydal.validators import *
 #
 
 
-def mk_table(
-    tbl_name="my_tbl", fld_list=["integer", "integer"], init_value=[7, 7], ins_array=[]
-):
+class Mk_table:
 
-    fs = tuple([Field(f"f{i}", f"{e}", label=f"l{i}") for i, e in enumerate(fld_list)])
-    db.define_table(tbl_name, fs)
-    db.commit()
+    def __init__(self, tbl_name='my_tbl', fld_types=['integer','integer'], init_value=[100,100], ins_array=[] ):
+       self.tbl_name = tbl_name
+       self.fld_types = fld_types
+       self.init_value = init_value
+       self.f_names = [f"f{i}" for i, e in enumerate(self.fld_types)]
+       self.ins_array = ins_array
 
-    f_names = [f"f{i}" for i, e in enumerate(fld_list)]
-    if (not db(db[tbl_name]).count()) and len(init_value):
-        c = {f"f{i}": e for i, e in enumerate(init_value)}
-        db[tbl_name].insert(**db[tbl_name]._filter_fields(c))
-        db.commit()
 
-    elif (not db(db[tbl_name]).count()) and (len(init_value) == 0) and ins_array:
-        if (not isinstance(ins_array[0], (list, tuple))) and len(f_names) == 1:
-            c = dict()
-            for e in ins_array:
-                c[f_names[0]] = e
-                db[tbl_name].insert(**db[tbl_name]._filter_fields(c))
+    def is_table_empty(self,):
+        return True if not db(db[self.tbl_name]).count() else False
+
+    def ins_row(self,):
+       if  self.is_table_empty()   and len(self.init_value):
+            c = {f"f{i}": e for i, e in enumerate(self.init_value)}
+            db[self.tbl_name].insert(**db[self.tbl_name]._filter_fields(c))
             db.commit()
-        else:
-            sys.exit("unk if in models.mk_table")
 
-    return [e for e in db.tables]
+    def ins_list(self,):
+       if self.is_table_empty()   and len(self.ins_array):
+           for e in self.ins_array:
+                c = dict()
+                c[ self.f_names[0] ] = e
+                db[self.tbl_name].insert(**db[self.tbl_name]._filter_fields(c))
+           db.commit()
 
+    def create(self,):
+       fs = tuple([Field(f"f{i}", f"{e}", label=f"l{i}") for i, e in enumerate(self.fld_types)])
+       db.define_table(self.tbl_name, fs)
+       db.commit()
+    
+    @property
+    def do(self,):
+       self.create()
+       self.ins_row()
+       self.ins_list()
+       return [e for e in db.tables]
+    
 
-mk_table(tbl_name="ImaSize", fld_list=["integer",], init_value=[100])
-mk_table(tbl_name="Counter", fld_list=["integer",], init_value=[0])
-mk_table(tbl_name="Sliders", fld_list=["integer", "integer", "string"], init_value=[100, 100, 'hi!'])
+Mk_table(tbl_name="ImaSize", fld_types=["integer",], init_value=[100]).do
+Mk_table(tbl_name="Counter", fld_types=["integer",], init_value=[0]).do
+Mk_table(tbl_name="Sliders", fld_types=["integer", "integer", "string"], init_value=[100, 100, 'hi!']).do
 
 from .mcountries import countries
-mk_table(tbl_name="Autocomplete", fld_list=["string"], init_value=[], ins_array=countries)
+Mk_table(tbl_name="Autocomplete", fld_types=["string"], init_value=[], ins_array=countries).do
