@@ -1,0 +1,142 @@
+[[extend 'layout.html']]
+
+[[ block page_head ]]
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2PYF773PwAGewLSGezkXwAAAABJRU5ErkJggg=="/>
+<script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+<title>Counter</title>
+
+
+<style>
+
+body{
+    background: #F8F8F8;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+main{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#counter-board{
+    font-size: 30px;
+}
+
+
+
+</style>
+
+[[ end ]]
+
+<main>
+
+            <p id="id_status">disconnected! run chan_sio.py</p>
+            <!-- where the counter will be displayed-->
+            <p id="counter-board">?</p>
+        <!-- Button section -->
+        <section class="buttons-section">
+            <button id="increase-btn">Increase</button>
+            <button id="reset-btn">Reset</button>
+            <button id="decrease-btn">Decrease</button>
+        </section>
+
+</main>
+
+ <script> 
+ ! function (sio_url, init_value, fi) {
+
+            const socket = io.connect( sio_url );
+            const py_var = fi;
+            id_status = document.getElementById("id_status")
+                        id_status.innerHTML = 'run chan_sio.py!';
+                        id_status.style.color='red';
+
+            socket.on('connect', ()=> {
+                socket.emit('sync_connect', {data: 'hello from ' + py_var });
+                document.getElementById("id_status").innerHTML = 'connect, sio_channel=  ' + sio_url
+                id_status.style.color='blue';
+            });
+
+            socket.on('disconnect', ()=> {
+                document.getElementById("id_status").innerHTML = 'disconnect!'
+                id_status.style.color='red';
+            });
+
+
+            // if (typeof socket !== undefined || socket !== null) {
+
+            if (typeof socket != 'undefined' && socket) {
+        
+        
+                // variable holding the counter value
+                let counterValue = init_value ;
+                
+                // get the increase and decrease button
+                const incrementButton = document.getElementById("increase-btn");
+                const decrementButton = document.getElementById("decrease-btn");
+                const resetButton = document.getElementById("reset-btn");
+                
+                // function that increases the counter by 1
+                const increaseCounter = () =>{
+                    counterBoard.innerHTML = ++counterValue;
+                    socket.emit(fi, {data: counterBoard.innerHTML    });
+                }
+                
+                // function that decreases the counter by 1
+                const decreaseCounter = () =>{
+                    counterBoard.innerHTML = --counterValue;
+                    socket.emit(fi, {data: counterBoard.innerHTML  });
+                }
+                
+                const resetCounter = () =>{
+                    // Update the UI
+                    counterBoard.innerHTML = 0;
+                    // Update the variable container
+                    counterValue = 0;
+                    socket.emit(fi, {data: counterBoard.innerHTML    });
+                }
+                
+                
+                // get the counter board value
+                const counterBoard = document.getElementById("counter-board");
+                if ( counterBoard.innerHTML === '?' ) { counterBoard.innerHTML = init_value; };
+                
+                
+                // Add event listener to the buttons
+                incrementButton.addEventListener('click', increaseCounter);
+                decrementButton.addEventListener('click', decreaseCounter);
+                resetButton.addEventListener('click', resetCounter);
+
+
+                socket.on('update_counter', function(msg) {
+                    counterValue = JSON.parse(msg).vars[0] ;// msg;
+                    if ( counterBoard.innerHTML ) { counterBoard.innerHTML = counterValue; };
+                    // console.log('update_counter: ' + msg);
+                });
+
+                socket.on('js_data', function(msg) {
+                    console.log('!!! '+ JSON.parse(msg).vars);
+                });
+        
+          }else {
+           console.log("=== ", socket)
+          };      
+         
+ } ( "[[ = t_vars['sio_serv_url'] ]]" , [[=  t_vars['value'] ]] , "[[=  XML(t_vars['_fi_']) ]]" );
+                
+ </script>
+
+<script type="module">
+  import {appendDiv} from '../static/append-div.js'
+  // appendDiv('Hello from inline script')
+  // https://kentcdodds.com/blog/super-simple-start-to-es-modules-in-the-browser
+  //https://github.com/socketio/socket.io-admin-ui/
+</script>
+
+
+
+
+                
+                

@@ -3,3 +3,5 @@ uvicorn[standard]
 aioredis
 redis
 httpx
+sockjs-tornado
+
