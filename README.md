@@ -1,8 +1,12 @@
-## lvsio - py4web app
+## lvsio - py4web apps
 
-chan_sio.py - uvicorn channel server
+Inspired by flask-meld
+
+---------------------------------------------
 
 cp mlvsio to apps/
+
+( chan_sio.py - uvicorn channel server )
 
 cd apps/mlvsio && ./chan_sio.py
 
@@ -12,11 +16,13 @@ firefox localhost:8000/mlvsio
 
 ---------------------------------------------
 
-tlvsio is mlvsio with tornado-socketio and sockjs
+tlvsio is mlvsio with tornado-socketio and sockjs-example
 
 socketio events moved to wsservers.py
 
 copy tlvsio/wsservers.py to py4web/utils/wsservers.py
+
+( you can remove twisted and aiohttp  from the wsservers.py  )
 
 ./py4web.py  run -s  tornadoSioWsServer  apps --watch="off"
 
@@ -29,4 +35,4 @@ firefox localhost:8000/tlvsio
 
 -------------------------------------------------
 
-
+redis must be installed and running
