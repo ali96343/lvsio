@@ -2,6 +2,8 @@
 
 Inspired by flask-meld
 
+py4web with socketio examples
+
 ---------------------------------------------
 
 cp mlvsio to apps/
@@ -34,6 +36,8 @@ copy tlvsio/wsservers.py to py4web/utils/wsservers.py
 firefox localhost:8000/tlvsio
 
 -------------------------------------------------
+
+lvsio - demo for "how to post event to js_UI from py4web-controllers.py"
 
 cp lvsio to apps/
 
