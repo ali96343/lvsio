@@ -48,6 +48,7 @@ cd apps/lvsio && ./chan_3000.py
 run py4web
 
 firefox localhost:8000/lvsio
+
 ------------------------------------------------
 
 redis must be installed and running
