@@ -27,7 +27,17 @@ values = {
 PORT = 3000
 HOST = '127.0.0.1'
 SERV_APP_FILE = "chan_3000:app"
-P4W_APP =  __file__.replace('/./','/').split('/')[-1]
+
+this_dir = os.path.dirname( os.path.abspath(__file__) )
+#if not this_dir in sys.path:
+#    sys.path.insert(0,  this_dir )
+
+P4W_APP =  this_dir.split(os.sep)[-1]
+
+print ( '+++++++++++ ', P4W_APP )
+
+
+
 
 sio_debug and print(f"===: {SERV_APP_FILE}")
 post_url = f"http://127.0.0.1:8000/{P4W_APP}/from_uvicorn"
