@@ -34,18 +34,13 @@ this_dir = os.path.dirname( os.path.abspath(__file__) )
 
 P4W_APP =  this_dir.split(os.sep)[-1]
 
-print ( '+++++++++++ ', P4W_APP )
-
-
-
-
 sio_debug and print(f"===: {SERV_APP_FILE}")
 post_url = f"http://127.0.0.1:8000/{P4W_APP}/from_uvicorn"
 BROADCAST_SECRET = "123secret"
 
 # ----------------------------------------------------------------
 r_url = "redis://"
-r_mgr = socketio.AsyncRedisManager(r_url, write_only=False)
+r_mgr = socketio.AsyncRedisManager(r_url, channel=f'sio_chan_{P4W_APP}', write_only=False)
 sio = socketio.AsyncServer(
     async_mode="asgi",
     client_manager=r_mgr,
@@ -135,8 +130,8 @@ async def value_changed(sid, message):
     sio_debug and print(message)
     global values
     values[message["who"]] = message["data"]
-    await sio_event_post("sample-event", data="emit-data", room="some_room")
     await sio.emit("update_value", message, broadcast=True, include_self=False)
+    await sio_event_post("sample-event", data="emit-data", room="some_room")
     # await server.emit('update_value', message, broadcast=True, include_self=False)
 
 

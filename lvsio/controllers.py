@@ -14,13 +14,15 @@ from .common import (
     flash,
 )
 
+from .settings import APP_NAME
+
 
 # https://testdriven.io/blog/asynchronous-tasks-with-falcon-and-celery/
 
 
 import socketio
 r_url = 'redis://'
-r_mgr = socketio.RedisManager(r_url, write_only=True)
+r_mgr = socketio.RedisManager(r_url, channel=f'sio_chan_{APP_NAME}', write_only=True)
 
 
 @action("sio_pusher", method=["GET", "POST"])
