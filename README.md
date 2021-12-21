@@ -37,7 +37,7 @@ firefox localhost:8000/tlvsio
 
 -------------------------------------------------
 
-lvsio - demo for "how to post event to js_UI from py4web-controllers.py"
+lvsio - demo for "how to push event to js-UI from py4web-controllers.py"
 
 cp lvsio to apps/
 
