@@ -24,9 +24,13 @@ socketio events moved to wsservers.py
 
 copy tlvsio/wsservers.py to py4web/utils/wsservers.py
 
-( you can remove twisted and aiohttp  from the wsservers.py  )
+( you can remove twisted and aiohttp  from the wsservers.py, 
+  you need install packages from wsservers.py  )
 
 ./py4web.py  run -s  tornadoSioWsServer apps
+
+(If the py4web.py cannot find the server tornadoSioWsServer, 
+it means you have not installed all the packages from the file wsservers.py)
 
 ( do not run the file chan_sio.py )
 
