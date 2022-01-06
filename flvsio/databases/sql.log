@@ -1,0 +1,47 @@
+timestamp: 2021-12-08T14:48:36.816189
+CREATE TABLE "auth_user"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "username" CHAR(512) UNIQUE,
+    "email" CHAR(512) UNIQUE,
+    "password" CHAR(512),
+    "first_name" CHAR(512),
+    "last_name" CHAR(512),
+    "sso_id" CHAR(512),
+    "action_token" CHAR(512),
+    "last_password_change" TIMESTAMP,
+    "past_passwords_hash" TEXT
+);
+success!
+timestamp: 2021-12-08T14:48:36.828446
+CREATE TABLE "auth_user_tag_groups"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "path" CHAR(512),
+    "record_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE  
+);
+success!
+timestamp: 2021-12-08T14:48:36.845709
+CREATE TABLE "ImaSize"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "f0" INTEGER
+);
+success!
+timestamp: 2021-12-08T14:48:36.864368
+CREATE TABLE "Counter"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "f0" INTEGER
+);
+success!
+timestamp: 2021-12-08T14:48:36.882293
+CREATE TABLE "Sliders"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "f0" INTEGER,
+    "f1" INTEGER,
+    "f2" CHAR(512)
+);
+success!
+timestamp: 2021-12-08T14:48:36.902207
+CREATE TABLE "Autocomplete"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "f0" CHAR(512)
+);
+success!
