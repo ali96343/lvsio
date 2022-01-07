@@ -46,7 +46,7 @@ Note - the name of the application (flvsio) is used in the name of the
 redis-channel in the server file wsservers.py
 
 
-firefox localhost:8000/tlvsio
+firefox localhost:8000/flvsio
 
 -------------------------------------------------
 
