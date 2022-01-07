@@ -382,6 +382,18 @@ def tornadoSioWsServer():
     
 # ----------------------------------------------------------------
 
+
+# Echo the client's ID back to them when they connect.
+# io.on('connection', function(client) {
+#    client.emit('register', client.id);
+# });
+
+    @sio.event
+    async def connection(sid, environ):
+        sio_debug and print("sio: connect ", sid)
+        print ('+++ ',sid)
+
+
     @sio.event
     async def connect(sid, environ):
         sio_debug and print("sio: connect ", sid)
