@@ -58,6 +58,7 @@ class Mk_table:
         return [e for e in db.tables]
 
 
+Mk_table(tbl_name="Longtask", fld_types=["string",], init_value=['hello']).do
 Mk_table(tbl_name="ImaSize", fld_types=["integer",], init_value=[100]).do
 Mk_table(tbl_name="Counter", fld_types=["integer",], init_value=[0]).do
 Mk_table( tbl_name="Sliders", fld_types=["integer", "integer", "string"], init_value=[100, 100, "hi!"],).do

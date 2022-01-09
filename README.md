@@ -38,9 +38,6 @@ copy flvsio/wsservers.py to py4web/utils/wsservers.py
 (If the py4web.py cannot find the server tornadoSioWsServer, 
 it means you have not installed all the packages from the file wsservers.py)
 
-( do not run the file chan_sio.py )
-
-( the script does not use an additional port for socketio )
 
 Note - the name of the application (flvsio) is used in the name of the 
 redis-channel in the server file wsservers.py

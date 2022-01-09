@@ -93,12 +93,12 @@ def longtask():
     return locals()
 
 
-from .worker import mytask
+from .worker import longtask_mytask
 
 @action("longtask_run", method=["POST"])
 def longtask_run():
     clientid = request.forms.get('clientid')
-    mytask.delay(clientid=clientid)
+    longtask_mytask.delay(clientid=clientid)
     response.status= 202
     return f'clientid: {clientid}, running celery task...'
 

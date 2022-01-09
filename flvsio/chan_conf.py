@@ -25,6 +25,10 @@ sio_namespaces= ['/','/test','/chat']
 
 post_url = f"http://{p4w_host}:{p4w_port}/{P4W_APP}/sio_chan_post"
 
+#longtask_post = "http://localhost:8000/flvsio/longtask_notify"
+longtask_broker = "redis://localhost:6379/30"
+longtask_post = f"http://{p4w_host}:{p4w_port}/{P4W_APP}/longtask_notify"
+
 BROADCAST_SECRET = "71a30ce5d354bf38a303643212af3bf1d826821539331b091ce7e4218d83d35c"
 POST_SECRET = BROADCAST_SECRET 
 
