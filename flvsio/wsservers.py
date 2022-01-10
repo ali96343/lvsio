@@ -155,7 +155,7 @@ def tornadoSioWsServer():
 
     @sio.event
     async def connection(sid, environ):
-        sio_debug and print("sio: connect ", sid)
+        sio_debug and print("sio: connecttion ", sid)
         print ('+++ ',sid)
 
 
@@ -240,4 +240,34 @@ def tornadoSioWsServer():
     return TornadoSioWsServer
 
 # END TORNADO
+
+
+async def sio_event_post(event_name, data=None, room=None, post=True):
+
+    # https://zetcode.com/python/httpx/
+
+    json_data = {
+        "event_name": event_name,
+        "data": data,
+        "room": sio_room, #room,
+        "broadcast_secret": BROADCAST_SECRET,
+    }
+
+    headers = {'X-Custom': 'value'}
+
+    headers = {
+            'app-param': P4W_APP,
+            'content-type': "application/json",
+            'cache-control': "no-cache"
+    }
+
+
+    async with httpx.AsyncClient() as client:
+        r = await client.post(post_url, json=json_data, headers=headers)
+
+        if r.status_code != 200:
+            print(f"error! can not post to: {post_url}")
+
+
+
 
