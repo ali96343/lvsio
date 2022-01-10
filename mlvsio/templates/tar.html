@@ -1,0 +1,119 @@
+<HTML>
+<head>
+<title>Таракан!</title>
+</head>
+<body>
+
+<script>
+
+
+var imgWidth=32; var imgHeight=32; //размеры картинок
+var speed = 150; //задержка в мс для контроля скорости
+var step = 10; //шаг в пикселах
+var b=false; //нужна ли кнопка вкл/выкл
+var button_left = 10; var button_top = 10; //её абсолютные координаты
+var img_folder = "./"; //папка для картинок с '/' в конце пути
+
+var button = Array(); //массив картинок
+button[0]=new Image(); button[0].src=img_folder+"off.gif"; //картинки вкл/выкл
+button[1]=new Image(); button[1].src=img_folder+"on.gif";
+if (b) { //показать кнопку вкл/выкл
+ var text=
+  '<div align="center"><a href="javascript:showhideAnimation()"><img name="Button" src="'+
+  button[0].src+'" width="'+imgWidth+'" height="'+imgHeight+'" border="0" /></a></div>';
+   //код кнопки
+ document.writeln('<div id="FlyOnOff" '+
+  'style="position:absolute; visibility:show; pixelLeft:'+button_left+
+  'px; pixelTop:'+button_top+'px; z-index:0">'+text+'</div>');
+}
+
+//ниже - код для движения
+document.onmousemove=getMousePosition;
+
+var dotRadius=50; //радиус круга для беготни вокруг курсора мыши
+var dotAngle=0; //угол положения
+var dotDirection=1; //направление (1 - по часовой)
+var alpha; //угол по отношению к курсору мыши
+var mult; //флаг
+var picX = 20; var picY = 100; //картинкины координаты
+var mouseX = 0; var mouseY = 0; //мышиные координаты
+//загрузка картинок
+var img = Array();
+for (var i=-4; i<5; i++) if (i!=0) {
+ img[i]=new Image();
+ img[i].src=img_folder+i+'.gif';
+}
+//показать раздел для картинки
+document.writeln('<div id="FlyDiv" style="position:absolute">');
+document.writeln('<img name="pic" src="' + img[1].src + '"></div>');
+
+function display(direction) { //направление от -4 до 4 кроме 0
+ pic.src = img[direction].src;
+}
+
+function getMousePosition(e) {
+ mouseY= window.event.y + document.body.scrollTop;
+ mouseX= window.event.x + document.body.scrollLeft;
+}
+
+function calcNewPos() { //главное - вычисление позиции dot, куда идёт
+ var dotX=0; var dotY=0; //координаты
+ var dotSpeed; //абсолютная угловая скорость
+ var dist=Math.sqrt(Math.pow(mouseY-picY,2) + Math.pow(mouseX-picX,2));
+ dotSpeed=Math.PI/15;
+ dotAngle+=dotDirection*dotSpeed;
+ dotX=mouseX+dotRadius*Math.cos(dotAngle);
+ dotY=mouseY+dotRadius*Math.sin(dotAngle);
+ var arg = (dotY-picY) / (dotX-picX);
+ mult = (dotX - picX < 0) ? mult = -1 : 1;
+ alpha = Math.atan(arg);
+ var dx = mult * step * Math.cos(alpha);
+ var dy = mult * step * Math.sin(alpha);
+ picX += dx;
+ picY += dy;
+}
+
+function showhideAnimation() { //кнопка вкл/выкл
+ FlyDiv.style.visibility=="hidden" ? FlyDiv.style.visibility = "visible" :
+  FlyDiv.style.visibility = "hidden";
+ Button.src = FlyDiv.style.visibility=="hidden" ? button[1].src : button[0].src;
+}
+
+function moveMe() { //движение
+ calcNewPos();
+ FlyDiv.style.left = picX - pic.width / 2;
+ FlyDiv.style.top = picY - pic.height / 2;
+ alpha=-180*alpha/Math.PI;
+ alpha+=22.5;
+ var OK=0;
+ for(var i=0; (i<4)&& !OK; i++) {
+  if (alpha<-Math.PI+45*i) {
+   display(mult*(i+1));
+   OK=1;
+  }
+ }
+}
+
+function ChangeDotDirection() { //переключить направление
+ dotDirection=-dotDirection; dotAngle+=Math.PI;
+}
+
+//запуск системы
+setInterval('moveMe()', speed);
+setInterval('ChangeDotDirection()', speed*50);
+
+
+</script>
+<noscript>
+ <div align="center">Javascript</div>
+</noscript>
+
+<p>Какис, бякис, жукакис - пример наполнения страницы
+
+<p>Контент, жуент, содержимое зтесть
+
+<p><a href="http://blog.kislenko.net/show.php?id=1345" class="ablog">Описание и исходники</a>
+
+<p>Кнопка вкл/выкл анимацию в этом примере выключена, см. страницу статьи
+
+</body></HTML>

@@ -17,48 +17,51 @@ from pydal.validators import *
 
 
 class Mk_table:
-
-    def __init__(self, tbl_name='my_tbl', fld_types=['integer','integer'], init_value=[100,100], ins_array=[] ):
-       self.tbl_name = tbl_name
-       self.fld_types = fld_types
-       self.init_value = init_value
-       self.f_names = [f"f{i}" for i, e in enumerate(self.fld_types)]
-       self.ins_array = ins_array
-
-
-    def is_table_empty(self,):
-        return True if not db(db[self.tbl_name]).count() else False
+    def __init__(
+        self,
+        tbl_name="my_tbl",
+        fld_types=["integer", "integer"],
+        init_value=[100, 100],
+        init_array=[],
+    ):
+        self.tbl_name = tbl_name
+        self.fld_types = fld_types
+        self.init_value = init_value
+        self.f_names = [f"f{i}" for i, e in enumerate(self.fld_types)]
+        self.init_array = init_array
 
     def ins_row(self,):
-       if  self.is_table_empty()   and len(self.init_value):
+        if self.init_value:
             c = {f"f{i}": e for i, e in enumerate(self.init_value)}
             db[self.tbl_name].insert(**db[self.tbl_name]._filter_fields(c))
             db.commit()
 
-    def ins_list(self,):
-       if self.is_table_empty()   and len(self.ins_array):
-           for e in self.ins_array:
+    def ins_array(self,):
+        if self.init_array:
+            for e in self.init_array:
                 c = dict()
-                c[ self.f_names[0] ] = e
+                c[self.f_names[0]] = e
                 db[self.tbl_name].insert(**db[self.tbl_name]._filter_fields(c))
-           db.commit()
+            db.commit()
 
     def create(self,):
-       fs = tuple([Field(f"f{i}", f"{e}", label=f"l{i}") for i, e in enumerate(self.fld_types)])
-       db.define_table(self.tbl_name, fs)
-       db.commit()
-    
+        fs = [ Field(f"f{i}", f"{e}", label=f"l{i}") for i, e in enumerate(self.fld_types) ]
+        db.define_table(self.tbl_name, tuple(fs) )
+        db.commit()
+
     @property
     def do(self,):
-       self.create()
-       self.ins_row()
-       self.ins_list()
-       return [e for e in db.tables]
-    
+        self.create()
+        if not db(db[self.tbl_name]).count():
+                self.ins_row()
+                self.ins_array()
+        return [e for e in db.tables]
+
 
 Mk_table(tbl_name="ImaSize", fld_types=["integer",], init_value=[100]).do
 Mk_table(tbl_name="Counter", fld_types=["integer",], init_value=[0]).do
-Mk_table(tbl_name="Sliders", fld_types=["integer", "integer", "string"], init_value=[100, 100, 'hi!']).do
+Mk_table( tbl_name="Sliders", fld_types=["integer", "integer", "string"], init_value=[100, 100, "hi!"],).do
 
 from .mcountries import countries
-Mk_table(tbl_name="Autocomplete", fld_types=["string"], init_value=[], ins_array=countries).do
+
+Mk_table( tbl_name="Autocomplete", fld_types=["string"], init_value=[], init_array=countries).do

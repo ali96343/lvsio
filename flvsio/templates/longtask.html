@@ -64,7 +64,17 @@ body{
         at_end.textContent = result;
     });
 
+    del_info = () => {
+        for (const value of [resultElement, at_begin, at_end]) {
+               value.textContent = '';
+           }
+
+
+    };
+
     document.querySelector('button').onclick = function() {
+
+        del_info() ;
         const request = new XMLHttpRequest();
         request.open('POST', "[[ = t_vars['longtask_run_url'] ]]" , true);
         request.setRequestHeader(

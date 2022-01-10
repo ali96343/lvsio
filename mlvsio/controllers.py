@@ -32,6 +32,8 @@ import datetime
 import json
 from random import randrange
 
+TID = 1
+
 
 from . import chan_conf as C
 
@@ -50,10 +52,10 @@ def read_db(tbl="my_tbl"):
     print(rs)
 
 
-# read_db('Counter')
-# read_db('ImaSize')
-# read_db('Sliders')
-# read_db('Autocomplete')
+#read_db('Counter')
+#read_db('ImaSize')
+#read_db('Sliders')
+#read_db('Autocomplete')
 
 
 @unauthenticated("index", "index.html")
@@ -70,9 +72,19 @@ def index():
             A("js_autocomplete", _role="button", _href=URL("js_autocomplete",),),
             A("js_sliders", _role="button", _href=URL("js_sliders",),),
         ),
+    #   DIV(
+    #        A("tar", _role="button", _href=URL("tar",),),
+    #   ),
     )
 
     return dict(message=message, actions=actions, menu=menu)
+
+
+
+@action("tar", method=["GET", "POST"])
+#@action.uses(db, session, auth, T, "tar.html")
+def tar():
+    return locals()
 
 
 # https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_autocomplete
@@ -103,13 +115,13 @@ def js_sliders():
     t_vars = copy.deepcopy(html_vars)
 
     tbl = "Sliders"
-    r = db(db[tbl].id == 1).select().first()
+    r = db(db[tbl].id == TID).select().first()
     t_vars["slider1"] = r.f0 if r else 100
     t_vars["slider2"] = r.f1 if r else 0
     t_vars["txt1"] = r.f2 if r else "404"
 
     flds = [e for e in db[tbl].fields if e != "id"]
-    vars_list = [db[tbl][1][e] for e in flds]
+    vars_list = [db[tbl][TID][e] for e in flds]
     t_vars["vars"] = json.dumps({"vars": vars_list})
     t_vars["_fi_"] = sys._getframe().f_code.co_name
     return locals()
@@ -157,10 +169,10 @@ def do_event(*args, **kwargs):
 
     data_dict = {f"f{i}": str2type(e, ftypes[i]) for i, e in enumerate(args)}
 
-    db(db[tbl].id == 1).update(**db[tbl]._filter_fields(data_dict))
+    db(db[tbl].id == TID).update(**db[tbl]._filter_fields(data_dict))
     db.commit()
 
-    vars_list = [db[tbl][1][e] for e in flds]
+    vars_list = [db[tbl][TID][e] for e in flds]
 
     json_data = json.dumps({"vars": vars_list})
     r_mgr.emit(kwargs["update"], json_data, broadcast=True, include_self=False)
@@ -183,7 +195,7 @@ event2data = {
 def js_image_resize():
     t_vars = copy.deepcopy(html_vars)
     tbl = "ImaSize"
-    r = db(db[tbl].id == 1).select().first()
+    r = db(db[tbl].id == TID).select().first()
     t_vars["value"] = r.f0 if r else 44
     t_vars["_fi_"] = sys._getframe().f_code.co_name
     return locals()
@@ -194,7 +206,7 @@ def js_image_resize():
 def js_count():
     t_vars = copy.deepcopy(html_vars)
     tbl = "Counter"
-    r = db(db[tbl].id == 1).select().first()
+    r = db(db[tbl].id == TID).select().first()
     t_vars["value"] = r.f0 if r else 404
     t_vars["_fi_"] = sys._getframe().f_code.co_name
     return locals()

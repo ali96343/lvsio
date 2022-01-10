@@ -100,7 +100,7 @@ def longtask_run():
     clientid = request.forms.get('clientid')
     longtask_mytask.delay(clientid=clientid)
     response.status= 202
-    return f'clientid: {clientid}, running celery task...'
+    return f'clientid: {clientid}, running 5-sec-celery task...'
 
 @action("longtask_notify", method=["POST",])
 def longtask_notify():
