@@ -263,8 +263,8 @@ def sse_chat_home():
         <!doctype html>
         <title>sse_chat</title>
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-        <style>body { max-width: 500px; margin: auto; padding: 1em; background: black; color: #fff; font: 16px/1.6 menlo, monospace; }</style>
-        
+        <style>body { max-width: 500px; margin: auto; padding: 1em; background: black; color: #fff; font: 16px/1.6 menlo, monospace; } form { display: inline-block; //Or display: inline; } </style> 
+ 
          <form method="get" action="/%s/index">
              <button type="submit">menu</button>
          </form>
@@ -272,6 +272,7 @@ def sse_chat_home():
          <form method="get" action="/%s/session/clear">
              <button type="submit">del user</button>
          </form>
+
 
         <p><b>hi, %s!</b></p>
         <p>Message: <input id="in" /></p>
