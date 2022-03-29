@@ -1,0 +1,351 @@
+
+How Django uses metaclasses
+
+In this post I will explore Python metaclasses. There are many great posts out there explaining the mechanics and possible usages of metaclasses. Not many of them try to examine the actual usage in popular libraries though – so here’s a niche I will try to fill with this article. I’ve chosen Django as my test subject – it’s popular, uses metaclasses, and with 1.8 release just around the corner – there’s official support for model _meta api – so it might be a good moment to get some more insight into it’s mechanics.
+Extracting meta-information about Django metaclasses
+
+Let’s start with finding out what metaclasses are there in Django. A metaclass is a subclass of type or other metaclass – I’ve used this code to find all metaclasses in Django codebase:
+
+
+import os  
+import pyclbr  
+import collections
+
+
+def bfs_order(adj_list, start_node):  
+    if start_node not in adj_list:
+        return []
+    visited = collections.defaultdict(lambda: False)
+    queue = [start_node]
+    result = []
+    while queue:
+        current = queue.pop()
+        visited[current] = True
+        result.append((current, adj_list[current]))
+        for neighbor in adj_list[current]:
+            if not visited[neighbor]:
+                queue.append(neighbor)
+    return result
+
+
+def find_metaclasses_in_directory(dirname):  
+    class_hierachy = build_class_hierachy(dirname)
+    return bfs_order(class_hierachy, 'type')
+
+
+def build_class_hierachy(dirname):  
+    class_hierarchy = collections.defaultdict(list)
+
+    for dirpath, dirnames, filenames in os.walk(dirname):
+        for filename in filenames:
+            if filename.endswith(".py"):
+                class_infos = get_classes_in_file(os.path.join(dirpath, filename))
+                for class_name, parents in class_infos:
+                    for parent in parents:
+                        class_hierarchy[parent].append(class_name)
+    return class_hierarchy
+
+
+def get_classes_in_file(filepath):  
+    """
+    returns a pair of tuples (class_name,: string, parent_classes: list
+    needs a few workaround for pyclbr, which uses strings and class objects 
+    interchangeably
+    """
+    # we need to recreate the package/module name out of a given path
+    # which boils down to traversing directory tree and finding directories
+    # with __init__.py
+    path_root = os.path.dirname(filepath)
+    module_name_parts = [os.path.splitext(os.path.basename(filepath))[0]]
+    while True:
+        if not os.path.exists(os.path.join(path_root, '__init__.py')):
+            break
+        path_root, last_dir = os.path.split(path_root)
+        module_name_parts.append(last_dir)
+        if last_dir == '':
+            break
+    module_name = '.'.join(reversed(module_name_parts))
+
+    class_infos = pyclbr.readmodule(module_name, path=[path_root])
+
+    return [(
+        class_name, 
+        [super_class.name if hasattr(super_class, "name") else super_class 
+        for super_class in class_info.super]
+        )
+    for class_name, class_info in class_infos.items() 
+    if os.path.abspath(class_info.file) == os.path.abspath(filepath)]
+
+Pyclbr is a module which returns basic class information, without importing the actual module. Basically, we build a DAG linking all the classes and their subclasses, and then run a BFS starting from type.
+
+Here are the results of running this against latest 1.8 codebase:
+
+
+ [('type',
+  ['ModelBase',
+   'InstanceCheckMeta',
+   'SubfieldBase',
+   'MediaDefiningClass',
+   'RenameMethodsBase',
+   'FormMixinBase']),
+ ('FormMixinBase', []),
+ ('RenameMethodsBase', ['RenameFieldMethods', 'BaseMemcachedCacheMethods']),
+ ('BaseMemcachedCacheMethods', []),
+ ('RenameFieldMethods', []),
+ ('MediaDefiningClass', ['DeclarativeFieldsMetaclass']),
+ ('DeclarativeFieldsMetaclass', ['ModelFormMetaclass']),
+ ('ModelFormMetaclass', []),
+ ('SubfieldBase', []),
+ ('InstanceCheckMeta', []),
+ ('ModelBase', [])]
+
+Some of those metaclasses are intended for use by django app devs, some might
+be used internally though. Unfortunately, pyclbr does not expose metaclass
+information, so to find out metaclass usages I had a choice of using inspect,
+some low-level parsing mechanism, or… grep. Laziness being my greatest
+virtue, I chose the latter.
+
+Here’s the snippet used for finding metaclass usage in django codebase (unlike previous snippet which could be used with other codebases pretty safely, this one makes some assumption about the code structure, namely that all metaclasses are declared by adding six.withmetaclass)
+
+
+import subprocess  
+import re
+
+def find_metaclass_usages(dirpath):  
+    command = "ack -i --noheading "class .*six.with_metaclass.*:$" %s" % dirpath
+    output = subprocess.getoutput(command)
+    ack_match_pattern = "(?P.*):(?P.*):.*class"
+    " (?P.*)(six.with_metaclass((?P.*))):$"
+    ret = []
+    print(output)
+    for line in output.splitlines():
+        m = re.match(ack_match_pattern, line)
+        ret.append((m.group('classname'), m.group('bases').split(',')))
+    return ret
+
+And the results (against Django tag 1.8.a1, omitting tests):
+
+
+[('Model', ['ModelBase']),
+ ('EmptyQuerySet', ['InstanceCheckMeta']),
+ ('ModelForm', ['ModelFormMetaclass', ' BaseModelForm']),
+ ('Field', ['RenameFieldMethods', ' object']),
+ ('Form', ['DeclarativeFieldsMetaclass', ' BaseForm']),
+ ('Widget', ['MediaDefiningClass']),
+ ('BaseMemcachedCache', ['BaseMemcachedCacheMethods', ' BaseCache']),
+ ('FormMixin', ['FormMixinBase', ' ContextMixin']),
+ ('BaseModelAdmin', ['forms.MediaDefiningClass'])]
+
+We have 10 metaclasses declared in the code, and 9 usages of those (not including tests). Let’s start analyzing the results (19 usages to go):
+RenameMethodsBase, BaseMemcachedCacheMethods, BaseMemcachedCache, RenameFieldMethods, Field
+
+This is a pretty simple case, and a good example of metaclass usage.
+
+Here’s the whole definition of BaseMemcachedCacheMethods:
+
+
+class BaseMemcachedCacheMethods(RenameMethodsBase):  
+    renamed_methods = (
+        ('_get_memcache_timeout', 'get_backend_timeout', RemovedInDjango19Warning),
+    )
+
+The data-structure is self-explanatory – the purpose of this metaclass is to raise warnings in case of users defining or calling old method names in an API that is changing alongside releases. That’s exactly what RenameMethodsBase does – it goes through all bases in mro, warns if old method is defined, adds it if it’s not defined (wrapped so that every call also issues a warning) and that’s basically it. The RenameFieldMethods and Field is just another instance of this, with different methods renamed – Field class does not contain any additional metaclass magic except for the depreciation warning mechanism.
+
+14 usages to go.
+InstanceCheckMeta, EmptyQuerySet
+
+This is a pretty short usage, so I can paste the whole source:
+
+
+class InstanceCheckMeta(type):  
+    def __instancecheck__(self, instance):
+        return instance.query.is_empty()
+
+
+class EmptyQuerySet(six.with_metaclass(InstanceCheckMeta)):  
+    """
+    Marker class usable for checking if a queryset is empty by .none():
+        isinstance(qs.none(), EmptyQuerySet) -> True
+    """
+
+    def __init__(self, *args, **kwargs):
+        raise TypeError("EmptyQuerySet can't be instantiated")
+
+The rationale for this is to allow you to write isinstance(some_query_set, EmptyQuerySet) and this is the way to redefine isinstance as described in pep 3119. This must be done through metaclasses, as isinstance checks the class of it’s second argument for __instancecheck__ definition.
+
+12 usages to go
+MediaDefiningClass, Widget, BaseModelAdmin (and others)
+
+This mechanism is responsible for associating Assets with Forms and Widgets. If you read the documentation for this, it seems pretty odd, that defining a class inside a Form, or Widget could have any special effect. That’s where the metaclass steps in – scanning the class attributes for `Media1 attribute and assigning proper media property as a result.
+
+The Widget and BaseModelAdmin use the metaclass directly, It’s also used in forms (as they also might require additional media assets for rendering) – they have some additional meta behavior though, which will get covered next.
+
+9 usages to go
+DeclarativeFieldsMetaclass, ModelFormMetaclass, Form, ModelForm
+
+The purpose of those metaclasses is to gather all attributes which are subclasses of Field class (if you ever created a Django form, you are probably familiar with the declarative DSL used there) into declaredfields, and basefields attributes. The logic for gathering differs for Form and ModelForm (in model forms, the field information is also gathered from the
+inner class Meta, in a manner similar to media assets) – but it’s still a pretty basic attributes traversal.
+
+It’s interesting that the Form and ModelForm classes are actually empty:
+
+
+class ModelForm(six.with_metaclass(ModelFormMetaclass, BaseModelForm)):
+    pass
+
+They exist, so that application developers do not have to declare metaclass usage themselves. The handling of the logic related to fields is done by plain classes – BaseForm, and BaseModelForm, which have no idea how the fields were created in the first place – which is a nice example of separation of
+concerns. You could also try to create your own mechanism of populating fields, or subclass from BaseForm directly.
+
+5 usages to go
+SubfieldBase
+
+Previously used in creating custom fields – now deprecated, hence no usages in Django codebase (except for tests). It might also be the only metaclass programmers are instructed to use directly.
+
+4 usages to go
+FormMixinBase and FormMixin
+
+Turns out this is another depreciation warning use of metaclass – this time, it’s not method renaming, but method signature that is being deprecated. To be precise the getform method of FormMixin should have a default value for formclass argument – if it doesn’t have one – a method with the required signature is generated. The pattern of providing metaclasses for depreciation
+warnings is a clear one though – maybe a library of metaclasses for handling that could be extracted from Django or other libs.
+
+2 usages to go
+ModelBase and Model
+
+Finally, the last but not least – the ModelBase metaclass. The __new__ method alone is about 250 lines of code. Django models need to handle not only things seen previously like declarative Fields (the code from DeclarativeFieldsMetaclass is not reused) the Meta inner class, but also some more complex usages like abstract models, multi-table inheritance, proxy models and possibly a plethora of other usages I do not even know I don’t know about. The mechanics are similar to previously described usages though. Like forms, the distinction between gathering meta information and using it is also here – although the Model class does directly specify ModelBase as
+metaclass. A slightly new technique is generating unique types for each model – examples being DoesNotExist and MultipleObjectsReturned exceptions. Model managers are also set up in the metaclass. The most important field being set is _meta which, as the name promptly suggest, contains all meta
+information about the model, and as from Django 1.8 will be officially supported – you can read about the information retrievable from _meta field here.
+
+We’ve made it through all the metaclasses in the Django codebase.
+Conclusion
+
+To sum up, there are 2 basic usages of metaclasses in Django – the first is generally known – the DSL for specifying Forms and Models, and this is what most metaclass guides tell us – metaclasses are a way of creating DSLs, make our code more declarative. The second usage is protecting the framework user
+from making mistakes – deprecation warnings are usable when upgrading between Django versions or simply not being aware of API changes, which is a dynamically typed language can cause more problems if breaking changes are not noticed by library users – and though it is a lesser-known use, I think it is an interesting idea.
+
+Software Engineers - development team
+
+One more thought – I’ve started writing this article with little knowledge of metaclasses (I knew they existed) and as it turns out, understanding them by simply reading the code is not incredibly difficult (maybe except the ModelBase, but metaclasses or not, 250 loc methods are just difficult to
+comprehend) – so if you encounter metaclasses in code you have to hack on don’t turn your back just because you’ve heard it’s complex – probably it’s easier than you think.
+
+Hope you enjoyed the read. We hope you found this entry helpful.
+Let us know what you have learned!
+
+
+Share: IDEGO IDEGO
+Leave a Reply
+
+Your email address will not be published. Required fields are marked *
+
+Name *
+
+Email *
+
+Comment *
+
+cto - Chris Gibas
+
+Free 30-minute consultation with our CTO
+
+Chris Gibas - our CTO will be happy to discuss your project! Let's talk!
+Get a 30-minute free consultation
+More blog posts
+React.js – why is this technology beneficial for business?
+Idego
+
+Idego
+React.js – why is this technology beneficial for business?
+
+You have a one-in-a-million idea for a digital product, but you are not sure how to make it come true? You need to carefully design every aspect of it, select the appropriate tech stack and form a team of experienced developers and other experts that will help you with the details and programming. React.JS may be just the kind of […]
+Support for Ukraine
+
+Do we have a right to be surprised? Perhaps. Do we have an impact on the policy of states – both as individuals and as companies? It may seem to us that we don’t, and yet doing nothing is like agreeing to the aggression and Russian invasion on Ukraine. This post will be unusual, because it does not strictly relate […]
+Support for Ukraine
+Idego
+
+Idego
+Problems in software development: developers survey results
+Idego
+
+Idego
+Problems in software development: developers survey results
+
+Software development has never been a piece of cake. However, its dynamic evolution leads to more and more challenges that developers have to face. At Idego, we decided to inquire about the topic in order to answer the question: what are the biggest problems in software development in 2022? Follow the article to learn the latest insights provided by developers […]
+Artificial intelligence in the oil and gas industry
+
+All industries adopt new technologies to operate more efficiently and get ahead of the competition. The oil and gas market is no different. There are multiple applications of artificial intelligence in the oil and gas industry. AI can not only improve the way you manage your business but also simplify day-to-day work on production. Read our article, to learn more.  […]
+Artificial intelligence in the oil and gas industry
+Idego
+
+Idego
+
+Get a free estimation
+
+Need a successful project?
+Contact us
+Let's talk!
+or fill out the contact form
+
+Home
+
+Case Studies
+
+Technology
+
+About
+
+Blog
+
+Contact
+
+Services:
+
+    IT Staff Augmentation
+    Dedicated Teams
+    Python Development
+    Make Your MVP
+    Custom Web App Development
+    Front-end Development
+    Back-end Development
+    Software Development Outsourcing
+    Artificial Intelligence
+    Machine Learning
+    Blockchain
+    Cloud Architecture
+    High Load Solutions
+    Software House
+    IoT
+    Website Development
+    Design Sprint
+    UX/UI
+
+Custom Software Development Company
+
+Contact us: info@idego.io
+
+Germany, Berlin
+
+Chris Gibas
+
++48 501 029 448
+Call me on WhatsApp
+
+Prinzessinnenstrasse 19-20 | 10969 Berlin
+
+USA, Durham
+
++1 (323) 870-6616
+Call me on WhatsApp
+
+800 Park Offices Drive, Morrisville | NC 27709
+
+Poland, Gdynia
+
++48 509 775 077
+Call me on WhatsApp
+
+Al. Zwycięstwa 96/98 | 81-451 Gdynia
+
+Local Services
+
+Privacy Policy
+
+© Idego Group
+
+

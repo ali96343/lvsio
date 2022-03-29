@@ -1,0 +1,16 @@
+[[extend 'layout.html']]
+
+<pre id="output"></pre>
+<script>
+    const output = document.getElementById('output');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '[[=stream_url ]]');
+    xhr.send();
+
+    setInterval(function() {
+        output.textContent = xhr.responseText;
+    }, 1000);
+</script>
+
+

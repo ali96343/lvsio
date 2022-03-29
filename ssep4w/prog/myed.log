@@ -1,0 +1,258 @@
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/thr01.py
+    strlen=25
+     -7:    from threading import Thread
+     +7:    from XXXXX import Thread
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/thr01.py
+    strlen=25
+     -149:    # https://aaronlelevier.github.io/multithreading-in-python/
+     +149:    # https://aaronlelevier.github.io/multiXXXXX-in-python/
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/README.md
+    strlen=70
+     -6:    **Over 70 recipes to solve challenges in multithreading and distributed system with Python 3**
+     +6:    **Over 70 recipes to solve challenges in multiXXXXX and distributed system with Python 3**
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter01/thread_and_processes.py
+    strlen=19
+     -2:    import threading
+     +2:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter01/thread_and_processes.py
+    strlen=19
+     -26:    thread = threading.Thread(target=do_something(size, out_list))
+     +26:    thread = XXXXX.Thread(target=do_something(size, out_list))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter01/thread_and_processes.py
+    strlen=19
+     -36:    print("threading time=", end_time - start_time)
+     +36:    print("XXXXX time=", end_time - start_time)
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter01/multithreading_test.py
+    strlen=22
+     -2:    import threading
+     +2:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter01/multithreading_test.py
+    strlen=22
+     -11:    thread = threading.Thread(target=do_something(size, out_list))
+     +11:    thread = XXXXX.Thread(target=do_something(size, out_list))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter01/multithreading_test.py
+    strlen=22
+     -22:    print("multithreading time=", end_time - start_time)
+     +22:    print("multiXXXXX time=", end_time - start_time)
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Threading_with_queue.py
+    strlen=20
+     -2:    from threading import Thread
+     +2:    from XXXXX import Thread
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/MyThreadClass_lock_2.py
+    strlen=23
+     -0:    import threading
+     +0:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/MyThreadClass_lock_2.py
+    strlen=23
+     -3:    from threading import Thread
+     +3:    from XXXXX import Thread
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/MyThreadClass_lock_2.py
+    strlen=23
+     -7:    threadLock = threading.Lock()
+     +7:    threadLock = XXXXX.Lock()
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Semaphore.py
+    strlen=19
+     -1:    import threading
+     +1:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Semaphore.py
+    strlen=19
+     -9:    semaphore = threading.Semaphore(0)
+     +9:    semaphore = XXXXX.Semaphore(0)
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Semaphore.py
+    strlen=19
+     -29:    t1 = threading.Thread(target=consumer)
+     +29:    t1 = XXXXX.Thread(target=consumer)
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Semaphore.py
+    strlen=19
+     -30:    t2 = threading.Thread(target=producer)
+     +30:    t2 = XXXXX.Thread(target=producer)
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Condition.py
+    strlen=21
+     -1:    import threading
+     +1:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Condition.py
+    strlen=21
+     -8:    condition = threading.Condition()
+     +8:    condition = XXXXX.Condition()
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Condition.py
+    strlen=21
+     -11:    class Consumer(threading.Thread):
+     +11:    class Consumer(XXXXX.Thread):
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Condition.py
+    strlen=21
+     -34:    class Producer(threading.Thread):
+     +34:    class Producer(XXXXX.Thread):
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -0:    import threading
+     +0:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -4:    print (threading.currentThread().getName()+str('--> starting \n'))
+     +4:    print (XXXXX.currentThread().getName()+str('--> starting \n'))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -6:    print (threading.currentThread().getName()+str( '--> exiting \n'))
+     +6:    print (XXXXX.currentThread().getName()+str( '--> exiting \n'))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -10:    print (threading.currentThread().getName()+str('--> starting \n'))
+     +10:    print (XXXXX.currentThread().getName()+str('--> starting \n'))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -12:    print (threading.currentThread().getName()+str( '--> exiting \n'))
+     +12:    print (XXXXX.currentThread().getName()+str( '--> exiting \n'))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -16:    print (threading.currentThread().getName()+str('--> starting \n'))
+     +16:    print (XXXXX.currentThread().getName()+str('--> starting \n'))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -18:    print (threading.currentThread().getName()+str( '--> exiting \n'))
+     +18:    print (XXXXX.currentThread().getName()+str( '--> exiting \n'))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -24:    t1 = threading.Thread(name='function_A', target=function_A)
+     +24:    t1 = XXXXX.Thread(name='function_A', target=function_A)
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -25:    t2 = threading.Thread(name='function_B', target=function_B)
+     +25:    t2 = XXXXX.Thread(name='function_B', target=function_B)
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_determine.py
+    strlen=26
+     -26:    t3 = threading.Thread(name='function_C',target=function_C) 
+     +26:    t3 = XXXXX.Thread(name='function_C',target=function_C) 
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Event.py
+    strlen=24
+     -1:    import threading
+     +1:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Event.py
+    strlen=24
+     -9:    event = threading.Event()
+     +9:    event = XXXXX.Event()
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Event.py
+    strlen=24
+     -12:    class Consumer(threading.Thread):
+     +12:    class Consumer(XXXXX.Thread):
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Event.py
+    strlen=24
+     -24:    class Producer(threading.Thread):
+     +24:    class Producer(XXXXX.Thread):
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_name_and_processes.py
+    strlen=16
+     -0:    from threading import Thread
+     +0:    from XXXXX import Thread
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/MyThreadClass_lock.py
+    strlen=23
+     -0:    import threading
+     +0:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/MyThreadClass_lock.py
+    strlen=23
+     -3:    from threading import Thread
+     +3:    from XXXXX import Thread
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/MyThreadClass_lock.py
+    strlen=23
+     -7:    threadLock = threading.Lock()
+     +7:    threadLock = XXXXX.Lock()
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/MyThreadClass.py
+    strlen=23
+     -3:    from threading import Thread
+     +3:    from XXXXX import Thread
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Barrier.py
+    strlen=23
+     -1:    from threading import Barrier, Thread
+     +1:    from XXXXX import Barrier, Thread
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Rlock.py
+    strlen=19
+     -0:    import threading
+     +0:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Rlock.py
+    strlen=19
+     -7:    self.lock = threading.RLock()
+     +7:    self.lock = XXXXX.RLock()
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Rlock.py
+    strlen=19
+     -45:    t1 = threading.Thread(target=adder, \
+     +45:    t1 = XXXXX.Thread(target=adder, \
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Rlock.py
+    strlen=19
+     -47:    t2 = threading.Thread(target=remover, \
+     +47:    t2 = XXXXX.Thread(target=remover, \
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_definition.py
+    strlen=19
+     -0:    import threading
+     +0:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter02/Thread_definition.py
+    strlen=19
+     -10:    t = threading.Thread(target=my_func, args=(i,))
+     +10:    t = XXXXX.Thread(target=my_func, args=(i,))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter09/codes chapter 9 debug and test/rpdb_code_example.py
+    strlen=19
+     -0:    import threading
+     +0:    import XXXXX
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter09/codes chapter 9 debug and test/rpdb_code_example.py
+    strlen=19
+     -12:    t = threading.Thread(target=my_func, args=(i,))
+     +12:    t = XXXXX.Thread(target=my_func, args=(i,))
+
+/home/w3p/set6-py39/py4web/apps/mod-htmx/prog/Python-Parallel-Programming-Cookbook-Second-Edition/Chapter09/codes chapter 9 debug and test/winpdb_reborn_code_example.py
+    strlen=20
+     -3:    from threading import Thread
+     +3:    from XXXXX import Thread
+
+  ---------------------------- work_dir: /home/w3p/set6-py39/py4web/apps/mod-htmx/prog --------------
+
+ find: threading
+ replace: XXXXX
+
+ extensions_tuple: ('.md', '.un', '.js', '.jsx', '.py', '.html', '.css', '.ts', '.tsx', '.sh', '.vue', '.scss', '.json')
+ view_only: True
+ found_in_files: 50

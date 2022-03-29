@@ -1,0 +1,45 @@
+[[extend 'layout.html']]
+
+<p>This is the latest output: <span id="latest"></span></p>
+<!-- p>This is all the output:</p --->
+<p id="output">This is all the outpu: </p>
+
+<script>
+    const latest = document.getElementById('latest');
+    const output = document.getElementById('output');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '[[=stream_url]]');
+    xhr.send();
+    let position = 0;
+    function handleNewData() {
+        // the response text include the entire response so far
+        // split the messages, then take the messages that haven't been handled yet
+        // position tracks how many messages have been handled
+        // messages end with a newline, so split will always show one extra empty message at the end
+        let messages = xhr.responseText.split('\n');
+        messages.slice(position, -1).forEach(function(value) {
+            latest.textContent = value;  // update the latest value in place
+            // build and append a new item to a list to log all output
+            //let item = document.createElement('li');
+            //item.textContent = value;
+            //output.appendChild(item);
+            let item = document.createTextNode("This just got added");
+            item.textContent = value+ ', ';
+            output.appendChild(item);
+        });
+        position = messages.length - 1;
+    }
+
+   let timer;
+    timer = setInterval(function() {
+        // check the response for new data
+        handleNewData();
+        // stop checking once the response has ended
+        if (xhr.readyState == XMLHttpRequest.DONE) {
+            clearInterval(timer);
+            latest.textContent = 'Done';
+        }
+    }, 1000);
+</script>
+

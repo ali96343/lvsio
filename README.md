@@ -1,5 +1,24 @@
 ## lvsio - py4web apps
 
+---------------------------------------------
+ssep4w - experiment with sse (py4web + rocket3)
+
+used code from :
+
+https://github.com/jakubroztocil/chat/blob/master/app.py
+
+https://gist.github.com/platdrag/e755f3947552804c42633a99ffd325d4
+
+https://maxhalford.github.io/blog/flask-sse-no-deps/
+
+https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
+
+
+
+
+---------------------------------------------
+
+
 Inspired by flask-meld
 
 py4web with socketio examples
