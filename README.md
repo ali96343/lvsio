@@ -1,7 +1,7 @@
 ## lvsio - py4web apps
 
 ---------------------------------------------
-ssep4w - experiment with sse (py4web + rocket3)
+ssep4w - experiment with sse (py4web with rocket3)
 
 used code from :
 

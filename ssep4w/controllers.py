@@ -44,7 +44,8 @@ def stream_data():
 @action.uses(db, session, auth, T, CORS(),"stream.html")
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream():
-    stream_url='http://127.0.0.1:8000/%s/stream_data' % APP_NAME
+    stream_url='/%s/stream_data' % APP_NAME
+    #stream_url='http://127.0.0.1:8000/%s/stream_data' % APP_NAME
     return locals() 
     #, mimetype="text/plain")
 
@@ -69,7 +70,8 @@ def stream_log_data():
 @action.uses(db, session, auth, T, CORS(),"stream_log.html")
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream_log():
-    stream_url='http://127.0.0.1:8000/%s/stream_log_data' % APP_NAME
+    stream_url='/%s/stream_log_data' % APP_NAME
+    #stream_url='http://127.0.0.1:8000/%s/stream_log_data' % APP_NAME
     return locals()
 
 # --------------------------------------------------------------
@@ -269,8 +271,8 @@ def sse_chat_home():
         <pre id="out"></pre>
         <script>
             function sse() {
-                var source = new EventSource("/%s/sse_chat_stream");
-                var out = document.getElementById('out');
+                const source = new EventSource("/%s/sse_chat_stream");
+                const out = document.getElementById('out');
                 source.onmessage = function(e) {
                     // XSS in chat is fun (let's prevent that)
                     out.textContent =  e.data + '\\n' + out.textContent;
