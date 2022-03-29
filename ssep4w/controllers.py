@@ -44,7 +44,7 @@ def stream_data():
 @action.uses(db, session, auth, T, CORS(),"stream.html")
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream():
-    stream_url='http://127.0.0.1:8000/mod-htmx/stream_data'
+    stream_url='http://127.0.0.1:8000/%s/stream_data' % APP_NAME
     return locals() 
     #, mimetype="text/plain")
 
@@ -69,7 +69,7 @@ def stream_log_data():
 @action.uses(db, session, auth, T, CORS(),"stream_log.html")
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream_log():
-    stream_url='http://127.0.0.1:8000/mod-htmx/stream_log_data'
+    stream_url='http://127.0.0.1:8000/%s/stream_log_data' % APP_NAME
     return locals()
 
 # --------------------------------------------------------------
