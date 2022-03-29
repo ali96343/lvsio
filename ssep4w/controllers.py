@@ -269,6 +269,10 @@ def sse_chat_home():
              <button type="submit">menu</button>
          </form>
 
+         <form method="get" action="/%s/session/clear">
+             <button type="submit">del user</button>
+         </form>
+
         <p><b>hi, %s!</b></p>
         <p>Message: <input id="in" /></p>
         <pre id="out"></pre>
@@ -289,7 +293,7 @@ def sse_chat_home():
             });
             sse();
         </script>
-    """ %  ( APP_NAME, sse_chat_user, APP_NAME, APP_NAME )   #flask.session['user']
+    """ %  ( APP_NAME, APP_NAME, sse_chat_user, APP_NAME, APP_NAME )   #flask.session['user']
 
 
 @action("session/clear")
