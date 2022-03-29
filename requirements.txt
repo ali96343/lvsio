@@ -4,4 +4,5 @@ aioredis
 redis
 httpx
 sockjs-tornado
+sseclient
 

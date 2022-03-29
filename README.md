@@ -14,6 +14,12 @@ https://maxhalford.github.io/blog/flask-sse-no-deps/
 https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 
 
+tips: run the backgrounder sse task with 
+
+./sse-listen in the same terminal and 
+
+./sse-emit-ping in another terminal
+
 
 
 ---------------------------------------------

@@ -224,10 +224,8 @@ def sse_chat_stream():
 @action.uses( session,  CORS())
 def sse_chat_login():
     if request.method == 'POST':
-        print ('!!!!!! post')
         session['sse_chat_user'] = request.forms.get("sse_chat_user")
         print ( session['sse_chat_user']  )
-        print ( request.forms.get("name")  )
         redirect(URL('sse_chat_home'))
     #if flask.request.method == 'POST':
     #    flask.session['user'] = flask.request.form['user']
@@ -247,7 +245,7 @@ def sse_chat_post():
     now = datetime.datetime.now().replace(microsecond=0).time()
     red.publish('sse_chat_chat', u'[%s] %s: %s' % (now.isoformat(), user, message))
     response.status = 204
-    return 'Xresponse' #flask.Response(status=204)
+    return '204_response' #flask.Response(status=204)
 
 
 
@@ -263,9 +261,14 @@ def sse_chat_home():
         redirect(URL("sse_chat_login"))
     return """
         <!doctype html>
-        <title>chat</title>
+        <title>sse_chat</title>
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
         <style>body { max-width: 500px; margin: auto; padding: 1em; background: black; color: #fff; font: 16px/1.6 menlo, monospace; }</style>
+        
+         <form method="get" action="/%s/index">
+             <button type="submit">menu</button>
+         </form>
+
         <p><b>hi, %s!</b></p>
         <p>Message: <input id="in" /></p>
         <pre id="out"></pre>
@@ -286,7 +289,7 @@ def sse_chat_home():
             });
             sse();
         </script>
-    """ %  ( sse_chat_user, APP_NAME, APP_NAME )   #flask.session['user']
+    """ %  ( APP_NAME, sse_chat_user, APP_NAME, APP_NAME )   #flask.session['user']
 
 
 @action("session/clear")
