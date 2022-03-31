@@ -15,6 +15,56 @@ from .common import (
 from .settings import APP_NAME
 import logging, os, sys
 
+from math import sqrt
+from time import sleep
+import datetime
+import redis
+import json
+import random
+import threading
+
+#
+# https://github.com/ali96343/lvsio
+#
+
+# ---------------------------------------------------------------------------
+
+# https://gist.github.com/platdrag/e755f3947552804c42633a99ffd325d4
+
+"""
+    A generic iterator and generator that takes any iterator and wrap it to make it thread safe.
+    This method was introducted by Anand Chitipothu in http://anandology.com/blog/using-iterators-and-generators/
+    but was not compatible with python 3. This modified version is now compatible and works both in python 2.8 and 3.0
+"""
+
+class threadsafe_iter:
+    """Takes an iterator/generator and makes it thread-safe by
+    serializing call to the `next` method of given iterator/generator.
+    """
+
+    def __init__(self, it):
+        self.it = it
+        self.lock = threading.Lock()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        with self.lock:
+            return self.it.__next__()
+
+def threadsafe_generator(f):
+    """A decorator that takes a generator function and makes it thread-safe.
+    """
+
+    def g(*a, **kw):
+        return threadsafe_iter(f(*a, **kw))
+
+    return g
+
+# -----------------------------------------------------------------------------
+
+
 
 @action("index")
 @action.uses("index.html", auth)
@@ -46,18 +96,69 @@ def index():
 
 # ------------------- task 1 : sqrt numbers ------------------------------------
 
-from math import sqrt
-from time import sleep
+# http://unixnme.blogspot.com/2017/10/thread-safe-generators-in-python.html
+
+@threadsafe_generator
+def simple_generator(n):
+    result = 1
+    while True:
+        if result >= n:
+            result = 1
+        yield result
+        result += 1
+
+
+gen = simple_generator(100)
+
+
+def read_db(tbl="my_tbl"):
+    rs = db(db[tbl]).select()
+    print(rs)
+
+
+read_db('sse_tmp_value')
 
 
 @action("stream_data", method=["GET", "POST"])
 @action.uses(db, session, auth, T, CORS())
 def stream_data():
+
+    tbl = 'sse_tmp_value'
+
     @threadsafe_generator
     def generate():
+
+        some_id = next(gen)
+        print (some_id)
+
+
         for i in range(100):
-            yield "{:.2f}\n".format(sqrt(i))
+
+            data_dict= {'f0': i }
+        
+            try:
+                rx = db(db[tbl].id == some_id).select().first()
+                if rx:
+                     #db(db[tbl].id == some_id ).update (**db[tbl]._filter_fields(data_dict))
+                     ret = db( db[tbl].id == some_id ).validate_and_update(**data_dict)
+                else:
+                     some_id = db[tbl].insert(**db[tbl]._filter_fields(data_dict))
+                     
+                #db(db[tbl].id == some_id ).update (f0 = i)
+                db.commit()
+            except Exception as e:
+                print (e)
+            r = db(db[tbl].id == some_id).select().first()
+            print (r)
+            yield "{:.2f}\n".format(sqrt( r['f0'] ))
+            #yield "{:.2f}\n".format(sqrt(i))
+            try:
+                db(db[tbl].id == some_id ).update (f0 = 99999999999999999)
+                db.commit()
+            except Exception as e:
+                print (e)
             sleep(1)
+
     return generate()
 
 
@@ -66,6 +167,7 @@ def stream_data():
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream():
     stream_url = "/%s/stream_data" % APP_NAME
+    menu_url = "/%s/index" % APP_NAME
     return locals()
 
 
@@ -101,44 +203,6 @@ def stream_log():
 # LOG_FILE = 'app.log'
 # log = logging.getLogger('__name__')
 # logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG)
-
-
-# https://gist.github.com/platdrag/e755f3947552804c42633a99ffd325d4
-import threading
-
-"""
-    A generic iterator and generator that takes any iterator and wrap it to make it thread safe.
-    This method was introducted by Anand Chitipothu in http://anandology.com/blog/using-iterators-and-generators/
-    but was not compatible with python 3. This modified version is now compatible and works both in python 2.8 and 3.0 
-"""
-
-
-class threadsafe_iter:
-    """Takes an iterator/generator and makes it thread-safe by
-    serializing call to the `next` method of given iterator/generator.
-    """
-
-    def __init__(self, it):
-        self.it = it
-        self.lock = threading.Lock()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        with self.lock:
-            return self.it.__next__()
-
-
-def threadsafe_generator(f):
-    """A decorator that takes a generator function and makes it thread-safe.
-    """
-
-    def g(*a, **kw):
-        return threadsafe_iter(f(*a, **kw))
-
-    return g
-
 
 # ------------------------ task 3:  flask-sse-no-deps  -----------------------
 # https://maxhalford.github.io/blog/flask-sse-no-deps/
@@ -204,8 +268,6 @@ def listen():
 # https://stackoverflow.com/questions/12232304/how-to-implement-server-push-in-flask-framework
 
 
-import datetime
-import redis
 
 
 red = redis.StrictRedis()
@@ -250,6 +312,8 @@ def YYYsse_chat_event_stream():
                 if message["data"] == '!!!stop!!!':
                      break
                 yield "data: %s\n\n" % message["data"].decode("utf-8")
+        else:
+           print ('while !!!stop!!!')
 
     except GeneratorExit:
         print("CLOSED-1!")
@@ -416,10 +480,6 @@ def pubsub_root():
 # ----------------------------------- task 6: chart -----------------------------------
 # https://ron.sh/creating-real-time-charts-with-flask/
 
-import json
-import random
-import time
-from datetime import datetime
 
 @action("chart_data", method=["GET", "POST"])
 @action.uses(session, CORS())
@@ -428,10 +488,10 @@ def chart_data():
     def generate_random_data():
         while True:
             json_data = json.dumps(
-                {'time': datetime.now().strftime('%d.%m.%y %H:%M:%S'), 'value': random.random() * 100})
+                {'time': datetime.datetime.now().strftime('%d.%m.%y %H:%M:%S'), 'value': random.random() * 100})
             #print ( json_data  )
             yield f"data:{json_data}\n\n"
-            time.sleep(1)
+            sleep(1)
 
     #response = Response(stream_with_context(generate_random_data()), mimetype="text/event-stream")
     response.headers["Content-Type"] = "text/event-stream"
@@ -444,6 +504,7 @@ def chart_data():
 @action.uses( "sse_chart.html", db, session, auth, T, CORS(), )
 def sse_chart():
     stream_url = "/%s/chart_data" % APP_NAME
+    menu_url = "/%s/index" % APP_NAME
     return locals()
 
 # ------------------------------ task7: 
@@ -458,8 +519,8 @@ def progress_data():
         
         while x <= 100:
             yield "data:" + str(x) + "\n\n"
-            x = x + 10
-            time.sleep(0.9)
+            x += 10
+            sleep(0.9)
 
     response.headers["Content-Type"] = "text/event-stream"
     response.headers["Cache-Control"] = "no-cache"
@@ -471,6 +532,7 @@ def progress_data():
 @action.uses( "sse_progress.html", db, session, auth, T, CORS(), )
 def sse_progress():
     progress_url = "/%s/progress_data" % APP_NAME
+    menu_url = "/%s/index" % APP_NAME
     return locals()
 
 
