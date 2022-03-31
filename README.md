@@ -3,7 +3,11 @@
 ---------------------------------------------
 ssep4w - experiment with sse (py4web with rocket3)
 
-used code from :
+sse examples from:
+
+https://github.com/djdmorrison/flask-progress-example
+
+https://ron.sh/creating-real-time-charts-with-flask/
 
 https://github.com/jakubroztocil/chat/blob/master/app.py
 

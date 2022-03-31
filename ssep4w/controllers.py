@@ -32,9 +32,13 @@ def index():
             A("sse_chat_home", _role="button", _href=URL("sse_chat_home",),),
             A("user_clear", _role="button", _href=URL("sse_chat_user_clear",),),
         ),
-        #DIV( this task does not work, need fix
+        #DIV( # this task does not work, need fix
         #    A("pubsub_root", _role="button", _href=URL("pubsub_root",),),
         #),
+        DIV( 
+            A("sse_chart", _role="button", _href=URL("sse_chart",),),
+            A("sse_progress", _role="button", _href=URL("sse_progress",),),
+        ),
     )
 
     return locals()
@@ -298,7 +302,9 @@ def sse_chat_home():
         <title>sse_chat</title>
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
         <style>body { max-width: 500px; margin: auto; padding: 1em; background: black; color: #fff; font: 16px/1.6 menlo, monospace; }</style>
-         <style>form { display: inline-block; //Or display: inline; }</style> 
+
+         <style>form { display: inline-block; //Or display: inline; 
+         }</style> 
  
          <form method="get" action="/%(app_name)s/index">
              <input type="submit" value="menu">
@@ -407,3 +413,65 @@ def pubsub_root():
 </html>
 """ % ( APP_NAME )
 
+# ----------------------------------- task 6: chart -----------------------------------
+# https://ron.sh/creating-real-time-charts-with-flask/
+
+import json
+import random
+import time
+from datetime import datetime
+
+@action("chart_data", method=["GET", "POST"])
+@action.uses(session, CORS())
+def chart_data():
+    @threadsafe_generator
+    def generate_random_data():
+        while True:
+            json_data = json.dumps(
+                {'time': datetime.now().strftime('%d.%m.%y %H:%M:%S'), 'value': random.random() * 100})
+            #print ( json_data  )
+            yield f"data:{json_data}\n\n"
+            time.sleep(1)
+
+    #response = Response(stream_with_context(generate_random_data()), mimetype="text/event-stream")
+    response.headers["Content-Type"] = "text/event-stream"
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["X-Accel-Buffering"] = "no"
+    return generate_random_data() 
+
+
+@action("sse_chart", method=["GET", "POST"])
+@action.uses( "sse_chart.html", db, session, auth, T, CORS(), )
+def sse_chart():
+    stream_url = "/%s/chart_data" % APP_NAME
+    return locals()
+
+# ------------------------------ task7: 
+# https://github.com/djdmorrison/flask-progress-example
+
+@action("progress_data", method=["GET", "POST"])
+#@action.uses(session, CORS())
+def progress_data():
+    @threadsafe_generator
+    def generate():
+        x = 0
+        
+        while x <= 100:
+            yield "data:" + str(x) + "\n\n"
+            x = x + 10
+            time.sleep(0.9)
+
+    response.headers["Content-Type"] = "text/event-stream"
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["X-Accel-Buffering"] = "no"
+    return generate() 
+
+
+@action("sse_progress", method=["GET", "POST"])
+@action.uses( "sse_progress.html", db, session, auth, T, CORS(), )
+def sse_progress():
+    progress_url = "/%s/progress_data" % APP_NAME
+    return locals()
+
+
+# ----------------- to be continued https://github.com/soumilshah1995/Flask-Charts-Youtube-Tutorials-
