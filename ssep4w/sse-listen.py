@@ -2,7 +2,6 @@
 
 
 import sseclient
-import datetime
 
 
 import os
@@ -15,9 +14,8 @@ listen_url = 'http://localhost:8000/%s/listen' % APP_NAME
 print ('listen_url: ', listen_url )
 
 
-
 messages = sseclient.SSEClient( listen_url  )
 
 for msg in messages:
-    print(msg,' ', datetime.datetime.now().strftime("%H:%M:%S") )
+    print(msg)
 

@@ -30,8 +30,11 @@ def index():
         ),
         DIV(
             A("sse_chat_home", _role="button", _href=URL("sse_chat_home",),),
-            A("session/clear", _role="button", _href=URL("session/clear",),),
+            A("user_clear", _role="button", _href=URL("sse_chat_user_clear",),),
         ),
+        #DIV( this task does not work, need fix
+        #    A("pubsub_root", _role="button", _href=URL("pubsub_root",),),
+        #),
     )
 
     return locals()
@@ -171,14 +174,11 @@ def format_sse(data: str, event=None) -> str:
 @action("ping", method=["GET", "POST"])
 def ping():
 
-    # session["counter"] = session.get("counter", 0) + 1
-    # counter =  session.get("counter")
-
-    msg = format_sse(data=f"pong")
+    now = datetime.datetime.now().strftime("%H:%M:%S") 
+    msg = format_sse(data=f"pong {now}")
     announcer.announce(msg=msg)
     response.status = 200
-    # response.content_type = "application/json"
-    return ""  # , 200
+    return ""  
 
 
 # 1 connect with ./sse-listen.py
@@ -218,6 +218,42 @@ def sse_chat_event_stream():
             yield "data: %s\n\n" % message["data"].decode("utf-8")
 
 
+# https://stackoverflow.com/questions/18383008/python-flask-how-to-detect-a-sse-client-disconnect-from-front-end-javascript
+# https://stackoverflow.com/questions/11597367/how-do-i-close-a-server-send-events-connection-in-flask
+
+
+
+# exception does not work !!!
+@threadsafe_generator
+def YYYsse_chat_event_stream():
+    try:
+        pubsub = red.pubsub()
+        pubsub.subscribe('sse_chat_chat')
+        #for message in pubsub.listen():#This doesn't work because it's blocking
+        while True:
+            message = pubsub.get_message()
+
+            if not message:
+                # The yield is necessary for this to work!
+                # In my case I always send JSON encoded data
+                # An empty response might work, too.
+                yield "data: {}\n\n"
+                sleep(0.3)
+                continue
+
+            # If the nonblocking get_message() returned something, proceed normally
+            if message["type"] == "message":
+                if message["data"] == '!!!stop!!!':
+                     break
+                yield "data: %s\n\n" % message["data"].decode("utf-8")
+
+    except GeneratorExit:
+        print("CLOSED-1!")
+    finally:
+        print("CLOSED-2!")
+        # Your closing logic here (e.g. marking the user as offline in your database)
+
+
 # @app.route('/stream')
 @action("sse_chat_stream", method=["GET",])
 def sse_chat_stream():
@@ -233,7 +269,7 @@ def sse_chat_login():
     if request.method == "POST":
         session["sse_chat_user"] = request.forms.get("sse_chat_user")
         redirect(URL("sse_chat_home"))
-    return '<form action="" method="post">user_name: <input name="sse_chat_user"> <input type="submit" value="login"></form>'
+    return '<form action="" method="post">user_name: <input name="sse_chat_user"><input type="submit" value="login"></form>'
 
 
 # @app.route('/post', methods=['POST'])
@@ -268,7 +304,7 @@ def sse_chat_home():
              <input type="submit" value="menu">
          </form>
 
-         <form method="get" action="/%(app_name)s/session/clear">
+         <form method="get" action="/%(app_name)s/sse_chat_user_clear">
              <input type="submit" value="del user">
          </form>
 
@@ -282,8 +318,24 @@ def sse_chat_home():
                 const out = document.getElementById('out');
                 source.onmessage = function(e) {
                     // XSS in chat is fun (let's prevent that)
-                    out.textContent =  e.data + '\\n' + out.textContent;
+                    if ( e.data != '{}' ) {
+                         out.textContent =  e.data + '\\n' + out.textContent;
+                    }
                 };
+
+//window.addEventListener("unload", function(event) {  source.close(); source = null; });
+
+
+//document.addEventListener("visibilitychange", function() {
+//    if (document.hidden){
+//        console.log("Browser tab is hidden")
+//        source.close();
+//    } else {
+//        console.log("Browser tab is visible")
+//    }
+//});
+
+
             }
             $('#in').keyup(function(e){
                 if (e.keyCode == 13) {
@@ -299,8 +351,59 @@ def sse_chat_home():
     }  
 
 
-@action("session/clear")
+@action("sse_chat_user_clear")
 @action.uses(session)
-def session_clear():
-    session.clear()
+def sse_chat_user_clear():
+    #session.clear()
+    session["sse_chat_user"] = None
     redirect(URL("sse_chat_home"))
+
+
+# ---------- this task does not work, need fix! ----------------  task 5: publisher 
+# https://github.com/boppreh/server-sent-events
+# bottle https://taoofmac.com/space/blog/2014/11/16/1940
+# 
+
+
+from .sseQueue import Publisher
+
+publisher = Publisher()
+
+#print ( publisher  )
+
+#@app.route('/subscribe')
+@action("pubsub_subscribe", method=["GET", "POST"])
+@action.uses(session, CORS())
+def pubsub_subscribe():
+#    #return flask.Response(publisher.subscribe(), content_type='text/event-stream')
+    response.headers["Content-Type"] = "text/event-stream"
+    return publisher.subscribe() 
+
+
+#@app.route('/')
+@action("pubsub_root", method=["GET", "POST"])
+@action.uses(session, CORS())
+def pubsub_root():
+    ip= request.environ.get(
+            "HTTP_X_FORWARDED_FOR"
+        ) or request.environ.get("REMOTE_ADDR") #ip = flask.request.remote_addr
+    publisher.publish('New visit from {} at {}!'.format(ip, datetime.datetime.now()))
+    return """
+<!doctype html>
+<title>pubsub</title>
+<html>
+    <body>
+        Open this page in new tabs to see the real time visits.
+
+        <div id="events"></div>
+
+        <script>
+            const eventSource = new EventSource('/%s/pubsub_subscribe');
+            eventSource.onmessage = function(e) {
+                document.getElementById('events').innerHTML += e.data + '<br>';
+            }
+        </script>
+    </body>
+</html>
+""" % ( APP_NAME )
+
