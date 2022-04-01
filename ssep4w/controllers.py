@@ -162,7 +162,7 @@ def stream_data():
 @action("stream_sqrt", method=["GET", "POST"])
 @action.uses( "stream_sqrt.html", db, session, auth, T, CORS(), )
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
-def stream():
+def stream_sqrt():
     stream_url = URL("stream_sqrt_data") 
     menu_url = URL("index")
     return locals()
