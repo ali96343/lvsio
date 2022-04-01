@@ -134,7 +134,7 @@ class Mk_table:
 
 #Mk_table( tbl_name="test_table", fld_types=["string", "string", "string"], init_populate=50).do
 #Mk_table( tbl_name="Longtask",   fld_types=["string",], init_value=["hello"]).do
-Mk_table( tbl_name="sse_tmp_value",    fld_types=["integer",], init_value=[99999999999]).do
+Mk_table( tbl_name="sse_sqrt_value",    fld_types=["integer",], init_value=[7777777777777777777]).do
 #Mk_table( tbl_name="Counter",    fld_types=["integer",], init_value=[0]).do
 #Mk_table( tbl_name="Sliders",    fld_types=["integer", "integer", "string"], init_value=[100, 100, "hi!"],).do
 

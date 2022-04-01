@@ -8,6 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
     <style>.py4web-validation-error{margin-top:-16px; font-size:0.8em;color:red}</style>
     [[block page_head]]<!-- individual pages can customize header here -->[[end]]
+
+<style>
+
+    nav li ul li a {font-size: 0.9em; font-weight: 500;}
+    .pfooter p { margin: .4em .4em .4em 1.5em; }
+
+</style>
+
+
   </head>
   <body>
     <header>
@@ -15,7 +24,7 @@
       <nav class="black">
         <!-- Logo -->
         <a href="[[=URL('index')]]">
-          <b>py4web <script>document.write(window.location.href.split('/')[3]);</script></b>
+          <b><script>document.write(window.location.href.split('/')[3]);</script></b>
         </a>
         <!-- Do not touch this -->
         <label for="hamburger">☰</label>
@@ -61,7 +70,7 @@
       </main>
     </center>
     <!-- end of HTML inserted by extending template -->
-    <footer class="black padded">
+    <footer class="black pfooter">
       <p>
         Made with py4web
       </p>

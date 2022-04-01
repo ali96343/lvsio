@@ -12,7 +12,6 @@ from .common import (
     unauthenticated,
     flash,
 )
-from .settings import APP_NAME
 import logging, os, sys
 
 from math import sqrt
@@ -64,19 +63,17 @@ def threadsafe_generator(f):
 
 # -----------------------------------------------------------------------------
 
-
-
 @action("index")
 @action.uses("index.html", auth)
 def index():
     user = auth.get_user()
-    message = T("Hello {first_name}".format(**user) if user else "Hello")
+    message = T("Hello {first_name}".format(**user) if user else "sse with rocket3-server")
     actions = {"allowed_actions": auth.param.allowed_actions}
 
     menu = DIV(
         DIV(
             A("stream_log", _role="button", _href=URL("stream_log",),),
-            A("stream_sqrt", _role="button", _href=URL("stream",),),
+            A("stream_sqrt", _role="button", _href=URL("stream_sqrt",),),
         ),
         DIV(
             A("sse_chat_home", _role="button", _href=URL("sse_chat_home",),),
@@ -116,14 +113,14 @@ def read_db(tbl="my_tbl"):
     print(rs)
 
 
-read_db('sse_tmp_value')
+read_db('sse_sqrt_value')
 
 
-@action("stream_data", method=["GET", "POST"])
+@action("stream_sqrt_data", method=["GET", "POST"])
 @action.uses(db, session, auth, T, CORS())
 def stream_data():
 
-    tbl = 'sse_tmp_value'
+    tbl = 'sse_sqrt_value'
 
     @threadsafe_generator
     def generate():
@@ -162,12 +159,12 @@ def stream_data():
     return generate()
 
 
-@action("stream", method=["GET", "POST"])
-@action.uses( "stream.html", db, session, auth, T, CORS(), )
+@action("stream_sqrt", method=["GET", "POST"])
+@action.uses( "stream_sqrt.html", db, session, auth, T, CORS(), )
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream():
-    stream_url = "/%s/stream_data" % APP_NAME
-    menu_url = "/%s/index" % APP_NAME
+    stream_url = URL("stream_sqrt_data") 
+    menu_url = URL("index")
     return locals()
 
 
@@ -194,7 +191,7 @@ def stream_log_data():
 @action.uses( "stream_log.html", db, session, auth, T, CORS(), )
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream_log():
-    stream_url = "/%s/stream_log_data" % APP_NAME
+    stream_url = URL("stream_log_data")
     return locals()
 
 
@@ -268,8 +265,6 @@ def listen():
 # https://stackoverflow.com/questions/12232304/how-to-implement-server-push-in-flask-framework
 
 
-
-
 red = redis.StrictRedis()
 
 
@@ -309,7 +304,7 @@ def YYYsse_chat_event_stream():
 
             # If the nonblocking get_message() returned something, proceed normally
             if message["type"] == "message":
-                if message["data"] == '!!!stop!!!':
+                if message["data"].decode("utf-8") == '!!!stop!!!':
                      break
                 yield "data: %s\n\n" % message["data"].decode("utf-8")
         else:
@@ -322,31 +317,30 @@ def YYYsse_chat_event_stream():
         # Your closing logic here (e.g. marking the user as offline in your database)
 
 
-# @app.route('/stream')
 @action("sse_chat_stream", method=["GET",])
 def sse_chat_stream():
     response.headers["Content-Type"] = "text/event-stream"
     return sse_chat_event_stream()
-    # return flask.Response(event_stream(), mimetype="text/event-stream")
 
 
-# @app.route('/login', methods=['GET', 'POST'])
 @action("sse_chat_login", method=["GET", "POST"])
 @action.uses(session, CORS())
 def sse_chat_login():
     if request.method == "POST":
         session["sse_chat_user"] = request.forms.get("sse_chat_user")
         redirect(URL("sse_chat_home"))
-    return '<form action="" method="post">user_name: <input name="sse_chat_user"><input type="submit" value="login"></form>'
+    return '<form action="" method="post">' \
+           'user_name: <input name="sse_chat_user">' \
+           '<input type="submit" value="login">' \
+           '</form>'
 
 
-# @app.route('/post', methods=['POST'])
 @action("sse_chat_post", method=["POST"])
 @action.uses(session, CORS())
 def sse_chat_post():
 
-    message = request.forms.get("message")  # message = flask.request.form['message']
-    user = session.get( "sse_chat_user", "anonymous")  # flask.session.get('user', 'anonymous')
+    message = request.forms.get("message")  
+    user = session.get( "sse_chat_user", "anonymous")  
     now = datetime.datetime.now().replace(microsecond=0).time()
     red.publish("sse_chat_chat", "[%s] %s: %s" % (now.isoformat(), user, message))
     response.status = 204
@@ -370,11 +364,11 @@ def sse_chat_home():
          <style>form { display: inline-block; //Or display: inline; 
          }</style> 
  
-         <form method="get" action="/%(app_name)s/index">
+         <form method="get" action="%(url_index)s">
              <input type="submit" value="menu">
          </form>
 
-         <form method="get" action="/%(app_name)s/sse_chat_user_clear">
+         <form method="get" action="%(url_user_clear)s">
              <input type="submit" value="del user">
          </form>
 
@@ -384,7 +378,7 @@ def sse_chat_home():
         <pre id="out"></pre>
         <script>
             function sse() {
-                const source = new EventSource('/%(app_name)s/sse_chat_stream');
+                const source = new EventSource('%(url_sse_chat_stream)s');
                 const out = document.getElementById('out');
                 source.onmessage = function(e) {
                     // XSS in chat is fun (let's prevent that)
@@ -409,14 +403,17 @@ def sse_chat_home():
             }
             $('#in').keyup(function(e){
                 if (e.keyCode == 13) {
-                    $.post('/%(app_name)s/sse_chat_post', {'message': $(this).val()});
+                    $.post('%(url_sse_chat_post)s', {'message': $(this).val()});
                     $(this).val('');
                 }
             });
             sse();
         </script>
     """ % {
-        "app_name": APP_NAME,
+        "url_index": URL('index'),
+        "url_user_clear": URL('sse_chat_user_clear'),
+        "url_sse_chat_stream": URL('sse_chat_stream'),
+        "url_sse_chat_post": URL('sse_chat_post'),
         "chat_user": sse_chat_user,
     }  
 
@@ -468,14 +465,14 @@ def pubsub_root():
         <div id="events"></div>
 
         <script>
-            const eventSource = new EventSource('/%s/pubsub_subscribe');
+            const eventSource = new EventSource('%(url_pubsub_subscribe)s');
             eventSource.onmessage = function(e) {
                 document.getElementById('events').innerHTML += e.data + '<br>';
             }
         </script>
     </body>
 </html>
-""" % ( APP_NAME )
+""" % {'url_pubsub_subscribe': URL('pubsub_subscribe'), } 
 
 # ----------------------------------- task 6: chart -----------------------------------
 # https://ron.sh/creating-real-time-charts-with-flask/
@@ -503,8 +500,8 @@ def chart_data():
 @action("sse_chart", method=["GET", "POST"])
 @action.uses( "sse_chart.html", db, session, auth, T, CORS(), )
 def sse_chart():
-    stream_url = "/%s/chart_data" % APP_NAME
-    menu_url = "/%s/index" % APP_NAME
+    stream_url = URL("chart_data") 
+    menu_url = URL("index") 
     return locals()
 
 # ------------------------------ task7: 
@@ -531,8 +528,8 @@ def progress_data():
 @action("sse_progress", method=["GET", "POST"])
 @action.uses( "sse_progress.html", db, session, auth, T, CORS(), )
 def sse_progress():
-    progress_url = "/%s/progress_data" % APP_NAME
-    menu_url = "/%s/index" % APP_NAME
+    progress_url = URL("progress_data") 
+    menu_url = URL("index") 
     return locals()
 
 
