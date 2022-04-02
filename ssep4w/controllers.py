@@ -118,7 +118,7 @@ read_db('sse_sqrt_value')
 
 @action("stream_sqrt_data", method=["GET", "POST"])
 @action.uses(db, session, auth, T, CORS())
-def stream_data():
+def stream_sqrt_data():
 
     tbl = 'sse_sqrt_value'
 
@@ -207,23 +207,24 @@ def stream_log():
 
 import queue
 
-
 class MessageAnnouncer:
     def __init__(self):
         self.listeners = []
+        self.lock = threading.Lock()
 
     def listen(self):
-        q = queue.Queue(maxsize=5)
-        self.listeners.append(q)
-        return q
+        with self.lock:
+            q = queue.Queue(maxsize=5)
+            self.listeners.append(q)
+            return q
 
     def announce(self, msg):
-        for i in reversed(range(len(self.listeners))):
-            try:
-                self.listeners[i].put_nowait(msg)
-            except queue.Full:
-                del self.listeners[i]
-
+        with self.lock:
+            for i in reversed(range(len(self.listeners))):
+                try:
+                    self.listeners[i].put_nowait(msg)
+                except queue.Full:
+                    del self.listeners[i]
 
 announcer = MessageAnnouncer()
 
