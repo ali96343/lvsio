@@ -21,6 +21,7 @@ import redis
 import json
 import random
 import threading
+import queue
 
 #
 # https://github.com/ali96343/lvsio
@@ -113,7 +114,7 @@ def read_db(tbl="my_tbl"):
     print(rs)
 
 
-read_db('sse_sqrt_value')
+#read_db('sse_sqrt_value')
 
 
 @action("stream_sqrt_data", method=["GET", "POST"])
@@ -204,19 +205,16 @@ def stream_log():
 # ------------------------ task 3:  flask-sse-no-deps  -----------------------
 # https://maxhalford.github.io/blog/flask-sse-no-deps/
 
-
-import queue
-
 class MessageAnnouncer:
     def __init__(self):
         self.listeners = []
         self.lock = threading.Lock()
 
     def listen(self):
+        q = queue.Queue(maxsize=5)
         with self.lock:
-            q = queue.Queue(maxsize=5)
             self.listeners.append(q)
-            return q
+        return q
 
     def announce(self, msg):
         with self.lock:
@@ -431,7 +429,6 @@ def sse_chat_user_clear():
 # https://github.com/boppreh/server-sent-events
 # bottle https://taoofmac.com/space/blog/2014/11/16/1940
 # 
-
 
 from .sseQueue import Publisher
 
