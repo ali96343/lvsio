@@ -7,6 +7,8 @@ import time   #, urllib
 import httpx, os, sys
 
 
+#  ./py4web.py  run apps -s tornadoSioWsServer
+
 wsservers_list = [
     "tornadoSioWsServer",
 ]
@@ -42,7 +44,7 @@ POST_SECRET = BROADCAST_SECRET
 
 r_url = "redis://"
 
-
+p4w_app_names = None
 
 
 #  pip install tornado
@@ -213,6 +215,7 @@ def tornadoSioWsServer():
 
 # ---------------------------------------------------------------------------
 
+# sse https://gist.github.com/mivade/d474e0540036d873047f
 
     class TornadoSioWsServer(ServerAdapter):
         def run(self, handler):  # pragma: no cover
@@ -224,12 +227,22 @@ def tornadoSioWsServer():
             import tornado.wsgi, tornado.httpserver, tornado.web, tornado.ioloop
 
             container = tornado.wsgi.WSGIContainer(handler)
+            #print ( handler.routes  )
+            #print ('-'* 80)
+
+            global p4w_app_names
+            if p4w_app_names is None:
+                p4w_app_names = { x.split('/',2)[0] for x in handler.routes.keys() } 
+                #print ( p4w_app_names )
+            
+            # print (  container.wsgi_application )
             SockjsRouter = sockjs.tornado.SockJSRouter(SockjsConnection, '/sockjs')
             app = tornado.web.Application(
                 SockjsRouter.urls +  [
                     (r"/", web_socket_handler),
                     (r"/socket.io/", socketio.get_tornado_handler(sio)),
                     (r".*", tornado.web.FallbackHandler, dict(fallback=container)),
+            
                 ] 
             )
             server = tornado.httpserver.HTTPServer(app)
@@ -267,6 +280,8 @@ async def sio_event_post(event_name, data=None, room=None, post=True):
 
         if r.status_code != 200:
             print(f"error! can not post to: {post_url}")
+
+
 
 
 

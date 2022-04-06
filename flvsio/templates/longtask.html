@@ -5,7 +5,7 @@
 
 
     <title>Long Celery Task</title>
-    <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
 
 <style>
 
@@ -28,8 +28,11 @@ body{
     At end: <span id="at_end"></span>
 
 <script>
+
+document.addEventListener("DOMContentLoaded", function(event) {
+
     const resultElement = document.getElementById('result'),
-          socket = io("[[ = t_vars['sio_serv_url'] ]]", {'forceNew': true} );
+          socket = io("[[ = t_vars['sio_serv_url'] ]]", {forceNew: true} );
 
     const at_begin = document.getElementById('at_begin'),
           at_end = document.getElementById('at_end'), 
@@ -50,6 +53,7 @@ body{
 
     socket.on('longtask_register', function(id) {
         clientid = id;
+        sio_status.textContent = 'connect clientid: '+ clientid;
     });
 
     socket.on('longtask_result', function(result) {
@@ -101,5 +105,8 @@ body{
            location.reload();
        }
     });
+
+});
+
 
 </script>

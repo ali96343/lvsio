@@ -24,6 +24,9 @@ from .common import settings, db, Field
 
 #r_mgr = socketio.RedisManager(C.r_url, write_only=True, channel=C.sio_channel)
 
+# https://romanvm.pythonanywhere.com/post/running-multiple-celery-beat-instances-one-python-project-37/
+
+
 class NotifierTask(Task):
     """Task that sends notification on completion."""
 
@@ -43,7 +46,10 @@ r_mgr = socketio.RedisManager(C.r_url, write_only=True, channel=C.sio_channel)
 
 #broker = "redis://localhost:6379/30"
 
-app = Celery(__name__, broker = C.longtask_broker)
+
+MODULE = os.path.basename(__file__).replace('.py','')
+
+app = Celery(f'{C.APPS_DIR}.{C.P4W_APP}.{MODULE}', broker = C.longtask_broker)
 
 
 @app.task(base=NotifierTask)

@@ -8,6 +8,9 @@ from .models import db
 
 # by importing controllers you expose the actions defined in it
 from . import controllers
+#from . myadm import tlist 
+#from .tmp import x
+from . myadm import tlist 
 
 # optional parameters
 __version__ = "0.0.0"

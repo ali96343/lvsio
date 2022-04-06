@@ -5,6 +5,7 @@ from py4web import action, request
 # test example for sockjs 
 # tested with ./py4web.py  run -s  tornadoSioWsServer  apps
 
+
 @action("sockjs/index")
 @action.uses("sockjs/index.html")
 def index():

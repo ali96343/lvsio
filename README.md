@@ -28,9 +28,6 @@ tips: run the backgrounder sse task with
 
 ---------------------------------------------
 
-
-Inspired by flask-meld
-
 py4web with socketio examples
 
 ---------------------------------------------

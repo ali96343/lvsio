@@ -21,7 +21,6 @@ import redis
 import json
 import random
 import threading
-import queue
 
 #
 # https://github.com/ali96343/lvsio
@@ -74,7 +73,7 @@ def index():
     menu = DIV(
         DIV(
             A("stream_log", _role="button", _href=URL("stream_log",),),
-            A("stream_sqrt", _role="button", _href=URL("stream_sqrt",),),
+            A("stream_sqrt pydal", _role="button", _href=URL("stream_sqrt",),),
         ),
         DIV(
             A("sse_chat_home", _role="button", _href=URL("sse_chat_home",),),
@@ -97,7 +96,7 @@ def index():
 # http://unixnme.blogspot.com/2017/10/thread-safe-generators-in-python.html
 
 @threadsafe_generator
-def simple_generator(n):
+def id_generator(n):
     result = 1
     while True:
         if result >= n:
@@ -106,7 +105,7 @@ def simple_generator(n):
         result += 1
 
 
-gen = simple_generator(100)
+id_gen = id_generator(100)
 
 
 def read_db(tbl="my_tbl"):
@@ -126,7 +125,7 @@ def stream_sqrt_data():
     @threadsafe_generator
     def generate():
 
-        some_id = next(gen)
+        some_id = next(id_gen)
         print (some_id)
 
 
@@ -140,7 +139,8 @@ def stream_sqrt_data():
                      #db(db[tbl].id == some_id ).update (**db[tbl]._filter_fields(data_dict))
                      ret = db( db[tbl].id == some_id ).validate_and_update(**data_dict)
                 else:
-                     some_id = db[tbl].insert(**db[tbl]._filter_fields(data_dict))
+                     #some_id = db[tbl].insert(**db[tbl]._filter_fields(data_dict))
+                     some_id = db[tbl].validate_and_insert(**data_dict)
                      
                 #db(db[tbl].id == some_id ).update (f0 = i)
                 db.commit()
@@ -205,6 +205,10 @@ def stream_log():
 # ------------------------ task 3:  flask-sse-no-deps  -----------------------
 # https://maxhalford.github.io/blog/flask-sse-no-deps/
 
+
+import queue
+
+
 class MessageAnnouncer:
     def __init__(self):
         self.listeners = []
@@ -223,7 +227,8 @@ class MessageAnnouncer:
                     self.listeners[i].put_nowait(msg)
                 except queue.Full:
                     del self.listeners[i]
-
+    
+    
 announcer = MessageAnnouncer()
 
 
@@ -273,7 +278,6 @@ def sse_chat_event_stream():
     pubsub.subscribe("sse_chat_chat")
     # TODO: handle client disconnection.
     for message in pubsub.listen():
-        # print (message)
         if message["type"] == "message":
             yield "data: %s\n\n" % message["data"].decode("utf-8")
 
@@ -289,6 +293,8 @@ def YYYsse_chat_event_stream():
     try:
         pubsub = red.pubsub()
         pubsub.subscribe('sse_chat_chat')
+        wait_cnt = 0
+     
         #for message in pubsub.listen():#This doesn't work because it's blocking
         while True:
             message = pubsub.get_message()
@@ -299,12 +305,15 @@ def YYYsse_chat_event_stream():
                 # An empty response might work, too.
                 yield "data: {}\n\n"
                 sleep(0.3)
+                wait_cnt += 1
                 continue
 
             # If the nonblocking get_message() returned something, proceed normally
-            if message["type"] == "message":
+            elif message["type"] == "message":
                 if message["data"].decode("utf-8") == '!!!stop!!!':
                      break
+
+                wait_cnt = 0
                 yield "data: %s\n\n" % message["data"].decode("utf-8")
         else:
            print ('while !!!stop!!!')
@@ -328,10 +337,14 @@ def sse_chat_login():
     if request.method == "POST":
         session["sse_chat_user"] = request.forms.get("sse_chat_user")
         redirect(URL("sse_chat_home"))
-    return '<form action="" method="post">' \
+ 
+    return '<form method="get" action="%(url_index)s">' \
+            '    <input type="submit" value="menu">' \
+           '</form>' \
+           '<form action="" method="post">' \
            'user_name: <input name="sse_chat_user">' \
            '<input type="submit" value="login">' \
-           '</form>'
+           '</form>' % {'url_index': URL('index')}
 
 
 @action("sse_chat_post", method=["POST"])
@@ -371,6 +384,15 @@ def sse_chat_home():
              <input type="submit" value="del user">
          </form>
 
+<script>
+    function getURL() {
+        window.open(  window.location.href  );
+    }
+</script>
+
+
+<button type="button" onclick="getURL();">new tab</button>
+
 
         <p><b>hi, %(chat_user)s!</b></p>
         <p>Message: <input id="in" /></p>
@@ -397,7 +419,6 @@ def sse_chat_home():
 //        console.log("Browser tab is visible")
 //    }
 //});
-
 
             }
             $('#in').keyup(function(e){
@@ -429,6 +450,7 @@ def sse_chat_user_clear():
 # https://github.com/boppreh/server-sent-events
 # bottle https://taoofmac.com/space/blog/2014/11/16/1940
 # 
+
 
 from .sseQueue import Publisher
 

@@ -35,6 +35,20 @@ POST_SECRET = BROADCAST_SECRET
 
 SERV_APP_FILE = "chan_sio:app"
 SIO_FILE=SERV_APP_FILE.split(':')[0] + '.py'
+# -----------------------------------------------------
+
+from .left_menu import l_menu
+
+html_vars = {
+    "l_menu": l_menu,
+    "sio_serv_url": sio_serv_url,
+    "sio_app": P4W_APP,
+    "sio_port": sio_PORT,
+    'longtask_run_url': f'http://localhost:8000/{P4W_APP}/longtask_run'
+}
+
+
+
 
 # ------  UTILS ----------------------------------------
 

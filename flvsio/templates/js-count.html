@@ -2,7 +2,7 @@
 
 [[ block page_head ]]
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2PYF773PwAGewLSGezkXwAAAABJRU5ErkJggg=="/>
-<script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+<script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
 <title>Counter</title>
 
 
@@ -32,7 +32,7 @@ main{
 
 <main>
 
-            <p id="id_status">disconnected! run chan_sio.py</p>
+            <p id="id_status"></p>
             <!-- where the counter will be displayed-->
             <p id="counter-board">?</p>
         <!-- Button section -->
@@ -50,7 +50,7 @@ main{
             const socket = io.connect( sio_url );
             const py_var = fi;
             id_status = document.getElementById("id_status")
-                        id_status.innerHTML = 'run chan_sio.py!';
+                        id_status.innerHTML = 'disconnected!  run chan_sio.py!';
                         id_status.style.color='red';
 
             socket.on('connect', ()=> {

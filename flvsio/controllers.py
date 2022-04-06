@@ -7,6 +7,32 @@ import copy
 
 # workers https://developers.refinitiv.com/en/article-catalog/article/how-implement-elektron-websocket-api-javascript-application-html-web-workers
 
+# https://stackoverflow.com/questions/14250058/python-import-module-from-parent-package
+# https://realpython.com/django-social-front-end-2/
+
+# rooms and connect
+# https://gist.github.com/crtr0/2896891
+# https://stackoverflow.com/questions/26351919/whats-the-difference-on-connect-vs-on-connection
+# https://medium.com/swlh/chat-rooms-with-socket-io-25e9d1a05947
+# https://habr.com/ru/post/243791/
+# https://simplernerd.com/js-socketio-active-rooms/ 
+# https://javascript.tutorialink.com/setting-socket-io-room-variables/
+# https://stackoverflow.com/questions/18654567/save-socket-io-id-for-all-open-tabs-in-browser/18691411
+# https://stackoverflow.com/questions/13143945/dynamic-namespaces-socket-io
+
+# redis + nodejs + socketio
+
+# https://codesachin.wordpress.com/2015/06/27/redis-node-js-socket-io-event-driven-subscription-based-broadcasting/
+# https://socket.io/docs/v4/redis-adapter/
+# https://stackoverflow.com/questions/32743754/using-redis-as-pubsub-over-socket-io
+# https://github.com/compose-ex/websockets#readme
+# https://alievmagomed.com/celery-throttling-setting-rate-limit-for-queues/
+# https://habr.com/ru/post/494090/
+# https://github.com/dpnova/tornado-memcache
+# https://gist.github.com/viyatb/9641999
+# https://pypi.org/project/asyncmc/#history
+# https://github.com/MitchellChu/torndsession
+ 
 
 from .common import (
     db,
@@ -24,7 +50,15 @@ from .common import (
 from .settings import APP_NAME
 from .sockjs import *
 
+
+# from .myadm import *  
+
 # import ombott
+
+#from py4web.utils.url_signer import URLSigner
+#signed_url = URLSigner(session, lifespan=3600)
+
+
 
 import os, sys
 
@@ -39,15 +73,6 @@ TID = 1
 from . import chan_conf as C
 
 r_mgr = socketio.RedisManager(C.r_url, write_only=True, channel=C.sio_channel)
-
-
-html_vars = {
-    "sio_serv_url": C.sio_serv_url,
-    "sio_app": C.P4W_APP,
-    "sio_port": C.sio_PORT,
-    'longtask_run_url': f'http://localhost:8000/{APP_NAME}/longtask_run'
-}
-
 
 def read_db(tbl="my_tbl"):
     rs = db(db[tbl]).select()
@@ -67,7 +92,7 @@ def index():
     actions = {"allowed_actions": auth.param.allowed_actions}
 
     menu = DIV(
-        P("from pydal to js-UI, pls run ./py4web.py  run -s  tornadoSioWsServer  apps --watch='off' "),
+        P("from pydal to js-UI, pls run ./py4web.py  run -s  tornadoSioWsServer  apps"),
         DIV(
             A("js_image_resize", _role="button", _href=URL("js_image_resize",),),
             A("js_count", _role="button", _href=URL("js_count",),),
@@ -80,7 +105,8 @@ def index():
            ),
     )
 
-    return dict(message=message, actions=actions, menu=menu)
+    t_vars = copy.deepcopy(C.html_vars)
+    return locals()
 
 
 # ------------------------------------------------------------
@@ -89,7 +115,8 @@ def index():
 @action("longtask", method=["GET", "POST"])
 @action.uses(db, session, auth, T, "longtask.html")
 def longtask():
-    t_vars = copy.deepcopy(html_vars)
+    # ps axu| grep '.worker.longtask_mytask'
+    t_vars = copy.deepcopy(C.html_vars)
     return locals()
 
 
@@ -131,7 +158,7 @@ def longtask_notify():
 @action("js_autocomplete", method=["GET", "POST"])
 @action.uses(db, session, auth, T, "js-autocomplete.html")
 def js_autocomplete():
-    t_vars = copy.deepcopy(html_vars)
+    t_vars = copy.deepcopy(C.html_vars)
     tbl = "Autocomplete"
     countries = [e.f0 for e in db(db[tbl]).select()]
 
@@ -150,7 +177,7 @@ def js_autocomplete():
 @action("js_sliders", method=["GET", "POST"])
 @action.uses(db, session, T, "js-sliders.html")
 def js_sliders():
-    t_vars = copy.deepcopy(html_vars)
+    t_vars = copy.deepcopy(C.html_vars)
 
     tbl = "Sliders"
     r = db(db[tbl].id == TID).select().first()
@@ -231,7 +258,7 @@ event2data = {
 @action("js_image_resize", method=["GET", "POST"])
 @action.uses(db, session, T, "js-image-resize.html")
 def js_image_resize():
-    t_vars = copy.deepcopy(html_vars)
+    t_vars = copy.deepcopy(C.html_vars)
     tbl = "ImaSize"
     r = db(db[tbl].id == TID).select().first()
     t_vars["value"] = r.f0 if r else 44
@@ -242,7 +269,7 @@ def js_image_resize():
 @action("js_count", method=["GET", "POST"])
 @action.uses(db, session, T, "js-count.html")
 def js_count():
-    t_vars = copy.deepcopy(html_vars)
+    t_vars = copy.deepcopy(C.html_vars)
     tbl = "Counter"
     r = db(db[tbl].id == TID).select().first()
     t_vars["value"] = r.f0 if r else 404

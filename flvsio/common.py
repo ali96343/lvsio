@@ -10,7 +10,7 @@ from py4web.utils.mailer import Mailer
 from py4web.utils.auth import Auth
 from py4web.utils.downloader import downloader
 from pydal.tools.tags import Tags
-from py4web.utils.factories import ActionFactory
+from py4web.utils.factories import ActionFactory, Inject
 from . import settings
 
 # #######################################################
@@ -185,10 +185,14 @@ if settings.USE_CELERY:
 # #######################################################
 # Enable authentication
 # #######################################################
-auth.enable(uses=(session, T, db), env=dict(T=T))
+##auth.enable(uses=(session, T, db), env=dict(T=T))
+from . chan_conf import html_vars 
+auth.enable(uses=(session, T, Inject(t_vars=html_vars)), env=dict(T=T))
 
 # #######################################################
 # Define convenience decorators
 # #######################################################
 unauthenticated = ActionFactory(db, session, T, flash, auth)
 authenticated = ActionFactory(db, session, T, flash, auth.user)
+
+
