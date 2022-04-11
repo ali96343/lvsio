@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+    <form method="get" action="[[=menu_url ]]">
+             <input type="submit" value="menu">
+    </form>
+
+<script>
+    function getURL() {
+        window.open(  window.location.href  );
+    }
+</script>
+
+    <button type="button" onclick="getURL();">new tab</button>
+
+
+<h2>py4web server time</h2>
+<div id="result"></div>
+<script>
+  const source = new EventSource("[[=stream_url ]]");
+        source.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            //document.getElementById("result").innerHTML += data.time + "<br>";
+            document.getElementById("result").innerHTML = data.time;
+            document.getElementById("result").style.fontSize = "40px";
+            //document.getElementById("result").innerHTML = data.time + "<br>" + document.getElementById("result").innerHTML ;
+        }
+
+
+
+</script>
+
+</body>
+</html>
+

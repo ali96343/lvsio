@@ -1,0 +1,91 @@
+[[extend 'layout.html']]
+
+<form method="get" action="[[=menu_url ]]">
+             <input type="submit" value="menu">
+         </form>
+
+<script>
+    function getURL() {
+        window.open(  window.location.href  );
+    }
+
+  let yield_id = 'zzzzzzzzzzzzzzzzzzzzzzzzzz';
+
+ function send_post ( p_id  ) {
+   const xhr = new XMLHttpRequest();
+       xhr.open("POST", '[[=post_url ]]');
+       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+       const payload = {yield_id: p_id};
+       xhr.send(JSON.stringify(payload));
+}
+
+</script>
+
+    <button type="button" onclick="getURL();">new tab</button>
+    <button type="button" onclick="send_post(  yield_id);">stop yield</button>
+
+
+
+
+
+
+<p>This is the latest output: <span id="latest"></span></p>
+<!-- p>This is all the output:</p --->
+<p id="output">This is all the output: </p>
+
+<script>
+    const latest = document.getElementById('latest');
+    const output = document.getElementById('output');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '[[=stream_url]]');
+    xhr.send();
+    let position = 0;
+    function handleNewData() {
+        // the response text include the entire response so far
+        // split the messages, then take the messages that haven't been handled yet
+        // position tracks how many messages have been handled
+        // messages end with a newline, so split will always show one extra empty message at the end
+        let messages = xhr.responseText.split('\n\n');
+        messages.slice(position, -1).forEach(function(value) {
+            let obj= JSON.parse(value);
+            value = obj.value;
+            yield_id = obj.yield_id; 
+            console.log( yield_id )
+            latest.textContent = value;  // update the latest value in place
+            // build and append a new item to a list to log all output
+            //let item = document.createElement('li');
+            //item.textContent = value;
+            //output.appendChild(item);
+            let item = document.createTextNode("This just got added");
+            item.textContent = value+ ', ';
+            output.appendChild(item);
+        });
+        position = messages.length - 1;
+    }
+
+   //let timer;
+   const timer = setInterval(function() {
+        // check the response for new data
+        handleNewData();
+        // stop checking once the response has ended
+        if (xhr.readyState == XMLHttpRequest.DONE) {
+            clearInterval(timer);
+            latest.textContent = 'Done';
+        }
+    }, 1000);
+
+
+
+
+</script>
+
+<script>
+
+$(document).ready(function()
+{
+    $(window).bind("beforeunload", function() { 
+        return confirm("Do you really want to close?"); 
+    });
+});
+</script>
