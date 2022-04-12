@@ -1,7 +1,9 @@
 ## lvsio - py4web apps
 
 ---------------------------------------------
-ssep4w - experiment with sse (py4web with rocket3)
+ssep4w - experiment with sse (py4web with wsgirefThreadingServer )
+
+run  ./py4web.py run apps --watch=off -s wsgirefThreadingServer  
 
 sse examples from:
 
@@ -16,6 +18,7 @@ https://gist.github.com/platdrag/e755f3947552804c42633a99ffd325d4
 https://maxhalford.github.io/blog/flask-sse-no-deps/
 
 https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
+
 
 
 tips: run the backgrounder sse task with 
