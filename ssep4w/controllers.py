@@ -218,6 +218,8 @@ def index():
                     "stream_sqrt_id",
                 ),
             ),
+        ),
+        DIV(
             A(
                 "sse_time",
                 _role="button",
@@ -225,7 +227,7 @@ def index():
                     "sse_time",
                 ),
             ),
-        ),
+        ),  
         DIV(
             A(
                 "sse_chat_home",
@@ -336,7 +338,14 @@ def stream_sqrt_data():
 
 
 @action("stream_sqrt", method=["GET", "POST"])
-@action.uses( "stream_sqrt.html", db, session, auth, T, CORS(),)
+@action.uses(
+    "stream_sqrt.html",
+    db,
+    session,
+    auth,
+    T,
+    CORS(),
+)
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream_sqrt():
     stream_url = URL("stream_sqrt_data")
@@ -346,35 +355,53 @@ def stream_sqrt():
 
 # stream_time -------------------------------------------------------------
 
-@action("sse_time_data", method=["GET", "POST"] )
+
+@action("sse_time_data", method=["GET", "POST"])
 @action.uses(session, auth, T, CORS())
 def sse_time_data():
+
+    # ./py4web.py run apps --watch=off -s wsgirefThreadingServer
+
     @threadsafe_generator
     def generate():
-        while True:
+        num = 0
 
-            json_data = json.dumps(
-                {
-                    "time": datetime.now().strftime("%H:%M:%S.%f")[:-3],
-                    "value": random.random() * 100,
-                }
-            )
-            yield f"data:{json_data}\n\n"
-            sleep(0.5)
+        try:
 
-    response.headers["Content-Type"] = "text/event-stream"
-    response.headers["Cache-Control"] = "no-cache"
-    response.headers["X-Accel-Buffering"] = "no"
+            while True:
+                #print(num)
 
-    return generate() 
+                json_data = json.dumps(
+                    {
+                        "time": datetime.now().strftime("%H:%M:%S.%f")[:-3],
+                        "value": random.random() * 100,
+                    }
+                )
+                response.headers["Content-Type"] = "text/event-stream"
+                yield f"data:{json_data}\n\n"
+                sleep(2)
+                num += 1
+
+        finally:
+            pass
+            print("generator closed !!!")
+
+    return generate()
+
 
 @action("sse_time", method=["GET", "POST"])
-@action.uses( "sse_time.html", db, session, auth, T, CORS(),)
+@action.uses(
+    "sse_time.html",
+    db,
+    session,
+    auth,
+    T,
+    CORS(),
+)
 def sse_time():
     stream_url = URL("sse_time_data")
     menu_url = URL("index")
     return locals()
-
 
 
 # ------------------------------------------------------------------------
@@ -384,16 +411,16 @@ def sse_time():
 @action.uses(session, auth, T, CORS())
 def stream_sqrt_id_data():
 
-    yield_id = str(uuid.uuid4() )
+    yield_id = str(uuid.uuid4())
     yield_id_list.append(yield_id)
 
-    #print(yield_id)
+    # print(yield_id)
 
     @threadsafe_generator
     def generate():
 
         for i in range(30):
-            
+
             json_data = json.dumps(
                 {
                     "time": datetime.now().strftime("%d.%m.%y %H:%M:%S"),
@@ -402,32 +429,39 @@ def stream_sqrt_id_data():
                 }
             )
 
-            #print(json_data)
+            # print(json_data)
             yield f"{json_data}\n\n"
-            
+
             if not yield_id_list.check(yield_id):
                 break
 
-            #yield "{:.2f}\n\n".format(sqrt(i))
+            # yield "{:.2f}\n\n".format(sqrt(i))
             sleep(1)
 
-        if yield_id_list.check( yield_id  ):
+        if yield_id_list.check(yield_id):
             print("closed-1")
-            yield_id_list.remove( yield_id  )
+            yield_id_list.remove(yield_id)
         else:
-            print ('closed-2')
+            print("closed-2")
             return
 
     return generate()
 
 
 @action("stream_sqrt_id", method=["GET", "POST"])
-@action.uses( "stream_sqrt_id.html", db, session, auth, T, CORS(),)
+@action.uses(
+    "stream_sqrt_id.html",
+    db,
+    session,
+    auth,
+    T,
+    CORS(),
+)
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream_sqrt_id():
     stream_url = URL("stream_sqrt_id_data")
     menu_url = URL("index")
-    post_url= URL( 'sqrt_id_post'  )
+    post_url = URL("sqrt_id_post")
     return locals()
 
 
@@ -554,20 +588,19 @@ def sse_chat_event_stream():
 # -----------------------------------------------------------
 
 
-@action('sqrt_id_post',  method=[ "POST"])
+@action("sqrt_id_post", method=["POST"])
 @action.uses(session)
 def sqrt_id_post():
 
     try:
         json_data = json.loads(request.body.read())
-        yield_id = json_data.get( 'yield_id'  )
+        yield_id = json_data.get("yield_id")
         if yield_id:
-            if yield_id_list.check ( json_data ['yield_id'] ):
-                 print ('found!  ', json_data  )
-                 yield_id_list.remove(yield_id)
+            if yield_id_list.check(json_data["yield_id"]):
+                print("found!  ", json_data)
+                yield_id_list.remove(yield_id)
             else:
-                 print ('not found!  ', json_data['yield_id']  )
-
+                print("not found!  ", json_data["yield_id"])
 
     except Exception as ex:
         print("ex! sio_chan_post: ", ex)
@@ -819,13 +852,13 @@ def chart_data():
                 }
             )
             # print ( json_data  )
+            response.headers["Content-Type"] = "text/event-stream"
+            response.headers["Cache-Control"] = "no-cache"
+            response.headers["X-Accel-Buffering"] = "no"
             yield f"data:{json_data}\n\n"
             sleep(1)
 
     # response = Response(stream_with_context(generate_random_data()), mimetype="text/event-stream")
-    response.headers["Content-Type"] = "text/event-stream"
-    response.headers["Cache-Control"] = "no-cache"
-    response.headers["X-Accel-Buffering"] = "no"
     return generate_random_data()
 
 
@@ -879,4 +912,3 @@ def sse_progress():
     progress_url = URL("progress_data")
     menu_url = URL("index")
     return locals()
-
