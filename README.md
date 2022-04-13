@@ -5,6 +5,9 @@ ssep4w - experiment with sse (py4web with wsgirefThreadingServer )
 
 run  ./py4web.py run apps --watch=off -s wsgirefThreadingServer  
 
+( or ./py4web.py run apps -s wsgirefPyruvate --watch=off   )
+
+
 sse examples from:
 
 https://github.com/djdmorrison/flask-progress-example

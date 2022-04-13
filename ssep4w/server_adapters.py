@@ -1,0 +1,152 @@
+import logging
+
+from ombott.server_adapters import ServerAdapter
+
+try:
+    from .utils.wsservers import *
+except ImportError:
+    wsservers_list = []
+
+__all__ = [
+    "geventWebSocketServer",
+    "wsgirefThreadingServer",
+    "rocketServer",
+    "wsgirefPyruvate", # ./py4web.py run apps -s wsgirefPyruvate --watch=off
+] + wsservers_list
+
+
+def geventWebSocketServer():
+    from gevent import pywsgi
+    from geventwebsocket.handler import WebSocketHandler
+    from geventwebsocket.logging import create_logger
+
+    class GeventWebSocketServer(ServerAdapter):
+        def run(self, handler):
+            server = pywsgi.WSGIServer(
+                (self.host, self.port),
+                handler,
+                handler_class=WebSocketHandler,
+                **self.options
+            )
+
+            if not self.quiet:
+                server.logger = create_logger("geventwebsocket.logging")
+                server.logger.setLevel(logging.INFO)
+                server.logger.addHandler(logging.StreamHandler())
+
+            server.serve_forever()
+
+    return GeventWebSocketServer
+
+
+def wsgirefPyruvate():
+# https://2020.ploneconf.org/talks/pyruvate-a-reasonably-fast-non-blocking-multithreaded-wsgi-server
+# https://maurits.vanrees.org/weblog/archive/2021/10/thomas-schorr-pyruvate-wsgi-server-status-update
+# https://gitlab.com/tschorr/pyruvate
+# https://pypi.org/project/pyruvate/
+
+    import pyruvate # pip install pyruvate
+
+    class WsgirefPyruvate(ServerAdapter):
+        def run(self, handler):
+
+            if not self.quiet:
+                log = logging.getLogger("pyruvate")
+                log.setLevel(logging.INFO)
+                log.addHandler(logging.StreamHandler())
+
+            workers = 1000 
+            pyruvate.serve(handler, f"{self.host}:{self.port}", workers)
+
+    return WsgirefPyruvate 
+
+
+
+
+def wsgirefThreadingServer():
+    # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
+
+    import socket
+    from concurrent.futures import ThreadPoolExecutor  # pip install futures
+    from socketserver import ThreadingMixIn
+    from wsgiref.simple_server import (WSGIRequestHandler, WSGIServer,
+                                       make_server)
+
+    class WSGIRefThreadingServer(ServerAdapter):
+        def run(self, app):
+            class PoolMixIn(ThreadingMixIn):
+                def process_request(self, request, client_address):
+                    self.pool.submit(
+                        self.process_request_thread, request, client_address
+                    )
+
+            class ThreadingWSGIServer(PoolMixIn, WSGIServer):
+                daemon_threads = True
+                pool = ThreadPoolExecutor(max_workers=4000)
+
+            class Server:
+                def __init__(
+                    self, server_address=("127.0.0.1", 8000), handler_cls=None
+                ):
+                    self.wsgi_app = None
+                    self.listen, self.port = server_address
+                    self.handler_cls = handler_cls
+
+                def set_app(self, app):
+                    self.wsgi_app = app
+
+                def get_app(self):
+                    return self.wsgi_app
+
+                def serve_forever(self):
+                    self.server = make_server(
+                        self.listen,
+                        self.port,
+                        self.wsgi_app,
+                        ThreadingWSGIServer,
+                        self.handler_cls,
+                    )
+                    self.server.serve_forever()
+
+            class FixedHandler(WSGIRequestHandler):
+                def address_string(self):  # Prevent reverse DNS lookups please.
+                    return self.client_address[0]
+
+                def log_request(*args, **kw):
+                    self.quiet = True 
+                    if not self.quiet:
+                        return WSGIRequestHandler.log_request(*args, **kw)
+
+            handler_cls = self.options.get("handler_class", FixedHandler)
+            server_cls = Server
+
+            if ":" in self.host:  # Fix wsgiref for IPv6 addresses.
+                if getattr(server_cls, "address_family") == socket.AF_INET:
+
+                    class server_cls(server_cls):
+                        address_family = socket.AF_INET6
+
+            srv = make_server(self.host, self.port, app, server_cls, handler_cls)
+            srv.serve_forever()
+
+    return WSGIRefThreadingServer
+
+
+def rocketServer():
+    try:
+        from rocket3 import Rocket3 as Rocket
+    except ImportError:
+        from .rocket3 import Rocket3 as Rocket
+    import logging.handlers
+
+    class RocketServer(ServerAdapter):
+        def run(self, app):
+            if not self.quiet:
+                log = logging.getLogger("Rocket")
+                log.setLevel(logging.INFO)
+                log.addHandler(logging.StreamHandler())
+            interface = (self.host, self.port, self.options["keyfile"], self.options["certfile"]) if self.options.get("certfile", None) else (self.host, self.port)
+            server = Rocket(interface, "wsgi", dict(wsgi_app=app))
+            server.start()
+
+    return RocketServer
