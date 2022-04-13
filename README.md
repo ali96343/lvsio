@@ -21,13 +21,13 @@ https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-
 
 
 
-tips: run the backgrounder sse task with 
+tips: run the background sse-tasks with the commands
 
 ./sse-listen in the same terminal and 
 
 ./sse-emit-ping in another terminal
 
-
+./sse-get-time
 
 ---------------------------------------------
 

@@ -9,6 +9,11 @@ import sseclient
 
 import os
 
+from datetime import datetime
+startTime = datetime.now()
+
+
+
 
 this_dir = os.path.dirname(os.path.abspath(__file__)).split('/')
 APP_NAME = this_dir[-1]
@@ -17,7 +22,7 @@ sqrt_url = 'http://localhost:8000/%s/sse_time_data' % APP_NAME
 #sqrt_url = 'http://localhost:8000/%s/stream_sqrt_data' % APP_NAME
 
 
-URLS = [ sqrt_url for e in range( 20000)  ]
+URLS = [ sqrt_url for e in range( 10000)  ]
 
 # Retrieve a single page and report the URL and contents
 def load_url(url, timeout):
@@ -39,6 +44,10 @@ sse_results=[]
 #
 
 
+exception_list = []
+exception_count = 0
+ok_count = 0
+
 
 with concurrent.futures.ThreadPoolExecutor( max_workers = 20  ) as executor:
     print('max_workers: ', executor._max_workers)
@@ -51,13 +60,19 @@ with concurrent.futures.ThreadPoolExecutor( max_workers = 20  ) as executor:
             data = future.result()
             sse_results.append(  data )
         except Exception as exc:
-            print('%r generated an exception: %s  %s' % (url, exc, str(num)))
+            err_str = '%r generated an exception: %s  %s' % (url, exc, str(num))
+            print (err_str)
+            exception_count += 1
+            
         else:
             if data:
                 print('%r sse-data is %s, %s' % (url, data, str(num)))
+                ok_count += 1
         num += 1
 
 
 print ( len( sse_results ) )
 
+print (f'ok_count={ok_count}, exception_count={exception_count}')
+print(datetime.now() - startTime)
 

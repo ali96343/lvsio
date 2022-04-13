@@ -22,6 +22,16 @@ import json
 import random
 import threading
 
+# -------------------------------------------------------------------------
+
+# ./py4web.py run apps --watch=off -s wsgirefThreadingServer
+
+# vi ../../py4web/server_adapters.py
+#            class ThreadingWSGIServer(PoolMixIn, WSGIServer):
+#                daemon_threads = True
+#                pool = ThreadPoolExecutor(max_workers=4000)
+#                                          ^^^^^^^^^^^^^^^^
+
 # --------------------------------------------------------------------------
 
 
@@ -227,7 +237,7 @@ def index():
                     "sse_time",
                 ),
             ),
-        ),  
+        ),
         DIV(
             A(
                 "sse_chat_home",
@@ -369,22 +379,20 @@ def sse_time_data():
         try:
 
             while True:
-                #print(num)
+                # print(num); num += 1
 
                 json_data = json.dumps(
                     {
                         "time": datetime.now().strftime("%H:%M:%S.%f")[:-3],
-                        "value": random.random() * 100,
+                        "value": round(random.random() * 100, 2),
                     }
                 )
                 response.headers["Content-Type"] = "text/event-stream"
                 yield f"data:{json_data}\n\n"
                 sleep(2)
-                num += 1
 
         finally:
-            pass
-            print("generator closed !!!")
+            print("time-finally")
 
     return generate()
 
@@ -561,9 +569,9 @@ def listen():
         messages = announcer.listen()  # returns a queue.Queue
         while True:
             msg = messages.get()  # blocks until a new message arrives
+            response.headers["Content-Type"] = "text/event-stream"
             yield msg
 
-    response.headers["Content-Type"] = "text/event-stream"
     return generate()
 
 
@@ -582,6 +590,7 @@ def sse_chat_event_stream():
     # TODO: handle client disconnection.
     for message in pubsub.listen():
         if message["type"] == "message":
+            response.headers["Content-Type"] = "text/event-stream"
             yield "data: %s\n\n" % message["data"].decode("utf-8")
 
 
@@ -617,7 +626,7 @@ def sqrt_id_post():
 
 # exception does not work !!!
 @threadsafe_generator
-def YYYsse_chat_event_stream():
+def closed_sse_chat_event_stream():
     try:
         pubsub = red.pubsub()
         pubsub.subscribe("sse_chat_chat")
@@ -625,7 +634,7 @@ def YYYsse_chat_event_stream():
         yield_id = uuid.uuid4()
         yield_id_list.append(yield_id)
 
-        print(yield_id)
+        # print(yield_id)
 
         # for message in pubsub.listen():#This doesn't work because it's blocking
         while True:
@@ -639,20 +648,18 @@ def YYYsse_chat_event_stream():
                 # The yield is necessary for this to work!
                 # In my case I always send JSON encoded data
                 # An empty response might work, too.
+                response.headers["Content-Type"] = "text/event-stream"
                 yield "data: {}\n\n"
                 sleep(0.3)
                 continue
 
             # If the nonblocking get_message() returned something, proceed normally
-            elif message["type"] == "message":
-                if message["data"].decode("utf-8") == "!!!stop!!!":
-                    break
-
+            if message["type"] == "message":
+                response.headers["Content-Type"] = "text/event-stream"
                 yield "data: %s\n\n" % message["data"].decode("utf-8")
-        else:
-            print("while !!!stop!!! ", " ", yield_id)
+
     finally:
-        print("CLOSED-1")
+        print("chat-finally")
 
 
 @action(
@@ -662,8 +669,8 @@ def YYYsse_chat_event_stream():
     ],
 )
 def sse_chat_stream():
-    response.headers["Content-Type"] = "text/event-stream"
-    return sse_chat_event_stream()
+    return closed_sse_chat_event_stream()
+    # return sse_chat_event_stream()
 
 
 @action("sse_chat_login", method=["GET", "POST"])
@@ -844,21 +851,23 @@ def pubsub_root():
 def chart_data():
     @threadsafe_generator
     def generate_random_data():
-        while True:
-            json_data = json.dumps(
-                {
-                    "time": datetime.now().strftime("%d.%m.%y %H:%M:%S"),
-                    "value": random.random() * 100,
-                }
-            )
-            # print ( json_data  )
-            response.headers["Content-Type"] = "text/event-stream"
-            response.headers["Cache-Control"] = "no-cache"
-            response.headers["X-Accel-Buffering"] = "no"
-            yield f"data:{json_data}\n\n"
-            sleep(1)
+        try:
+            while True:
+                json_data = json.dumps(
+                    {
+                        "time": datetime.now().strftime("%d.%m.%y %H:%M:%S"),
+                        "value": random.random() * 100,
+                    }
+                )
+                # print ( json_data  )
+                response.headers["Content-Type"] = "text/event-stream"
+                response.headers["Cache-Control"] = "no-cache"
+                response.headers["X-Accel-Buffering"] = "no"
+                yield f"data:{json_data}\n\n"
+                sleep(1)
+        finally:
+            print("chart-finally")
 
-    # response = Response(stream_with_context(generate_random_data()), mimetype="text/event-stream")
     return generate_random_data()
 
 
@@ -886,16 +895,22 @@ def sse_chart():
 def progress_data():
     @threadsafe_generator
     def generate():
-        x = 0
 
-        while x <= 100:
-            yield "data:" + str(x) + "\n\n"
-            x += 10
-            sleep(0.9)
+        try:
+            x = 0
 
-    response.headers["Content-Type"] = "text/event-stream"
-    response.headers["Cache-Control"] = "no-cache"
-    response.headers["X-Accel-Buffering"] = "no"
+            while x <= 100:
+
+                response.headers["Content-Type"] = "text/event-stream"
+                response.headers["Cache-Control"] = "no-cache"
+                response.headers["X-Accel-Buffering"] = "no"
+                yield "data:" + str(x) + "\n\n"
+                x += 10
+                sleep(0.9)
+
+        finally:
+            print("progress-finally")
+
     return generate()
 
 
