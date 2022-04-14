@@ -11,7 +11,8 @@ __all__ = [
     "geventWebSocketServer",
     "wsgirefThreadingServer",
     "rocketServer",
-    "wsgirefPyruvate", # ./py4web.py run apps -s wsgirefPyruvate --watch=off
+    "wsgirefPyruvate",
+    "wsgirefWaitressServer",
 ] + wsservers_list
 
 
@@ -40,16 +41,22 @@ def geventWebSocketServer():
 
 
 def wsgirefPyruvate():
-# https://2020.ploneconf.org/talks/pyruvate-a-reasonably-fast-non-blocking-multithreaded-wsgi-server
-# https://maurits.vanrees.org/weblog/archive/2021/10/thomas-schorr-pyruvate-wsgi-server-status-update
-# https://gitlab.com/tschorr/pyruvate
-# https://pypi.org/project/pyruvate/
+
+    # https://2020.ploneconf.org/talks/pyruvate-a-reasonably-fast-non-blocking-multithreaded-wsgi-server
+    # https://maurits.vanrees.org/weblog/archive/2021/10/thomas-schorr-pyruvate-wsgi-server-status-update
+    # https://gitlab.com/tschorr/pyruvate
+    # https://pypi.org/project/pyruvate/
+
+
+    # pyruvate does not allow redirect in app-controllers
+    # pyruvate very fast 
+    # bag of future ?
 
     import pyruvate # pip install pyruvate
 
-    class WsgirefPyruvate(ServerAdapter):
+    class Pyruvate(ServerAdapter):
         def run(self, handler):
-
+            #self.quiet = True
             if not self.quiet:
                 log = logging.getLogger("pyruvate")
                 log.setLevel(logging.INFO)
@@ -58,9 +65,16 @@ def wsgirefPyruvate():
             workers = 1000 
             pyruvate.serve(handler, f"{self.host}:{self.port}", workers)
 
-    return WsgirefPyruvate 
+    return Pyruvate 
 
 
+def wsgirefWaitressServer():
+    class WaitressServer(ServerAdapter):
+        def run(self, handler):
+            from waitress import serve  # pip install waitress
+            self.options = {'threads':1000, } 
+            serve(handler, host=self.host, port=self.port, _quiet=self.quiet, **self.options)
+    return WaitressServer
 
 
 def wsgirefThreadingServer():

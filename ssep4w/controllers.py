@@ -201,7 +201,7 @@ def threadsafe_generator(f):
 def index():
     user = auth.get_user()
     message = T(
-        "Hello {first_name}".format(**user) if user else "sse with rocket3-server"
+        "Hello {first_name}".format(**user) if user else "sse with wsgirefThreadingServer"
     )
     actions = {"allowed_actions": auth.param.allowed_actions}
 
@@ -426,32 +426,35 @@ def stream_sqrt_id_data():
 
     @threadsafe_generator
     def generate():
+        try:
 
-        for i in range(30):
+            for i in range(30):
 
-            json_data = json.dumps(
-                {
-                    "time": datetime.now().strftime("%d.%m.%y %H:%M:%S"),
-                    "value": f"{sqrt(i):.2f}",
-                    "yield_id": yield_id,
-                }
-            )
+                json_data = json.dumps(
+                    {
+                        "time": datetime.now().strftime("%d.%m.%y %H:%M:%S"),
+                        "value": f"{sqrt(i):.2f}",
+                        "yield_id": yield_id,
+                    }
+                )
 
-            # print(json_data)
-            yield f"{json_data}\n\n"
+                # print(json_data)
+                yield f"{json_data}\n\n"
 
-            if not yield_id_list.check(yield_id):
-                break
+                if not yield_id_list.check(yield_id):
+                    break
 
-            # yield "{:.2f}\n\n".format(sqrt(i))
-            sleep(1)
+                # yield "{:.2f}\n\n".format(sqrt(i))
+                sleep(1)
 
-        if yield_id_list.check(yield_id):
-            print("closed-1")
-            yield_id_list.remove(yield_id)
-        else:
-            print("closed-2")
-            return
+            if yield_id_list.check(yield_id):
+                print("closed-1")
+                yield_id_list.remove(yield_id)
+            else:
+                print("closed-2")
+                return
+        finally:
+            print("stream_sqrt_id_data-finally")
 
     return generate()
 
@@ -662,15 +665,11 @@ def closed_sse_chat_event_stream():
         print("chat-finally")
 
 
-@action(
-    "sse_chat_stream",
-    method=[
-        "GET",
-    ],
-)
+@action( "sse_chat_stream", method=[ "GET", "POST"],)
+@action.uses(session, CORS())
 def sse_chat_stream():
     return closed_sse_chat_event_stream()
-    # return sse_chat_event_stream()
+    #return sse_chat_event_stream()
 
 
 @action("sse_chat_login", method=["GET", "POST"])
@@ -784,7 +783,7 @@ def sse_chat_home():
 
 
 @action("sse_chat_user_clear")
-@action.uses(session)
+@action.uses(session, CORS())
 def sse_chat_user_clear():
     # session.clear()
     session["sse_chat_user"] = None
@@ -927,3 +926,4 @@ def sse_progress():
     progress_url = URL("progress_data")
     menu_url = URL("index")
     return locals()
+

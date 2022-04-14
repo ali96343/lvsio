@@ -22,7 +22,7 @@ sqrt_url = 'http://localhost:8000/%s/sse_time_data' % APP_NAME
 #sqrt_url = 'http://localhost:8000/%s/stream_sqrt_data' % APP_NAME
 
 
-URLS = [ sqrt_url for e in range( 10000)  ]
+URLS = [ sqrt_url for e in range( 100)  ]
 
 # Retrieve a single page and report the URL and contents
 def load_url(url, timeout):
