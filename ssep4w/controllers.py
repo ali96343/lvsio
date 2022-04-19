@@ -22,6 +22,7 @@ import json
 import random
 import threading
 
+
 # -------------------------------------------------------------------------
 
 # ./py4web.py run apps --watch=off -s wsgirefThreadingServer
@@ -195,13 +196,40 @@ def threadsafe_generator(f):
 
 # -----------------------------------------------------------------------------
 
+import ombott
+
+def before_request():
+    print ('11111111111111 ==============================')
+    print ('+++',response)
+    print ('---',request)
+    print ( ombott.HTTPResponse.body  )
+    print ( response.body  )
+    print ("Response status {}".format(response.status_code) )
+
+#ombott.default_app().add_hook( "before_request", before_request )
+
+def after_request():
+    print ('2222222222222 ==============================')
+    print ('+++',response)
+    print ('---',request)
+    print ( ombott.HTTPResponse.body  )
+    print ( response.body  )
+    print ("Response status {}".format(response.status_code) )
+
+#ombott.default_app().add_hook( "after_request", after_request )
+
+
+# ----------------------------------------------------------------------------
+
+
+
 
 @action("index")
 @action.uses("index.html", auth)
 def index():
     user = auth.get_user()
     message = T(
-        "Hello {first_name}".format(**user) if user else "sse with wsgirefThreadingServer"
+        "Hello {first_name}".format(**user) if user else "sse with wsgirefThreadingServer (or waitress)"
     )
     actions = {"allowed_actions": auth.param.allowed_actions}
 
@@ -235,6 +263,15 @@ def index():
                 _role="button",
                 _href=URL(
                     "sse_time",
+                ),
+            ),
+        ),
+        DIV(
+            A(
+                "hello-wasm",
+                _role="button",
+                _href=URL(
+                    "hello-wasm",
                 ),
             ),
         ),
@@ -276,6 +313,23 @@ def index():
     )
 
     return locals()
+
+
+# ------------------- hello-wasm --------------------------
+
+# https://developer.mozilla.org/en-US/docs/WebAssembly/Rust_to_wasm
+# http://arahna.de/rust-webassembly/
+# https://dev.to/tuned/rust-scales-python-basic-experiment-49h0
+# https://github.com/Mec-iS/rust-wasm-python-101/tree/0ad1a42f637d505bac8cf02e594be122900ec2c2
+# https://thenewstack.io/using-web-assembly-written-in-rust-on-the-server-side/
+# https://github.com/reselbob/wisesayingswasm
+
+@action('hello-wasm')
+@action.uses('hello-wasm.html')
+def hello_wasm():
+    hello_url=URL('static/pkg/hello_wasm.js')
+    return locals()
+
 
 
 # ------------------- task 1 : sqrt numbers ------------------------------------
@@ -389,7 +443,7 @@ def sse_time_data():
                 )
                 response.headers["Content-Type"] = "text/event-stream"
                 yield f"data:{json_data}\n\n"
-                sleep(2)
+                sleep(1)
 
         finally:
             print("time-finally")
