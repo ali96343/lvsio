@@ -127,19 +127,21 @@ def rocketServer():
 
     return RocketServer
 
-def waitress():
+def waitressServer():
     from waitress import serve  # pip install waitress
     class WaitressServer(ServerAdapter):
         def run(self, handler):
            if not self.quiet:
                 log = logging.getLogger("waitress")
                 log.setLevel(logging.INFO)
+                log.addHandler(logging.StreamHandler())
 
-           self.options = {'threads':1000, }
+           self.options = {'threads':10, }
            serve(handler, host=self.host, port=self.port, _quiet=self.quiet, **self.options)
     return WaitressServer
 
 def waitressPyruvate():
+
     # https://2020.ploneconf.org/talks/pyruvate-a-reasonably-fast-non-blocking-multithreaded-wsgi-server
     # https://maurits.vanrees.org/weblog/archive/2021/10/thomas-schorr-pyruvate-wsgi-server-status-update
     # https://gitlab.com/tschorr/pyruvate
@@ -147,22 +149,17 @@ def waitressPyruvate():
 
     import pyruvate # pip install pyruvate
 
-    # pyruvate - This is a very fast server
-    # pyruvate does not allow you to redirect to another url the controller.
-    # in other words app-controllers with redirect do not work
-    # Is it a bug ? - or a bug or a feature
-
-    class Pyruvate(ServerAdapter):
+    class srvPyruvate(ServerAdapter):
         def run(self, handler):
-            #self.quiet = True
             if not self.quiet:
                 log = logging.getLogger("pyruvate")
-                log.setLevel(logging.DEBUG)
-                #log.setLevel(logging.INFO)
+                #log.setLevel(logging.DEBUG)
+                log.setLevel(logging.INFO)
+                log.addHandler(logging.StreamHandler())
 
-            workers = 8
+            workers = 100 
             pyruvate.serve(handler, f"{self.host}:{self.port}", workers)
 
-    return Pyruvate
+    return srvPyruvate
 
 

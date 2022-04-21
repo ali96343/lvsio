@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html>
-<body>
+[[extend 'layout.html']]
 
     <form method="get" action="[[=menu_url ]]">
              <input type="submit" value="menu">
@@ -15,22 +13,22 @@
     <button type="button" onclick="getURL();">new tab</button>
 
 
-<h2>py4web server time</h2>
-<div id="result"></div>
+<h3>sse time and random</h3>
+<br>
+<div id="time"></div>
+<br>
+<div id="value"></div>
 <script>
   const source = new EventSource("[[=stream_url ]]");
         source.onmessage = function (event) {
             const data = JSON.parse(event.data);
-            //document.getElementById("result").innerHTML += data.time + "<br>";
-            document.getElementById("result").innerHTML = data.time;
-            document.getElementById("result").style.fontSize = "40px";
-            //document.getElementById("result").innerHTML = data.time + "<br>" + document.getElementById("result").innerHTML ;
+
+            document.getElementById("time").innerHTML = data.time;
+            document.getElementById("time").style.fontSize = "40px";
+
+            document.getElementById("value").innerHTML = data.value;
+            document.getElementById("value").style.fontSize = "40px";
         }
 
-
-
 </script>
-
-</body>
-</html>
 

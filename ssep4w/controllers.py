@@ -229,12 +229,13 @@ def after_request():
 def index():
     user = auth.get_user()
     message = T(
-        "Hello {first_name}".format(**user) if user else "sse with wsgirefThreadingServer (or waitress)"
+        "Hello {first_name}".format(**user) if user else "sse with wsgirefThreadingServer (or waitressServer)"
     )
     actions = {"allowed_actions": auth.param.allowed_actions}
 
     menu = DIV(
         DIV(
+            DIV('poling'),
             A(
                 "stream_log",
                 _role="button",
@@ -258,20 +259,12 @@ def index():
             ),
         ),
         DIV(
+            DIV('sse'),
             A(
                 "sse_time",
                 _role="button",
                 _href=URL(
                     "sse_time",
-                ),
-            ),
-        ),
-        DIV(
-            A(
-                "hello-wasm",
-                _role="button",
-                _href=URL(
-                    "hello-wasm",
                 ),
             ),
         ),
@@ -307,6 +300,16 @@ def index():
                 _role="button",
                 _href=URL(
                     "sse_progress",
+                ),
+            ),
+        ),
+        DIV(
+            DIV( "random app"),
+            A(
+                "hello-wasm",
+                _role="button",
+                _href=URL(
+                    "hello-wasm",
                 ),
             ),
         ),
@@ -535,18 +538,49 @@ def stream_sqrt_id():
 this_dir = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(this_dir, "controllers.py")
 
+@threadsafe_generator
+def generate_lazy():
+    chunk_size = 1024 
+    try: 
+        with open(file_path) as f:
+            while True:
+                data =  f.read( chunk_size  )
+                if not data:
+                     break
+                yield data
+                sleep(1)
+    finally:
+        print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
-@action("stream_log_data", method=["GET", "POST"])
-@action.uses(db, session, auth, T, CORS())
-def stream_log_data():
-    @threadsafe_generator
-    def generate():
+
+@threadsafe_generator
+def generate_lazy_line():
+    try:
+        with open(file_path) as f:
+            for i, line in enumerate(f):
+                if not line:
+                     break
+                yield f"{i} {line}"
+                sleep(1)
+    finally:
+        print ( f"finally-{sys._getframe().f_code.co_name}" ) 
+
+
+@threadsafe_generator
+def generate_file():
+    try:
         with open(file_path) as f:
             while True:
                 yield f.read()
                 sleep(1)
+    finally:
+        print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
-    return generate()
+
+@action("stream_log_data", method=["GET", "POST"])
+@action.uses(db, session, auth, T, CORS())
+def stream_log_data():
+    return generate_lazy_line()
 
 
 @action("stream_log", method=["GET", "POST"])
@@ -716,7 +750,7 @@ def closed_sse_chat_event_stream():
                 yield "data: %s\n\n" % message["data"].decode("utf-8")
 
     finally:
-        print("chat-finally")
+        print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
 
 @action( "sse_chat_stream", method=[ "GET", "POST"],)
