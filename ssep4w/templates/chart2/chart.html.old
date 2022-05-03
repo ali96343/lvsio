@@ -1,0 +1,68 @@
+[[extend 'layout.html']]
+
+<button type="button" onclick="window.open(  window.location.href  );">new tab</button>
+<button id="breaj_but" type="button" onclick="window.location.reload(true);">reload</button>
+
+
+<p>./py4web.py run apps --watch=off -s wsgirefThreadingServer</p>
+<p id='gen_id'></p>
+
+<div id="chart" style="width: 70%; height: 200px;"></div>
+
+[[block page_scripts]]
+
+    <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-format@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-time@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-time-format@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-selection@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-axis@3"></script>
+    <script src="https://huww98.github.io/TimeChart/dist/timechart.min.js"></script>
+
+<!-- https://github.com/huww98/TimeChart  -->
+
+<script>
+
+  ! function(data_url) {
+           const source = new EventSource( data_url );
+
+           const colors = ["red", "green", "blue", 'black', 'orange', 'violet', 'navy', 'magenta', 'navy', 
+                          'brown', 'salmon', 'coral', 'indigo', 'maroon', 'olive', 'peru','plum', 'tan' ];
+
+           const random = Math.floor(Math.random() * colors.length);
+
+           const mydata = [];
+           const chart = new TimeChart( document.getElementById('chart') , {
+                baseTime: Date.now() - performance.now(), 
+                series: [{ data:mydata,
+                           color:  colors[random], //   'red', 
+                           name: colors[random], 
+                           lineWidth: 1,    
+                         }],
+                realTime: true,
+                xRange: { min: 0, max: 60 },
+                yRange: { min: 10, max: 90 },
+
+                // tooltip: true
+           });
+
+           source.onmessage = function (event) {
+                 const chart_data = JSON.parse(event.data);
+                 mydata.push({x: chart_data.x , y: chart_data.y});
+                 chart.update();
+
+                 const fs= '1.1em';
+
+                 document.getElementById("gen_id").style.fontSize = fs;
+                 document.getElementById("gen_id").innerHTML = 'Generator id: ' + chart_data.gen_id + ';   '+ chart_data.time;
+
+           };
+
+   } ( "[[=stream_url ]]" ) 
+
+</script>
+
+[[end]]

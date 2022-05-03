@@ -1,0 +1,47 @@
+[[extend 'layout.html']]
+
+[[block page_head ]]
+  <style>
+  #flogs { font-size: 1.1em; }
+  </style>
+[[end ]]
+<div id='logstr'></div>
+<div id="myout">Log:</div>
+<div id="flogs"></div>
+
+<script>
+
+function addParameterToURL(key, param){
+    _url = "[[=stream_url ]]";
+    _url += (_url.split('?')[1] ? '&':'?') + key + '=' + param;
+    //_url += (_url.split('?')[1] ? '&':'?') + param;
+    return _url;
+}
+
+  // let console = window.console;
+  let lastId = '0';
+  let data_url_id = addParameterToURL('lastId',lastId)
+  // let data_url_id = new URL( window.location.search  );
+  const source = new EventSource(  data_url_id );
+  //const source = new EventSource("[[=stream_url ]]");
+  const onPage = 7;
+  let flogItems = [];
+
+  source.onmessage = function(e) {
+    lastId = e.lastEventId; 
+    if( flogItems.length > onPage ) { flogItems.shift();  }
+  //  console.log(e.lastEventId)
+    flogItems.push(e.data);
+    const HTML = flogItems.map( item => `<div>${item}</div> ` ).join('');
+    //const HTML = flogItems.map( item => `<li>${item}</li> ` ).join('');
+    document.getElementById("flogs").innerHTML = HTML 
+    data_url_id = addParameterToURL('lastId',e.lastEventId)
+    // data_url_id.searchParams.append('last-id', lastId);
+    document.getElementById("logstr").innerHTML = data_url_id; 
+    //document.getElementById("flogs").innerHTML = '<ul>' + HTML + '</ul>'
+  };
+
+</script>
+
+
+

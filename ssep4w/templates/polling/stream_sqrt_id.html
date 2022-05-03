@@ -1,0 +1,75 @@
+[[extend 'layout.html']]
+
+<script>
+
+  let yield_id = null;
+
+   function send_break ( p_id  ) {
+   const xhr = new XMLHttpRequest();
+       xhr.open("POST", '[[=post_url ]]');
+       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+       const payload = {yield_id: p_id};
+       xhr.send(JSON.stringify(payload));
+    }
+
+</script>
+
+    <button type="button" onclick="window.open(window.location.href);">new tab</button>
+    <button id="breaj_but" type="button" onclick="send_break(  yield_id);">break yield</button>
+    <button id="breaj_but" type="button" onclick="window.location.reload(true);">reload</button>
+
+<p>./py4web.py run apps --watch=off -s wsgirefThreadingServer</p>
+
+
+<p id="gen_id"></p>
+<p>Latest value: <span id="latest"></span></p>
+<p id="output">All values: </p>
+
+<script>
+    const latest = document.getElementById('latest');
+    const output = document.getElementById('output');
+    const gen_id = document.getElementById('gen_id');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '[[=stream_url]]');
+    xhr.send();
+    let position = 0;
+    function handleNewData() {
+        // the response text include the entire response so far
+        // split the messages, then take the messages that haven't been handled yet
+        // position tracks how many messages have been handled
+        // messages end with a newline, so split will always show one extra empty message at the end
+        let messages = xhr.responseText.split('\n\n');
+        messages.slice(position, -1).forEach(function(value) {
+            let obj= JSON.parse(value);
+            value = obj.value;
+            yield_id = obj.yield_id; 
+            console.log( yield_id )
+            gen_id.textContent = 'Generator id: ' + obj.gen_id + '; now: ' +obj.time;  // update the latest value in place
+            latest.textContent = value;  // update the latest value in place
+            // build and append a new item to a list to log all output
+            //let item = document.createElement('li');
+            //item.textContent = value;
+            //output.appendChild(item);
+            let item = document.createTextNode("This just got added");
+            item.textContent = ( !position ) ? value : ', ' + value;
+            output.appendChild(item);
+        });
+        position = messages.length - 1;
+    }
+
+   
+   const timer = setInterval(function() {
+        // check the response for new data
+        handleNewData();
+        // stop checking once the response has ended
+        if (xhr.readyState == XMLHttpRequest.DONE) {
+            clearInterval(timer);
+            latest.style.color = 'red'
+            latest.textContent = 'Done';
+        } else {
+            latest.style.color = 'blue';
+       }
+    }, 1000);
+
+</script>

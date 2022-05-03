@@ -19,9 +19,69 @@ from time import sleep
 from datetime import datetime
 import redis
 import json
-import random
+from random import randint
 import threading
+from contextlib import contextmanager
 
+# ------------------------------ import examples -------------------------
+from .sse import *
+from .polling import *
+from .video import *
+from .webm import *
+from .chart2 import *
+from .chart3 import *
+from .flog import *
+
+# ------------------------------------------------------------------------
+#https://stackoverflow.com/questions/919897/how-to-obtain-a-thread-id-in-python
+import ctypes
+libc = ctypes.cdll.LoadLibrary('libc.so.6')
+
+# System dependent, see e.g. /usr/include/x86_64-linux-gnu/asm/unistd_64.h
+SYS_gettid = 186
+
+def getThreadId():
+   """Returns OS thread id - Specific to Linux"""
+   return libc.syscall(SYS_gettid)
+
+
+import inspect 
+# https://stackoverflow.com/questions/1095543/get-name-of-calling-functions-module-in-python
+def info(msg='mod.__name__'):
+    frm = inspect.stack()[1]
+    mod = inspect.getmodule(frm[0])
+    print( '     [%s] %s' % (mod.__name__, msg) )
+
+
+def worker_info():
+    print ( f"========== {sys._getframe().f_code.co_name}" ) 
+
+    #print (sys._current_frames().values() )
+    f = list(sys._current_frames().values())[0]
+    print ("    ",f.f_back.f_globals['__file__'] )
+    print ("    ", f.f_back.f_globals['__name__'] )
+    getframe_expr = "sys._getframe({}).f_code.co_name"
+    caller = eval(getframe_expr.format(2))
+    callers_caller = eval(getframe_expr.format(3))
+    print(" --  called from: ", caller)
+    print("    ", caller, "was called from: ", callers_caller, "--")
+
+    print("     name:  ",threading.current_thread().name)
+    print("     ident: ",threading.get_ident())
+    print("     sys-ident: ",getThreadId())
+    _ = [     print('           ',thread.name) for thread in threading.enumerate() ]
+
+# --------------------------------------------------------------
+# https://anyio.readthedocs.io/en/stable/threads.html
+
+from anyio import to_thread, run
+
+
+async def main():
+    await to_thread.run_sync(sleep, 0.5)
+    print ('xxxxxx')
+
+#run(main)
 
 # -------------------------------------------------------------------------
 
@@ -36,8 +96,6 @@ import threading
 # --------------------------------------------------------------------------
 
 
-import threading
-from contextlib import contextmanager
 
 
 # https://stackoverflow.com/quepython stions/16740104/python-lock-with-statement-and-timeout
@@ -304,7 +362,7 @@ def index():
             ),
         ),
         DIV(
-            DIV( "random app"),
+            DIV( "joke :)"),
             A(
                 "hello-wasm",
                 _role="button",
@@ -313,6 +371,54 @@ def index():
                 ),
             ),
         ),
+
+
+        DIV(
+            DIV( "from ex-refac"),
+
+
+            A(
+                "polling",
+                _role="button",
+                _href=URL( 'polling/stream_sqrt_id' ),
+            ),
+
+
+            A(
+                "sse",
+                _role="button",
+                _href=URL( 'sse/sse_time' ),
+            ),
+
+            A(
+                "camera",
+                _role="button",
+                _href=URL( 'video/jpeg_stream' ),
+            ),
+
+
+            A(
+                "webm",
+                _role="button",
+                _href=URL( 'webm/webm_stream' ),
+            ),
+
+        ),
+        A(
+                "flog",
+                _role="button",
+                _href=URL( 'flog/flog' ),
+            ),
+        A(
+                "chart2",
+                _role="button",
+                _href=URL( 'chart2/sse_chart' ),
+            ),
+        A(
+                "chart3",
+                _role="button",
+                _href=URL( 'chart3/chart3' ),
+            ),
     )
 
     return locals()
@@ -405,14 +511,7 @@ def stream_sqrt_data():
 
 
 @action("stream_sqrt", method=["GET", "POST"])
-@action.uses(
-    "stream_sqrt.html",
-    db,
-    session,
-    auth,
-    T,
-    CORS(),
-)
+@action.uses( "stream_sqrt.html", db, session, auth, T, CORS(),)
 # https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 def stream_sqrt():
     stream_url = URL("stream_sqrt_data")
@@ -421,7 +520,7 @@ def stream_sqrt():
 
 
 # stream_time -------------------------------------------------------------
-
+worker_info()
 
 @action("sse_time_data", method=["GET", "POST"])
 @action.uses(session, auth, T, CORS())
@@ -430,9 +529,9 @@ def sse_time_data():
     # ./py4web.py run apps --watch=off -s wsgirefThreadingServer
 
     @threadsafe_generator
-    def generate():
+    def generate_time_data():
         num = 0
-
+        worker_info()
         try:
 
             while True:
@@ -441,28 +540,28 @@ def sse_time_data():
                 json_data = json.dumps(
                     {
                         "time": datetime.now().strftime("%H:%M:%S.%f")[:-3],
-                        "value": round(random.random() * 100, 2),
+                        "value": randint(0,100), 
                     }
                 )
                 response.headers["Content-Type"] = "text/event-stream"
                 yield f"data:{json_data}\n\n"
                 sleep(1)
 
-        finally:
-            print("time-finally")
+        except Exception as ex:
+            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            ex_msg = ex_template.format(type(ex).__name__, ex.args)
+            print (ex_msg)
 
-    return generate()
+
+
+        finally:
+            print ( f"finally-{sys._getframe().f_code.co_name}" ) 
+
+    return generate_time_data()
 
 
 @action("sse_time", method=["GET", "POST"])
-@action.uses(
-    "sse_time.html",
-    db,
-    session,
-    auth,
-    T,
-    CORS(),
-)
+@action.uses( "sse_time.html", db, session, auth, T, CORS(),)
 def sse_time():
     stream_url = URL("sse_time_data")
     menu_url = URL("index")
@@ -510,6 +609,8 @@ def stream_sqrt_id_data():
             else:
                 print("closed-2")
                 return
+
+
         finally:
             print("stream_sqrt_id_data-finally")
 
@@ -549,6 +650,12 @@ def generate_lazy():
                      break
                 yield data
                 sleep(1)
+
+    except Exception as ex:
+            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            ex_msg = ex_template.format(type(ex).__name__, ex.args)
+            print (ex_msg)
+
     finally:
         print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
@@ -562,6 +669,15 @@ def generate_lazy_line():
                      break
                 yield f"{i} {line}"
                 sleep(1)
+
+
+    except Exception as ex:
+            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            ex_msg = ex_template.format(type(ex).__name__, ex.args)
+            print (ex_msg)
+
+
+
     finally:
         print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
@@ -573,6 +689,12 @@ def generate_file():
             while True:
                 yield f.read()
                 sleep(1)
+
+    except Exception as ex:
+            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            ex_msg = ex_template.format(type(ex).__name__, ex.args)
+            print (ex_msg)
+
     finally:
         print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
@@ -671,6 +793,7 @@ def listen():
 # https://stackoverflow.com/questions/12232304/how-to-implement-server-push-in-flask-framework
 
 
+from redis import StrictRedis
 red = redis.StrictRedis()
 
 
@@ -715,7 +838,7 @@ def sqrt_id_post():
 # https://stackoverflow.com/questions/11597367/how-do-i-close-a-server-send-events-connection-in-flask
 
 
-# exception does not work !!!
+# exception works !!!
 @threadsafe_generator
 def closed_sse_chat_event_stream():
     try:
@@ -937,13 +1060,13 @@ def pubsub_root():
 @action.uses(session, CORS())
 def chart_data():
     @threadsafe_generator
-    def generate_random_data():
+    def generate_chart_data():
         try:
             while True:
                 json_data = json.dumps(
                     {
-                        "time": datetime.now().strftime("%d.%m.%y %H:%M:%S"),
-                        "value": random.random() * 100,
+                        "time": datetime.now().strftime("%H:%M:%S"),
+                        "value": randint(0,100), 
                     }
                 )
                 # print ( json_data  )
@@ -952,21 +1075,21 @@ def chart_data():
                 response.headers["X-Accel-Buffering"] = "no"
                 yield f"data:{json_data}\n\n"
                 sleep(1)
-        finally:
-            print("chart-finally")
 
-    return generate_random_data()
+        except Exception as ex:
+            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            ex_msg = ex_template.format(type(ex).__name__, ex.args)
+            print (ex_msg)
+
+
+        finally:
+            print ( f"finally-{sys._getframe().f_code.co_name}" ) 
+
+    return generate_chart_data()
 
 
 @action("sse_chart", method=["GET", "POST"])
-@action.uses(
-    "sse_chart.html",
-    db,
-    session,
-    auth,
-    T,
-    CORS(),
-)
+@action.uses( "sse_chart.html", db, session, auth, T, CORS(),)
 def sse_chart():
     stream_url = URL("chart_data")
     menu_url = URL("index")
@@ -981,7 +1104,7 @@ def sse_chart():
 # @action.uses(session, CORS())
 def progress_data():
     @threadsafe_generator
-    def generate():
+    def generate_progress_data():
 
         try:
             x = 0
@@ -995,10 +1118,15 @@ def progress_data():
                 x += 10
                 sleep(0.9)
 
-        finally:
-            print("progress-finally")
+        except Exception as ex:
+            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            ex_msg = ex_template.format(type(ex).__name__, ex.args)
+            print (ex_msg)
 
-    return generate()
+        finally:
+            print ( f"finally-{sys._getframe().f_code.co_name}" ) 
+
+    return generate_progress_data()
 
 
 @action("sse_progress", method=["GET", "POST"])
@@ -1014,4 +1142,5 @@ def sse_progress():
     progress_url = URL("progress_data")
     menu_url = URL("index")
     return locals()
+
 

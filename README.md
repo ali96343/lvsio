@@ -1,7 +1,9 @@
 ## lvsio - py4web apps
 
 ---------------------------------------------
-ssep4w - experiment with sse (py4web with wsgirefThreadingServer )
+ssep4w - examples of using generators in py4web-controllers 
+
+( polling, server sent events, file-push, live charts ... etc )
 
 run  ./py4web.py run apps --watch=off -s wsgirefThreadingServer  
 
@@ -9,8 +11,7 @@ run  ./py4web.py run apps --watch=off -s wsgirefThreadingServer
 
 look into ssep4w/server_adapters.py)
 
-
-sse examples from:
+Examples from the following sources were used:
 
 https://github.com/djdmorrison/flask-progress-example
 
