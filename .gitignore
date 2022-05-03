@@ -1,0 +1,27 @@
+__pycache__/
+.service/
+*.py[cod]
+
+# C extensions
+*.so
+
+*.csv
+.idea
+*.zip
+*.mysh
+*.sqlite
+/data/*.txt
+\data\*.txt
+/dist/*
+/qlf.egg-info/*
+.deposit
+
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+
