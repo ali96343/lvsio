@@ -5,12 +5,18 @@
 
 <p>./py4web.py run apps --watch=off -s wsgirefThreadingServer</p>
 <p id='gen_id'></p>
+<p id="event_id"></p>
 <p id="time"></p>
 <p id="value"></p>
 
 
 <script>
-   const source = new EventSource("[[=stream_url ]]");
+ ! function(data_url) {
+
+   let lastId = 0;
+   let data_url_id = data_url  + '?lastId=' + lastId.toString();
+
+   const source = new EventSource( data_url_id  );
    source.onmessage = function (e) {
        const fs= '1.4em';
        const data = JSON.parse(e.data);
@@ -20,11 +26,18 @@
 
        document.getElementById("value").innerHTML = data.value;
        document.getElementById("value").style.fontSize = fs;
+
+     
+       lastId = e.lastEventId;
+       data_url_id = data_url  + '?lastId=' + lastId.toString();
+
+       document.getElementById("event_id").innerHTML = data_url_id ; //   e.lastEventId;
+       document.getElementById("event_id").style.fontSize = fs;
    }
 
    source.addEventListener("generator_start", function(e) {
        const data = JSON.parse(e.data);
-       document.getElementById("gen_id").innerHTML = 'Generator id: ' + data.gen_id;
+       document.getElementById("gen_id").innerHTML = 'Generator id: ' + data.gen_id ;
    });
 
    source.onerror = function(e) {
@@ -39,7 +52,7 @@
          console.log('open connection! ',event);
    });
 
-
+}( "[[=stream_url ]]"  )
 
 
 </script>

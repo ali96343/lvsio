@@ -94,6 +94,14 @@ def sse_time_data():
     #pubsub.subscribe( RED_CHAN )
 
 
+    lastId = request.GET.get('lastId', 0 )
+
+    try:
+        lastId = int(lastId)
+    except:
+        lastId = 0
+
+
     def pub_mess(msg='hello',id_str='XXX',from_= "func"):
 
         data = {
@@ -117,6 +125,7 @@ def sse_time_data():
             pub_mess( msg='start', id_str=gen_id, from_= user  )
 
             start_flag = True
+            last_event = lastId + 1
 
             while True:
         
@@ -135,8 +144,9 @@ def sse_time_data():
                     yield f"event: generator_start\ndata:{json_data}\n\n"
                     start_flag = False
                     
-                yield f"data:{json_data}\n\n"
+                yield f"data:{json_data}\nid: {last_event}\n\n"
                 sleep(1)
+                last_event +=  1
 
         except Exception as ex:
             ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"

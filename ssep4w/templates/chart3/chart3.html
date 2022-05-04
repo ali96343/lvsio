@@ -1,52 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Real-Time Charts</title>
-    <!--suppress JSUnresolvedLibraryURL -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css"
-          integrity="sha512-T584yQ/tdRR5QwOpfvDfVQUidzfgc2339Lc8uBDtcp/wYu80d7jwBgAxbyMh0a9YM9F8N3tdErpFI8iaGx6x5g=="
-          crossorigin="anonymous" referrerpolicy="no-referrer"/>
-    <!--suppress JSUnresolvedLibraryURL -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.css"
+[[extend 'layout.html']]
+
+
+[[block page_head]]
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.css"
           integrity="sha512-/zs32ZEJh+/EO2N1b0PEdoA10JkdC3zJ8L5FTiQu82LR9S/rOQNfQN7U59U9BC12swNeRAz3HSzIL2vpp4fv3w=="
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
-</head>
-<body>
-<button type="button" onclick="window.open(  window.location.href  );">new tab</button>
-<button id="breaj_but" type="button" onclick="window.location.reload(true);">reload</button>
-
-<div class="container">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <canvas id="canvas"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!--suppress JSUnresolvedLibraryURL -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
-        integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<!--suppress JSUnresolvedLibraryURL -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/js/bootstrap.bundle.min.js"
-        integrity="sha512-mULnawDVcCnsk9a4aG1QLZZ6rcce/jSzEGqUkeOLy0b6q0+T6syHrxlsAGH7ZVoqC93Pd0lBqd6WguPWih7VHA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<!--suppress JSUnresolvedLibraryURL -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"
         integrity="sha512-d9xgZrVZpmmQlfonhQUvTR7lMPtO7NkZMkA0ABN3PHCbKA5nqylQ/yWlFAyY6hYgdF1Qh6nYiuADWwKB4C2WSw=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+[[ end ]]
+
+<p id='logstr'></p>
+
+<button type="button" onclick="window.open(  window.location.href  );">new tab</button>
+<button id="breaj_but" type="button" onclick="window.location.reload(true);">reload</button>
+
+
+<canvas id="canvas" style="height:100%;"></canvas>
+
 <script>
 
 ! function (data_url) {
-    $(document).ready(function () {
+
+  let lastId=0;
+
         const config = {
             type: 'line',
             data: {
-                labels: Array(30).fill("0000-00-00 00:00:00"),
+                labels: Array(30).fill("00:00:00"),
                 datasets: [{
                     label: "Random Dataset",
                     backgroundColor: 'rgb(255, 99, 132)',
@@ -96,12 +79,59 @@
 
         const lineChart = new Chart(context, config);
 
-        let lastId=0;
-        let data_url_id = '';
-        const source = new EventSource(data_url);
+// ----------------------   reconnectFrequencySeconds doubles every retry
 
-        source.onmessage = function (event) {
+
+let reconnectFrequencySeconds = 1;
+let evtSource;
+
+function isFunction(functionToCheck) {
+  return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+}
+
+function debounce(func, wait) {
+    let timeout;
+    let waitFunc;
+
+    return function() {
+        if (isFunction(wait)) {
+            waitFunc = wait;
+        }
+        else {
+            waitFunc = function() { return wait };
+        }
+
+        let context = this, args = arguments;
+        let later = function() {
+            timeout = null;
+            func.apply(context, args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, waitFunc());
+    };
+}
+
+const reconnectFunc = debounce(function() {
+    setupEventSource();
+    // Double every attempt to avoid overwhelming server
+    reconnectFrequencySeconds *= 2;
+    // Max out at ~1 minute as a compromise between user experience and server load
+    if (reconnectFrequencySeconds >= 64) {
+        reconnectFrequencySeconds = 64;
+    }
+}, function() { return reconnectFrequencySeconds * 1000 });
+
+function setupEventSource() {
+
+    let data_url_id= data_url+ '?lastId=' + lastId.toString();
+    evtSource = new EventSource( data_url_id   /* URL here */);
+
+
+
+    evtSource.onmessage = function(event) {
+      // Handle even here
             const data = JSON.parse(event.data);
+            let gen_id = data.gen_id;
             if (config.data.labels.length === 30) {
                 config.data.labels.shift();
                 config.data.datasets[0].data.shift();
@@ -109,11 +139,30 @@
             config.data.labels.push(data.time);
             config.data.datasets[0].data.push(data.value);
             lineChart.update();
-        }
-    });
+
+            lastId = event.lastEventId;
+
+            data_url_id= data_url+ '?lastId=' + lastId.toString();
+
+            document.getElementById("logstr").innerHTML ='Generator id: ' +  gen_id + '; ' + data_url_id;
+
+    };
+
+    evtSource.onopen = function(e) {
+      // Reset reconnect frequency upon successful connection
+      reconnectFrequencySeconds = 1;
+    };
+
+    evtSource.onerror = function(e) {
+      evtSource.close();
+      reconnectFunc();
+    };
+}
+
+setupEventSource();
+
+
 
 } ( "[[=stream_url ]]"  )
 </script>
-</body>
-</html>
 

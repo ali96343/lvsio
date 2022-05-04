@@ -5,6 +5,7 @@
 
 
 <p>./py4web.py run apps --watch=off -s wsgirefThreadingServer</p>
+<p id='logstr'></p>
 <p id='gen_id'></p>
 
 <div id="chart" style="width: 70%; height: 200px;"></div>
@@ -30,6 +31,7 @@
 <script>
 
   ! function(data_url) {
+    let lastId=0; // global
 
 
 // --------------- chart
@@ -53,6 +55,8 @@
            });
 
 // ----------------------   reconnectFrequencySeconds doubles every retry
+
+
 let reconnectFrequencySeconds = 1;
 let evtSource;
 
@@ -94,8 +98,7 @@ const reconnectFunc = debounce(function() {
 
 function setupEventSource() {
 
-    let lastId=0;
-    let data_url_id= data_url+ '/' + lastId.toString();
+    let data_url_id= data_url+ '?lastId=' + lastId.toString();
     evtSource = new EventSource( data_url_id   /* URL here */); 
     evtSource.onmessage = function(e) {
       // Handle even here
@@ -104,8 +107,10 @@ function setupEventSource() {
                  chart.update();
 
                  lastId = e.lastEventId ;
+                 data_url_id= data_url+ '?lastId=' + lastId.toString();
                  document.getElementById("gen_id").style.fontSize = '1.1em';
                  document.getElementById("gen_id").innerHTML = 'Generator id: ' + chart_data.gen_id + ';   '+ chart_data.time;
+                 document.getElementById("logstr").innerHTML = data_url_id;
     };
 
     evtSource.onopen = function(e) {

@@ -48,14 +48,14 @@ def threadsafe_generator(f):
 @action("chart3/chart3_data", method=["GET", ])
 #@action("chart3/chart3_data/<lastId>", method=["GET", ])
 @action.uses( CORS())
-def chart3_data(lastId=0):
+def chart3_data():
+
+    lastId = request.GET.get('lastId', 0 )
 
     try:
         lastId = int(lastId)
     except:
-        lastId = 0 
-
-    # last_id = request.headers.get('last-event-id')
+        lastId = 0
 
     @threadsafe_generator
     def generate_chart3_data():
@@ -64,14 +64,14 @@ def chart3_data(lastId=0):
             gen_id = str(next(unique_num) )
             
             xvalue= lastId + 1
-            event_id = 0 
+            event_id = lastId + 1 
             while True:
 
                 json_data = json.dumps(
                     {
                         'x' : xvalue, 
                         "value": randint( 0, 100), 
-                        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "time": datetime.now().strftime("%H:%M:%S"),
                         'gen_id': gen_id,
                     }
                 )

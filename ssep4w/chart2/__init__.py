@@ -45,17 +45,18 @@ def threadsafe_generator(f):
 # https://stackoverflow.com/questions/61489186/browser-refresh-not-sending-the-last-event-id-received-as-part-of-server-sent-re
 
 
-#@action("chart2/sse_chart_data", method=["GET", ])
-@action("chart2/sse_chart_data/<lastId>", method=["GET", ])
+@action("chart2/sse_chart_data", method=["GET", ])
 @action.uses( CORS())
 def sse_chart_data(lastId=0):
+
+    lastId = request.GET.get('lastId', 0 ) 
 
     try:
         lastId = int(lastId)
     except:
         lastId = 0 
 
-    # last_id = request.headers.get('last-event-id')
+    #print ( f'sse_chart_data: lastId {lastId}' )
 
     @threadsafe_generator
     def generate_chart_data():
@@ -64,7 +65,7 @@ def sse_chart_data(lastId=0):
             gen_id = str(next(unique_num) )
             
             xvalue= lastId + 1
-            event_id = 0 
+            event_id = lastId + 1 
             while True:
 
                 json_data = json.dumps(
