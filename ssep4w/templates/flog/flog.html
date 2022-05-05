@@ -5,43 +5,88 @@
   #flogs { font-size: 1.1em; }
   </style>
 [[end ]]
-<div id='logstr'></div>
-<div id="myout">Log:</div>
+
+<button type="button" onclick="window.open(  window.location.href  );">new tab</button>
+<button id="breaj_but" type="button" onclick="window.location.reload(true);">reload</button>
+
+
+<span id="gen_id"></span>
+<span id='logstr'></span>
 <div id="flogs"></div>
 
 <script>
 
-function addParameterToURL(key, param){
-    _url = "[[=stream_url ]]";
-    _url += (_url.split('?')[1] ? '&':'?') + key + '=' + param;
-    //_url += (_url.split('?')[1] ? '&':'?') + param;
-    return _url;
-}
+// https://stackoverflow.com/questions/24564030/is-an-eventsource-sse-supposed-to-try-to-reconnect-indefinitely
 
-  // let console = window.console;
-  let lastId = '0';
-  let data_url_id = addParameterToURL('lastId',lastId)
-  // let data_url_id = new URL( window.location.search  );
-  const source = new EventSource(  data_url_id );
-  //const source = new EventSource("[[=stream_url ]]");
-  const onPage = 7;
+
+! function (data_url) {
+  
+  let reconnectFrequencySeconds = 1;
+  let evtSource;
+
+  let lastId = 0;
+  let data_url_id = data_url  + '?lastId=' + lastId.toString();
+
+
+  const onPage = 10;
   let flogItems = [];
 
-  source.onmessage = function(e) {
-    lastId = e.lastEventId; 
+  // Putting these functions in extra variables is just for the sake of readability
+  const waitFunc = function() { return reconnectFrequencySeconds * 1000 };
+  const tryToSetupFunc = function() {
+      setupEventSource();
+      reconnectFrequencySeconds *= 2;
+      if (reconnectFrequencySeconds >= 64) {
+          reconnectFrequencySeconds = 64;
+      }
+  };
+  
+  const reconnectFunc = function() { setTimeout(tryToSetupFunc, waitFunc()) };
+  
+  function setupEventSource() {
+      evtSource = new EventSource( data_url_id  ); 
+      evtSource.onmessage = function(e) {
+       // console.log(e);
+
+    lastId = e.lastEventId;
     if( flogItems.length > onPage ) { flogItems.shift();  }
   //  console.log(e.lastEventId)
     flogItems.push(e.data);
     const HTML = flogItems.map( item => `<div>${item}</div> ` ).join('');
     //const HTML = flogItems.map( item => `<li>${item}</li> ` ).join('');
-    document.getElementById("flogs").innerHTML = HTML 
-    data_url_id = addParameterToURL('lastId',e.lastEventId)
+    document.getElementById("flogs").innerHTML = HTML
+    data_url_id =  data_url+ '?lastId=' + lastId.toString(); // addParameterToURL('lastId',e.lastEventId)
     // data_url_id.searchParams.append('last-id', lastId);
-    document.getElementById("logstr").innerHTML = data_url_id; 
+    document.getElementById("logstr").innerHTML = data_url_id;
     //document.getElementById("flogs").innerHTML = '<ul>' + HTML + '</ul>'
-  };
+
+
+   };
+
+      evtSource.onopen = function(e) {
+        reconnectFrequencySeconds = 1;
+        console.log('open connection! ',e);
+        console.log('reconnectFrequencySeconds:  ',reconnectFrequencySeconds);
+      };
+
+      evtSource.onerror = function(e) {
+        evtSource.close();
+        reconnectFunc();
+      };
+
+      // user events 
+
+      evtSource.addEventListener("generator_start", function(e) {
+          const data = JSON.parse(e.data);
+          document.getElementById("gen_id").innerHTML = 'Generator id: ' + data.gen_id + "; " ;
+          document.getElementById("gen_id").style.color = 'red'
+      });
+
+
+  }
+  
+  setupEventSource();
+  
+}( "[[=stream_url ]]"  )
 
 </script>
-
-
-

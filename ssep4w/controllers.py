@@ -374,7 +374,7 @@ def index():
 
 
         DIV(
-            DIV( "from ex-refac"),
+            DIV( "+ lastEventId and reconnect"),
 
 
             A(
@@ -1142,5 +1142,9 @@ def sse_progress():
     progress_url = URL("progress_data")
     menu_url = URL("index")
     return locals()
+# ----------------------------------------
+# https://github.com/amittallapragada/SSELoggerDemo
+# https://github.com/roniemartinez/real-time-charts-with-fastapi/blob/master/templates/index.html
+
 
 

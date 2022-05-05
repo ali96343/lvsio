@@ -9,7 +9,6 @@ from time import sleep, time
 from datetime import datetime
 import json
 import threading
-from contextlib import contextmanager
 
 from itertools import count
 generator_num = count(start=0, step = 1)
@@ -80,6 +79,9 @@ def clear_red_ns(ns):
 
 # https://stackoverflow.com/questions/21975228/redis-python-how-to-delete-all-keys-according-to-a-specific-pattern-in-python
 
+# reconnect about
+# https://stackoverflow.com/questions/24564030/is-an-eventsource-sse-supposed-to-try-to-reconnect-indefinitely
+
 
 # stream_time -------------------------------------------------------------
 
@@ -93,14 +95,16 @@ def sse_time_data():
     #pubsub = red.pubsub()
     #pubsub.subscribe( RED_CHAN )
 
-
-    lastId = request.GET.get('lastId', 0 )
-
     try:
+        lastId = request.GET.get('lastId', 0 )
         lastId = int(lastId)
-    except:
+    except Exception as ex:
+        ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        ex_msg = ex_template.format(type(ex).__name__, ex.args)
+        print (ex_msg)
         lastId = 0
 
+    #print ( lastId)
 
     def pub_mess(msg='hello',id_str='XXX',from_= "func"):
 

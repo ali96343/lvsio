@@ -11,49 +11,78 @@
 
 
 <script>
- ! function(data_url) {
 
-   let lastId = 0;
-   let data_url_id = data_url  + '?lastId=' + lastId.toString();
+// https://stackoverflow.com/questions/24564030/is-an-eventsource-sse-supposed-to-try-to-reconnect-indefinitely
 
-   const source = new EventSource( data_url_id  );
-   source.onmessage = function (e) {
-       const fs= '1.4em';
-       const data = JSON.parse(e.data);
 
-       document.getElementById("time").innerHTML = data.time;
-       document.getElementById("time").style.fontSize = fs;
+! function (data_url) {
+  
+  let reconnectFrequencySeconds = 1;
+  let evtSource;
 
-       document.getElementById("value").innerHTML = data.value;
-       document.getElementById("value").style.fontSize = fs;
+  let lastId = 0;
+  let data_url_id = data_url  + '?lastId=' + lastId.toString();
+  
+  // Putting these functions in extra variables is just for the sake of readability
+  const waitFunc = function() { return reconnectFrequencySeconds * 1000 };
+  const tryToSetupFunc = function() {
+      setupEventSource();
+      reconnectFrequencySeconds *= 2;
+      if (reconnectFrequencySeconds >= 64) {
+          reconnectFrequencySeconds = 64;
+      }
+  };
+  
+  const reconnectFunc = function() { setTimeout(tryToSetupFunc, waitFunc()) };
+  
+  function setupEventSource() {
+      evtSource = new EventSource( data_url_id  ); 
+      evtSource.onmessage = function(e) {
+       // console.log(e);
 
-     
-       lastId = e.lastEventId;
-       data_url_id = data_url  + '?lastId=' + lastId.toString();
+      const fs= '1.4em';
+      const data = JSON.parse(e.data);
 
-       document.getElementById("event_id").innerHTML = data_url_id ; //   e.lastEventId;
-       document.getElementById("event_id").style.fontSize = fs;
-   }
+      document.getElementById("time").innerHTML = data.time;
+      document.getElementById("time").style.fontSize = fs;
 
-   source.addEventListener("generator_start", function(e) {
-       const data = JSON.parse(e.data);
-       document.getElementById("gen_id").innerHTML = 'Generator id: ' + data.gen_id ;
-   });
+      document.getElementById("value").innerHTML = 'random: ' +  data.value;
+      document.getElementById("value").style.fontSize = fs;
 
-   source.onerror = function(e) {
-           console.error("EventSource failed:", e);
-           if (e.readyState == EventSource.CLOSED) {
-            console.log('sse bye! connectioni closed!');
-            }
+
+      lastId = e.lastEventId;
+      data_url_id = data_url  + '?lastId=' + lastId.toString();
+
+      document.getElementById("event_id").innerHTML = data_url_id ; //   e.lastEventId;
+      document.getElementById("event_id").style.fontSize = fs;
+
+
    };
 
-   source.addEventListener("open", (event) => {
-         // Prints the information about an event
-         console.log('open connection! ',event);
-   });
+      evtSource.onopen = function(e) {
+        reconnectFrequencySeconds = 1;
+        console.log('open connection! ',e);
+        console.log('reconnectFrequencySeconds:  ',reconnectFrequencySeconds);
+      };
 
+      evtSource.onerror = function(e) {
+
+        evtSource.close();
+        reconnectFunc();
+      };
+
+      // user events 
+
+      evtSource.addEventListener("generator_start", function(e) {
+          const data = JSON.parse(e.data);
+          document.getElementById("gen_id").innerHTML = 'Generator id: ' + data.gen_id ;
+      });
+
+
+  }
+  
+  setupEventSource();
+  
 }( "[[=stream_url ]]"  )
 
-
 </script>
-

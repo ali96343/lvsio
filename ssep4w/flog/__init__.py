@@ -10,9 +10,6 @@ from datetime import datetime
 import json
 import threading
 
-# from sh import tail
-from contextlib import contextmanager
-
 from itertools import count
 
 generator_num = count(start=0, step=1)
@@ -78,11 +75,21 @@ file_path = os.path.join(this_dir, "flog.log")
 
 @action( "flog/flog_data", method=[ "GET", ],)
 def flog_data():
-    print (request.GET.get('lastId', ) )
+   # print (request.GET.get('lastId', ) )
 
-    # ./py4web.py run apps --watch=off -s wsgirefThreadingServer
+    try:
+        lastId = request.GET.get('lastId', 0 )
+        lastId = int(lastId)
+    except Exception as ex:
+        ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        ex_msg = ex_template.format(type(ex).__name__, ex.args)
+        print (ex_msg)
+        lastId = 0
 
-    # yield self.imgs[int(time.time()) % 3]
+    #print ( lastId)
+
+
+
 
     # pubsub = red.pubsub()
     # pubsub.subscribe( RED_CHAN )
@@ -109,14 +116,14 @@ def flog_data():
             #            pub_mess( msg='start', id_str=gen_id, from_= user  )
 
             start_flag = True
-            event_id = 0
+            event_id = lastId + 1 
 
-            #            for line in tail("-f", LOGFILE, _iter=True):
             with open(file_path, 'r') as f:
 
                 while True:
 
                     line = f.readline()
+
                     if not line : #or not line.endswith("\n"):
                         sleep(0.2)
                         continue
@@ -134,7 +141,7 @@ def flog_data():
                     response.headers["X-Accel-Buffering"] = "no"
 
                     if start_flag:
-                        #yield f"event: generator_start\ndata:{json_data}\n\n"
+                        yield f"event: generator_start\ndata:{json_data}\n\n"
                         start_flag = False
 
                     yield f"id: {event_id}\ndata: {line}\n\n"
