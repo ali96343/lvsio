@@ -41,3 +41,9 @@ CREATE TABLE "sse_sqrt_value"(
     "f0" INTEGER
 );
 success!
+timestamp: 2022-05-12T12:00:25.700909
+CREATE TABLE "pchat_table"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "f0" CHAR(512)
+);
+success!

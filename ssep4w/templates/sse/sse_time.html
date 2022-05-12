@@ -83,6 +83,32 @@
   
   setupEventSource();
   
-}( "[[=stream_url ]]"  )
+}( "[[=XML(stream_url) ]]"  )
 
 </script>
+
+
+<form>
+<input type="text" onkeyup="showHint(this.value)" placeholder="type:" style="font: 16px/1.6 menlo, monospace;">
+</form>
+<p><span id="txtHint" style="padding-left: 1em;font: 16px/1.6 menlo, monospace;"></span></p>
+
+<script>
+function showHint(str) {
+  if (str.length == 0) {
+    document.getElementById("txtHint").innerHTML = "";
+    return;
+  } else {
+    const xmlhttp = new XMLHttpRequest();
+    xmlhttp.onload = function() {
+      document.getElementById("txtHint").innerHTML = this.responseText;
+    }
+  xmlhttp.open("GET", "[[=XML(hint1_url)]]?q=" + str);
+  xmlhttp.send();
+  }
+}
+</script>
+
+
+
+

@@ -12,8 +12,7 @@
 
     <button type="button" onclick="getURL();">new tab</button>
 
-
-<h3>sse time and random</h3>
+<p></p>
 <br>
 <div id="time"></div>
 <br>
@@ -22,13 +21,15 @@
   const source = new EventSource("[[=stream_url ]]");
         source.onmessage = function (event) {
             const data = JSON.parse(event.data);
+            fs = '1.5em'
 
             document.getElementById("time").innerHTML = data.time;
-            document.getElementById("time").style.fontSize = "40px";
+            document.getElementById("time").style.fontSize = fs;
 
             document.getElementById("value").innerHTML = data.value;
-            document.getElementById("value").style.fontSize = "40px";
+            document.getElementById("value").style.fontSize = fs;
         }
 
 </script>
+
 

@@ -80,6 +80,15 @@ db.define_table(
 
 db.commit()
 
+db.define_table(
+    "pchat_table",
+    Field("f0", requires=IS_NOT_EMPTY(),),
+)
+
+db.commit()
+
+
+
 class Mk_table:
 
     # my_pep: Z === self

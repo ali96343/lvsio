@@ -161,7 +161,7 @@ def sse_time_data():
         finally:
             print ( f"finally: {sys._getframe().f_code.co_name}; id: {gen_id}" )
             message = 'stop' + ' ' + gen_id 
-            pub_mess( msg='stop', id_str=gen_id, from_= user  )
+#            pub_mess( msg='stop', id_str=gen_id, from_= user  )
 
 
     return generate_time_data()
@@ -172,4 +172,16 @@ def sse_time_data():
 @action("sse/sse_time", method=["GET", ])
 @action.uses( "sse/sse_time.html", )
 def sse_time():
-    return dict(stream_url = URL("sse/sse_time_data") )
+    hint1_url=URL('sse/get_hint1_data')
+    stream_url = URL("sse/sse_time_data") 
+    return locals()
+
+
+# ----------------------------------------------------------------------------
+
+@action('sse/get_hint1_data')
+@action.uses(CORS())
+def get_hint1_data():
+   q = request.GET.get('q', '' )
+   return f'{q}'
+

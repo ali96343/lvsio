@@ -48,6 +48,7 @@ def threadsafe_generator(f):
 # -------------------------------  task ---------------------------------------
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
+#file_path = os.path.join(this_dir, "big-buck-bunny_trailer.webm")
 file_path = os.path.join(this_dir, "video.webm")
 
 @action( "webm/webm_stream_data", method=[ "GET", ],)
@@ -101,7 +102,7 @@ def webm_stream_data():
             print ( f"finally: {sys._getframe().f_code.co_name}; id: {gen_id}," 
                     f"file-size: {fs} bytes" )
             if filesize != fs:
-                  (print ('file-size error: {filesize} vs  {fs}'))
+                  (print (f'file-size error: {filesize} vs  {fs}'))
     
     return generate_webm()
 

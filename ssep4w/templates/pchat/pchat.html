@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>sse chat</title>
+  <style>
+    body { max-width: 600px; 
+           margin: auto; padding: 1em; 
+           background: black; 
+           color: #fff; 
+           font: 16px/1.6 menlo, monospace; 
+         }
+
+    button {
+            font-size: 15px;
+            margin:0.2em;
+            padding: 0 0.3rem;
+            text-align: center;
+         }
+
+     input{ font: 16px/1.6 menlo, monospace; 
+           padding: 5px;
+     }
+
+
+#outer
+{
+    width:100%;
+}
+.inner
+{
+    display: inline-block;
+}
+
+
+  </style>
+
+</head>
+<body>
+<div id="outer">
+<button class='inner' onclick="window.location='[[=url_index ]]'">menu</button>
+<button class='inner' onclick="window.location='[[=url_user_clear ]]'">del user</button>
+<button class='inner' onclick="window.open( window.location.href )">new tab</button>
+<button class='inner' onclick="window.location.reload(true)">reload</button>
+<button class='inner' onclick="truncate_table()">del tbl</button>
+
+</div>
+
+<p><b>hi, [[=chat_user ]]</b><span id="gen_id"></span></p>
+<p><input id="msgin" size="50" /></p>
+<pre id="out"></pre>
+
+<script>
+
+"use strict";
+
+    function truncate_table ( ) {
+        post_form('[[=url_pchat_post ]]', {'command':'truncate'})
+        alert('table truncated');
+        // window.location.reload(true);
+    }
+
+    // jquery $.post( .... )
+    function post_form(url, params, success, error) {
+        const xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    success && success(xhr.responseText);
+                } else {
+                    error && error(xhr.responseText);
+                }
+            }
+        };
+    
+        const formData = new FormData();
+        for (const p in params) {
+            formData.append(p, params[p]);
+        }
+    
+        xhr.open('POST', url);
+        xhr.send(formData);
+        return xhr;
+    }
+
+// https://stackoverflow.com/questions/24564030/is-an-eventsource-sse-supposed-to-try-to-reconnect-indefinitely
+
+ ! function pchat_connect(data_url, post_url) { 
+
+// ----------------------------------------
+
+    document.getElementById('msgin').addEventListener("keyup", function(event) {
+        if (event.key === 'Enter' && this.value ) {
+          if (/\S/.test(this.value)) {
+            // console.log(this.value);
+            post_form( post_url  , {'message': this.value.trim()});
+          }
+          this.value= '';
+        }
+    });
+
+    document.getElementById("msgin").focus();
+
+
+// ----------------------------------------
+
+
+let lastId = 0;
+let data_url_id = data_url + '?lastId=' + lastId.toString();
+
+const out = document.getElementById('out');
+
+let reconnectFrequencySeconds = 1;
+let evtSource;
+
+// Putting these functions in extra variables is just for the sake of readability
+const waitFunc = function() { return reconnectFrequencySeconds * 1000 };
+const tryToSetupFunc = function() {
+    setupEventSource();
+    reconnectFrequencySeconds *= 2;
+    if (reconnectFrequencySeconds >= 64) {
+        reconnectFrequencySeconds = 64;
+    }
+};
+
+const reconnectFunc = function() { setTimeout(tryToSetupFunc, waitFunc()) };
+
+function setupEventSource() {
+    evtSource = new EventSource( data_url_id ); 
+    evtSource.onmessage = function(e) {
+
+            if ( e.data != '{}' ) {
+                 out.textContent =  e.data + '\n' + out.textContent;
+                 lastId = e.lastEventId;
+                 data_url_id = data_url + '?lastId=' + lastId.toString();
+                 // console.log(lastId);
+            }
+
+    };
+    evtSource.onopen = function(e) {
+      reconnectFrequencySeconds = 1;
+    };
+    evtSource.onerror = function(e) {
+      evtSource.close();
+      reconnectFunc();
+    };
+
+    evtSource.addEventListener("pchat_start", function(e) {
+          const data = JSON.parse(e.data);
+          let x1= data.msgs;
+          let gen_id = data.gen_id;
+          let msgs = x1.join("\n");  
+          console.log( msgs  );
+          out.textContent = msgs;
+          document.getElementById("gen_id").innerHTML = '; gen_id: ' + gen_id ;
+      });
+
+
+
+}
+
+setupEventSource();
+
+}('[[=url_pchat_stream ]]', '[[=url_pchat_post ]]'  );
+
+</script>
+
+</body>
+</html>

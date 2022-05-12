@@ -31,6 +31,7 @@ from .webm import *
 from .chart2 import *
 from .chart3 import *
 from .flog import *
+from .pchat import *
 
 # ------------------------------------------------------------------------
 #https://stackoverflow.com/questions/919897/how-to-obtain-a-thread-id-in-python
@@ -419,6 +420,11 @@ def index():
                 _role="button",
                 _href=URL( 'chart3/chart3' ),
             ),
+        A(
+                "pchat",
+                _role="button",
+                _href=URL( 'pchat_home' ),
+            ),
     )
 
     return locals()
@@ -440,6 +446,8 @@ def hello_wasm():
     return locals()
 
 
+# -----------------------------------------------------------------------------
+
 
 # ------------------- task 1 : sqrt numbers ------------------------------------
 
@@ -449,12 +457,14 @@ def hello_wasm():
 @threadsafe_generator
 def id_generator(n):
     result = 1
+    _lock = threading.Lock()
     while True:
-        if result >= n:
-            result = 1
+        with _lock:
+            if result >= n:
+                result = 1
         yield result
-        result += 1
-
+        with _lock:
+           result += 1
 
 id_gen = id_generator(100)
 
@@ -464,7 +474,7 @@ def read_db(tbl="my_tbl"):
     print(rs)
 
 
-# read_db('sse_sqrt_value')
+read_db('sse_sqrt_value')
 
 
 @action("stream_sqrt_data", method=["GET", "POST"])
@@ -939,14 +949,11 @@ def sse_chat_home():
              <input type="submit" value="del user">
          </form>
 
-<script>
-    function getURL() {
-        window.open(  window.location.href  );
-    }
-</script>
+
+<button onclick="window.location='%(url_user_clear)s';">clear user</button>
+<button type="button" onclick="window.open( window.location.href )">new tab</button>
 
 
-<button type="button" onclick="getURL();">new tab</button>
 
 
         <p><b>hi, %(chat_user)s!</b></p>
@@ -962,18 +969,6 @@ def sse_chat_home():
                          out.textContent =  e.data + '\\n' + out.textContent;
                     }
                 };
-
-//window.addEventListener("unload", function(event) {  source.close(); source = null; });
-
-
-//document.addEventListener("visibilitychange", function() {
-//    if (document.hidden){
-//        console.log("Browser tab is hidden")
-//        source.close();
-//    } else {
-//        console.log("Browser tab is visible")
-//    }
-//});
 
             }
             $('#in').keyup(function(e){
@@ -1005,52 +1000,6 @@ def sse_chat_user_clear():
 # https://github.com/boppreh/server-sent-events
 # bottle https://taoofmac.com/space/blog/2014/11/16/1940
 #
-
-
-from .sseQueue import Publisher
-
-publisher = Publisher()
-
-# print ( publisher  )
-
-# @app.route('/subscribe')
-@action("pubsub_subscribe", method=["GET", "POST"])
-@action.uses(session, CORS())
-def pubsub_subscribe():
-    #    #return flask.Response(publisher.subscribe(), content_type='text/event-stream')
-    response.headers["Content-Type"] = "text/event-stream"
-    return publisher.subscribe()
-
-
-# @app.route('/')
-@action("pubsub_root", method=["GET", "POST"])
-@action.uses(session, CORS())
-def pubsub_root():
-    ip = request.environ.get("HTTP_X_FORWARDED_FOR") or request.environ.get(
-        "REMOTE_ADDR"
-    )  # ip = flask.request.remote_addr
-    publisher.publish("New visit from {} at {}!".format(ip, datetime.now()))
-    return """
-<!doctype html>
-<title>pubsub</title>
-<html>
-    <body>
-        Open this page in new tabs to see the real time visits.
-
-        <div id="events"></div>
-
-        <script>
-            const eventSource = new EventSource('%(url_pubsub_subscribe)s');
-            eventSource.onmessage = function(e) {
-                document.getElementById('events').innerHTML += e.data + '<br>';
-            }
-        </script>
-    </body>
-</html>
-""" % {
-        "url_pubsub_subscribe": URL("pubsub_subscribe"),
-    }
-
 
 # ----------------------------------- task 6: chart -----------------------------------
 # https://ron.sh/creating-real-time-charts-with-flask/

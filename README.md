@@ -25,6 +25,7 @@ https://maxhalford.github.io/blog/flask-sse-no-deps/
 
 https://stackoverflow.com/questions/31948285/display-data-streamed-from-a-flask-view-as-it-updates/31951077#31951077
 
+https://stackoverflow.com/questions/24564030/is-an-eventsource-sse-supposed-to-try-to-reconnect-indefinitely
 
 
 tips: run the background sse-tasks with the commands
