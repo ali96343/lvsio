@@ -120,14 +120,12 @@ def flog_data():
 
             with open(file_path, 'r') as f:
 
-                @threadsafe_generator
-                def fgen():
-                    for _ in range(lastId): next(f)
+                _flock = threading.Lock()
+                for _ in range(lastId): 
+                     with  _flock:
+                          next(f)
                 
-                fgen()
-
                 while True:
-
 
                     line = f.readline()
 
