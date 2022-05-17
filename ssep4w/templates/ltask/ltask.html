@@ -1,9 +1,14 @@
 [[extend 'layout.html']]
 
+<p>long celery task, pubsub.redis </p>
+
 <button type="button" onclick="window.open(  window.location.href  );">new tab</button>
 <button id="breaj_but" type="button" onclick="window.location.reload(true);">reload</button>
+<button id='ltask_but'>Run Task</button>
 
-<p id='gen_id'></p>
+<p id="task_result">?</p>
+
+<span id='gen_id'></span> <span id="red_chan">X</span>
 <p id="event_id"></p>
 <p id="time"></p>
 <p id="value"></p>
@@ -13,6 +18,7 @@
 
 // https://stackoverflow.com/questions/24564030/is-an-eventsource-sse-supposed-to-try-to-reconnect-indefinitely
 
+let clientid = 'xxxxxxxxxxxxxxx'
 
 let generatorId= null;
 
@@ -56,8 +62,10 @@ let generatorId= null;
 
       document.getElementById("event_id").innerHTML = data_url_id ; //   e.lastEventId;
       document.getElementById("event_id").style.fontSize = fs;
-
-
+      document.getElementById("evData").innerHTML = data.msg_str ;
+      if (  data.ltask) {
+          document.getElementById("task_result").innerHTML = data.ltask ;
+      }
    };
 
       evtSource.onopen = function(e) {
@@ -77,12 +85,13 @@ let generatorId= null;
       evtSource.addEventListener("generator_start", function(e) {
           const data = JSON.parse(e.data);
           document.getElementById("gen_id").innerHTML = 'Generator id: ' + data.gen_id ;
+          document.getElementById("red_chan").innerHTML = '; red_chan: ' + data.red_chan ;
           generatorId = data.gen_id;
       });
 
       evtSource.addEventListener("update_string", function(e) {
           const data = JSON.parse(e.data);
-          document.getElementById("evData").innerHTML = 'Generator id: ' + data.gen_id ;
+          console.log( data )
           generatorId = data.gen_id;
       });
 
@@ -99,27 +108,49 @@ let generatorId= null;
 
 
 <form>
-<input type="text" onkeyup="showHint(this.value)" placeholder="type:" style="font: 16px/1.6 menlo, monospace;">
+<input type="text" onkeyup="showHint(this.value)" placeholder="type and send to generator" style="font: 16px/1.6 menlo, monospace;">
 </form>
 <p><span id="txtHint" style="padding-left: 1em;font: 16px/1.6 menlo, monospace;"></span></p>
-<p><span id="evData" style="padding-left: 1em;font: 16px/1.6 menlo, monospace;">X</span></p>
+<p><span id="evData" style="padding-left: 1em;font: 16px/1.6 menlo, monospace;"></span></p>
 
 <script>
 function showHint(str) {
-  if (str.length == 0) {
+  const xmlhttp = new XMLHttpRequest();
+  if (str.length === 0) {
+    xmlhttp.open("GET", "[[=XML(hint1_url)]]?&generatorId=" + generatorId);
     document.getElementById("txtHint").innerHTML = "";
-    return;
+
   } else {
-    const xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("GET", "[[=XML(hint1_url)]]?q=" + str + '&generatorId=' + generatorId);
     xmlhttp.onload = function() {
-      document.getElementById("txtHint").innerHTML = this.responseText;
+    document.getElementById("txtHint").innerHTML = this.responseText;
     }
-  xmlhttp.open("GET", "[[=XML(hint1_url)]]?q=" + str + '&generatorId=' + generatorId);
-  xmlhttp.send();
   }
+ xmlhttp.send();
 }
 </script>
 
 
+<script>
+        const resultElement = document.getElementById('task_result');
+
+        document.getElementById('ltask_but').onclick = function() {
+            const request = new XMLHttpRequest();
+            request.open('POST', "[[=XML(ltask_url) ]]", true);
+
+        request.setRequestHeader(
+            'Content-Type',
+            'application/x-www-form-urlencoded; charset=utf-8');
+        request.onload = function() {
+            resultElement.textContent = request.responseText;
+        };
+        request.send('generatorId=' + generatorId);
+
+         //   request.onload = function() {
+         //       resultElement.textContent = request.responseText;
+         //   };
+         //   request.send()
+        };
+    </script>
 
 

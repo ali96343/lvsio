@@ -105,7 +105,9 @@ def pchat_stream():
                 print (ex_msg)
     
         finally:
+            pubsub.unsubscribe( RED_CHAT_CHAN )
             print ( f"finally: {sys._getframe().f_code.co_name}; id: {gen_id}" )
+           
 
     response.headers["Content-Type"] = "text/event-stream"
     return generate_pchat()

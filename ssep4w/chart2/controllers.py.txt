@@ -1,6 +1,6 @@
 from py4web import action, request, response, abort, redirect, URL
 from py4web.utils.cors import CORS
-from yatl.helpers import A, DIV, P
+from yatl.helpers import A, DIV
 from .common import (
     db,
     session,
@@ -19,7 +19,7 @@ from time import sleep
 from datetime import datetime
 import redis
 import json
-from random import randint
+import random
 import threading
 from contextlib import contextmanager
 
@@ -28,11 +28,6 @@ from .sse import *
 from .polling import *
 from .video import *
 from .webm import *
-from .chart2 import *
-from .chart3 import *
-from .flog import *
-from .pchat import *
-from .ltask import *
 
 # ------------------------------------------------------------------------
 #https://stackoverflow.com/questions/919897/how-to-obtain-a-thread-id-in-python
@@ -289,7 +284,7 @@ def after_request():
 def index():
     user = auth.get_user()
     message = T(
-        "Hello {first_name}".format(**user) if user else "./py4web.py run apps --watch=off -s wsgirefThreadingServer"
+        "Hello {first_name}".format(**user) if user else "sse with wsgirefThreadingServer (or waitressServer)"
     )
     actions = {"allowed_actions": auth.param.allowed_actions}
 
@@ -318,16 +313,17 @@ def index():
                 ),
             ),
         ),
-        DIV('sse'),
         DIV(
-           A(
+            DIV('sse'),
+            A(
                 "sse_time",
                 _role="button",
                 _href=URL(
                     "sse_time",
                 ),
             ),
-
+        ),
+        DIV(
             A(
                 "sse_chat_home",
                 _role="button",
@@ -362,15 +358,20 @@ def index():
                 ),
             ),
         ),
+        DIV(
+            DIV( "random app"),
+            A(
+                "hello-wasm",
+                _role="button",
+                _href=URL(
+                    "hello-wasm",
+                ),
+            ),
+        ),
+
 
         DIV(
-            DIV( "+ lastEventId, reconnect, redis, pydal"),
-
-             A(
-                "ltask",
-                _role="button",
-                _href=URL( 'ltask/ltask' ),
-              ),
+            DIV( "from ex"),
 
 
             A(
@@ -400,40 +401,6 @@ def index():
             ),
 
         ),
-        A(
-                "flog",
-                _role="button",
-                _href=URL( 'flog/flog' ),
-            ),
-        A(
-                "chart2",
-                _role="button",
-                _href=URL( 'chart2/sse_chart' ),
-            ),
-        A(
-                "chart3",
-                _role="button",
-                _href=URL( 'chart3/chart3' ),
-            ),
-        A(
-                "pchat",
-                _role="button",
-                _href=URL( 'pchat_home' ),
-            ),
-
-        DIV(
-            DIV( "joke :)"),
-            A(
-                "hello-wasm",
-                _role="button",
-                _href=URL(
-                    "hello-wasm",
-                ),
-            ),
-        ),
-
-
-
     )
 
     return locals()
@@ -455,8 +422,6 @@ def hello_wasm():
     return locals()
 
 
-# -----------------------------------------------------------------------------
-
 
 # ------------------- task 1 : sqrt numbers ------------------------------------
 
@@ -466,14 +431,12 @@ def hello_wasm():
 @threadsafe_generator
 def id_generator(n):
     result = 1
-    _lock = threading.Lock()
     while True:
-        with _lock:
-            if result >= n:
-                result = 1
+        if result >= n:
+            result = 1
         yield result
-        with _lock:
-           result += 1
+        result += 1
+
 
 id_gen = id_generator(100)
 
@@ -483,7 +446,7 @@ def read_db(tbl="my_tbl"):
     print(rs)
 
 
-#read_db('sse_sqrt_value')
+# read_db('sse_sqrt_value')
 
 
 @action("stream_sqrt_data", method=["GET", "POST"])
@@ -538,7 +501,8 @@ def stream_sqrt():
     return locals()
 
 
-#worker_info()
+# stream_time -------------------------------------------------------------
+worker_info()
 
 @action("sse_time_data", method=["GET", "POST"])
 @action.uses(session, auth, T, CORS())
@@ -558,19 +522,12 @@ def sse_time_data():
                 json_data = json.dumps(
                     {
                         "time": datetime.now().strftime("%H:%M:%S.%f")[:-3],
-                        "value": randint(0,100), 
+                        "value": round(random.random() * 100, 2),
                     }
                 )
                 response.headers["Content-Type"] = "text/event-stream"
                 yield f"data:{json_data}\n\n"
                 sleep(1)
-
-        except Exception as ex:
-            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            ex_msg = ex_template.format(type(ex).__name__, ex.args)
-            print (ex_msg)
-
-
 
         finally:
             print ( f"finally-{sys._getframe().f_code.co_name}" ) 
@@ -627,8 +584,6 @@ def stream_sqrt_id_data():
             else:
                 print("closed-2")
                 return
-
-
         finally:
             print("stream_sqrt_id_data-finally")
 
@@ -668,12 +623,6 @@ def generate_lazy():
                      break
                 yield data
                 sleep(1)
-
-    except Exception as ex:
-            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            ex_msg = ex_template.format(type(ex).__name__, ex.args)
-            print (ex_msg)
-
     finally:
         print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
@@ -687,15 +636,6 @@ def generate_lazy_line():
                      break
                 yield f"{i} {line}"
                 sleep(1)
-
-
-    except Exception as ex:
-            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            ex_msg = ex_template.format(type(ex).__name__, ex.args)
-            print (ex_msg)
-
-
-
     finally:
         print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
@@ -707,12 +647,6 @@ def generate_file():
             while True:
                 yield f.read()
                 sleep(1)
-
-    except Exception as ex:
-            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            ex_msg = ex_template.format(type(ex).__name__, ex.args)
-            print (ex_msg)
-
     finally:
         print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
@@ -811,7 +745,6 @@ def listen():
 # https://stackoverflow.com/questions/12232304/how-to-implement-server-push-in-flask-framework
 
 
-from redis import StrictRedis
 red = redis.StrictRedis()
 
 
@@ -856,7 +789,7 @@ def sqrt_id_post():
 # https://stackoverflow.com/questions/11597367/how-do-i-close-a-server-send-events-connection-in-flask
 
 
-# exception works !!!
+# exception does not work !!!
 @threadsafe_generator
 def closed_sse_chat_event_stream():
     try:
@@ -957,11 +890,14 @@ def sse_chat_home():
              <input type="submit" value="del user">
          </form>
 
+<script>
+    function getURL() {
+        window.open(  window.location.href  );
+    }
+</script>
 
-<button onclick="window.location='%(url_user_clear)s';">clear user</button>
-<button type="button" onclick="window.open( window.location.href )">new tab</button>
 
-
+<button type="button" onclick="getURL();">new tab</button>
 
 
         <p><b>hi, %(chat_user)s!</b></p>
@@ -977,6 +913,18 @@ def sse_chat_home():
                          out.textContent =  e.data + '\\n' + out.textContent;
                     }
                 };
+
+//window.addEventListener("unload", function(event) {  source.close(); source = null; });
+
+
+//document.addEventListener("visibilitychange", function() {
+//    if (document.hidden){
+//        console.log("Browser tab is hidden")
+//        source.close();
+//    } else {
+//        console.log("Browser tab is visible")
+//    }
+//});
 
             }
             $('#in').keyup(function(e){
@@ -1009,6 +957,52 @@ def sse_chat_user_clear():
 # bottle https://taoofmac.com/space/blog/2014/11/16/1940
 #
 
+
+from .sseQueue import Publisher
+
+publisher = Publisher()
+
+# print ( publisher  )
+
+# @app.route('/subscribe')
+@action("pubsub_subscribe", method=["GET", "POST"])
+@action.uses(session, CORS())
+def pubsub_subscribe():
+    #    #return flask.Response(publisher.subscribe(), content_type='text/event-stream')
+    response.headers["Content-Type"] = "text/event-stream"
+    return publisher.subscribe()
+
+
+# @app.route('/')
+@action("pubsub_root", method=["GET", "POST"])
+@action.uses(session, CORS())
+def pubsub_root():
+    ip = request.environ.get("HTTP_X_FORWARDED_FOR") or request.environ.get(
+        "REMOTE_ADDR"
+    )  # ip = flask.request.remote_addr
+    publisher.publish("New visit from {} at {}!".format(ip, datetime.now()))
+    return """
+<!doctype html>
+<title>pubsub</title>
+<html>
+    <body>
+        Open this page in new tabs to see the real time visits.
+
+        <div id="events"></div>
+
+        <script>
+            const eventSource = new EventSource('%(url_pubsub_subscribe)s');
+            eventSource.onmessage = function(e) {
+                document.getElementById('events').innerHTML += e.data + '<br>';
+            }
+        </script>
+    </body>
+</html>
+""" % {
+        "url_pubsub_subscribe": URL("pubsub_subscribe"),
+    }
+
+
 # ----------------------------------- task 6: chart -----------------------------------
 # https://ron.sh/creating-real-time-charts-with-flask/
 
@@ -1022,8 +1016,8 @@ def chart_data():
             while True:
                 json_data = json.dumps(
                     {
-                        "time": datetime.now().strftime("%H:%M:%S"),
-                        "value": randint(0,100), 
+                        "time": datetime.now().strftime("%d.%m.%y %H:%M:%S"),
+                        "value": random.random() * 100,
                     }
                 )
                 # print ( json_data  )
@@ -1032,13 +1026,6 @@ def chart_data():
                 response.headers["X-Accel-Buffering"] = "no"
                 yield f"data:{json_data}\n\n"
                 sleep(1)
-
-        except Exception as ex:
-            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            ex_msg = ex_template.format(type(ex).__name__, ex.args)
-            print (ex_msg)
-
-
         finally:
             print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
@@ -1075,11 +1062,6 @@ def progress_data():
                 x += 10
                 sleep(0.9)
 
-        except Exception as ex:
-            ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            ex_msg = ex_template.format(type(ex).__name__, ex.args)
-            print (ex_msg)
-
         finally:
             print ( f"finally-{sys._getframe().f_code.co_name}" ) 
 
@@ -1099,9 +1081,4 @@ def sse_progress():
     progress_url = URL("progress_data")
     menu_url = URL("index")
     return locals()
-# ----------------------------------------
-# https://github.com/amittallapragada/SSELoggerDemo
-# https://github.com/roniemartinez/real-time-charts-with-fastapi/blob/master/templates/index.html
-
-
 

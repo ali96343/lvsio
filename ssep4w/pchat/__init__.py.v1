@@ -1,0 +1,313 @@
+from py4web import action, request, response, abort, redirect, URL
+from py4web.utils.cors import CORS
+from yatl.helpers import A, DIV
+from ..common import (
+    db,
+    session,
+    T,
+    cache,
+    auth,
+    logger,
+    authenticated,
+    unauthenticated,
+    flash,
+)
+import logging, os, sys
+
+from math import sqrt
+from time import sleep
+from datetime import datetime
+import redis
+import json
+from random import randint
+import threading
+
+# ------------------------------------------------------------------------
+#https://stackoverflow.com/questions/919897/how-to-obtain-a-thread-id-in-python
+import ctypes
+libc = ctypes.cdll.LoadLibrary('libc.so.6')
+
+# System dependent, see e.g. /usr/include/x86_64-linux-gnu/asm/unistd_64.h
+SYS_gettid = 186
+
+def getThreadId():
+   """Returns OS thread id - Specific to Linux"""
+   return libc.syscall(SYS_gettid)
+
+
+import inspect 
+# https://stackoverflow.com/questions/1095543/get-name-of-calling-functions-module-in-python
+def info(msg='mod.__name__'):
+    frm = inspect.stack()[1]
+    mod = inspect.getmodule(frm[0])
+    print( '     [%s] %s' % (mod.__name__, msg) )
+
+
+def worker_info():
+    print ( f"========== {sys._getframe().f_code.co_name}" ) 
+
+    #print (sys._current_frames().values() )
+    f = list(sys._current_frames().values())[0]
+    print ("    ",f.f_back.f_globals['__file__'] )
+    print ("    ", f.f_back.f_globals['__name__'] )
+    getframe_expr = "sys._getframe({}).f_code.co_name"
+    caller = eval(getframe_expr.format(2))
+    callers_caller = eval(getframe_expr.format(3))
+    print(" --  called from: ", caller)
+    print("    ", caller, "was called from: ", callers_caller, "--")
+
+    print("     name:  ",threading.current_thread().name)
+    print("     ident: ",threading.get_ident())
+    print("     sys-ident: ",getThreadId())
+    _ = [     print('           ',thread.name) for thread in threading.enumerate() ]
+
+# --------------------------------------------------------------
+
+# ./py4web.py run apps --watch=off -s wsgirefThreadingServer
+
+# vi ../../py4web/server_adapters.py
+#            class ThreadingWSGIServer(PoolMixIn, WSGIServer):
+#                daemon_threads = True
+#                pool = ThreadPoolExecutor(max_workers=4000)
+#                                          ^^^^^^^^^^^^^^^^
+
+
+# SuperFastPython.com
+# example of a thread-safe list
+from threading import Lock
+
+# custom class wrapping a list in order to make it thread safe
+class ThreadSafeList:
+    # constructor
+    def __init__(self):
+        self._list = list()
+        self._lock = Lock()
+
+    # add a value to the list
+    def append(self, value):
+        with self._lock:
+            self._list.append(value)
+
+    # search value in list
+    def check(self, value):
+        with self._lock:
+            return value in self._list
+
+    def remove(self, value):
+        with self._lock:
+            # append the value
+            self._list.remove(value)
+
+    # remove and return the last value from the list
+    def pop(self):
+        with self._lock:
+            return self._list.pop()
+
+    # read a value from the list at an index
+    def get(self, index):
+        # acquire the lock
+        with self._lock:
+            # read a value at the index
+            return self._list[index]
+
+    # return the number of items in the list
+    def length(self):
+        # acquire the lock
+        with self._lock:
+            return len(self._list)
+
+
+yield_id_list = ThreadSafeList()
+import uuid
+
+
+#
+# https://github.com/ali96343/lvsio
+#
+
+# ---------------------------------------------------------------------------
+
+# https://gist.github.com/platdrag/e755f3947552804c42633a99ffd325d4
+
+"""
+    A generic iterator and generator that takes any iterator and wrap it to make it thread safe.
+    This method was introducted by Anand Chitipothu in http://anandology.com/blog/using-iterators-and-generators/
+    but was not compatible with python 3. This modified version is now compatible and works both in python 2.8 and 3.0
+"""
+
+
+class threadsafe_iter:
+    """Takes an iterator/generator and makes it thread-safe by
+    serializing call to the `next` method of given iterator/generator.
+    """
+
+    def __init__(self, it):
+        self.it = it
+        self.lock = threading.Lock()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        with self.lock:
+            return self.it.__next__()
+
+
+def threadsafe_generator(f):
+    """A decorator that takes a generator function and makes it thread-safe."""
+
+    def g(*a, **kw):
+        return threadsafe_iter(f(*a, **kw))
+
+    return g
+
+# -------------------------- task 4:   sse chat   ------------------------------------------
+# https://github.com/jakubroztocil/chat/blob/master/app.py
+# https://stackoverflow.com/questions/12232304/how-to-implement-server-push-in-flask-framework
+
+
+from redis import StrictRedis
+red = redis.StrictRedis()
+
+RED_CHAT_CHAN="pchat_pchat_red"
+
+# -----------------------------------------------------------
+
+# https://stackoverflow.com/questions/18383008/python-flask-how-to-detect-a-sse-client-disconnect-from-front-end-javascript
+# https://stackoverflow.com/questions/11597367/how-do-i-close-a-server-send-events-connection-in-flask
+
+@action( "pchat_stream", method=[ "GET", "POST"],)
+@action.uses(session, CORS())
+def pchat_stream():
+    @threadsafe_generator
+    def generate_pchat_stream():
+
+        try:
+            pubsub = red.pubsub()
+            pubsub.subscribe( RED_CHAT_CHAN )
+    
+            #yield_id = uuid.uuid4()
+            #yield_id_list.append(yield_id)
+    
+            # print(yield_id)
+    
+            while True:
+    
+                #if not yield_id_list.check(yield_id):
+                #    break
+    
+
+                message = pubsub.get_message()
+
+                if not message:
+                    yield "data: {}\n\n"
+                    sleep(0.2)
+                    continue
+    
+                if message["type"] == "message":
+                    yield "data: %s\n\n" % message["data"].decode("utf-8")
+                    sleep(0.2)
+    
+        except Exception as ex:
+                ex_template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                ex_msg = ex_template.format(type(ex).__name__, ex.args)
+                print (ex_msg)
+    
+        finally:
+            print ( f"finally-{sys._getframe().f_code.co_name}" ) 
+
+    response.headers["Content-Type"] = "text/event-stream"
+    return generate_pchat_stream()
+
+
+
+@action("pchat_login", method=["GET", "POST"])
+@action.uses(session, CORS())
+def pchat_login():
+    if request.method == "POST":
+        session["pchat_user"] = request.forms.get("pchat_user")
+        redirect(URL("pchat_home"))
+
+    return """
+            <form action='' method='post'>
+              user_name: <input name='pchat_user'>
+              <input type='submit' value='login'>
+            </form> 
+            <button onclick="window.location='%(url_index)s';">menu</button>
+           """ % {"url_index": URL("index")}
+    
+
+
+@action("pchat_post", method=["POST"])
+@action.uses(session, CORS())
+def pchat_post():
+
+    message = request.forms.get("message")
+    user = session.get("pchat_user", "anonymous")
+    now = datetime.now().replace(microsecond=0).time()
+    red.publish( RED_CHAT_CHAN, "[%s] %s: %s" % (now.isoformat(), user, message))
+    response.status = 204
+
+#  204 No Content, the client doesn't need to navigate away from its current page.
+
+
+@action("pchat_home", method=["GET", "POST"])
+@action.uses(session, CORS())
+def pchat_home():
+    pchat_user = session.get("pchat_user")
+    if pchat_user is None:
+        redirect(URL("pchat_login"))
+    return """
+        <!doctype html>
+        <title>pchat</title>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+        <style>
+          body { max-width: 500px; margin: auto; padding: 1em; background: black; color: #fff; font: 16px/1.6 menlo, monospace; }
+        </style>
+
+
+        <button onclick="window.location='%(url_index)s';">menu</button>
+        <button onclick="window.location='%(url_user_clear)s';">del user</button>
+        <button onclick="window.open( window.location.href )">new tab</button>
+
+
+        <p><b>hi, %(chat_user)s!</b></p>
+        <p>Message: <input id="msgin" /></p>
+        <pre id="out"></pre>
+        <script>
+            function sse() {
+                const source = new EventSource('%(url_pchat_stream)s');
+                const out = document.getElementById('out');
+                source.onmessage = function(e) {
+                    // XSS in chat is fun (let's prevent that)
+                    if ( e.data != '{}' ) {
+                         out.textContent =  e.data + '\\n' + out.textContent;
+                    }
+                };
+
+            }
+
+            $('#msgin').keyup(function(e){
+                if (e.keyCode == 13) {
+                    $.post('%(url_pchat_post)s', {'message': $(this).val()});
+                    $(this).val('');
+                }
+            });
+            sse();
+        </script>
+    """ % {
+        "url_index": URL("index"),
+        "url_user_clear": URL("pchat_user_clear"),
+        "url_pchat_stream": URL("pchat_stream"),
+        "url_pchat_post": URL("pchat_post"),
+        "chat_user": pchat_user,
+    }
+
+
+@action("pchat_user_clear")
+@action.uses(session, CORS())
+def pchat_user_clear():
+    # session.clear()
+    session["pchat_user"] = None
+    redirect(URL("pchat_home"))
+

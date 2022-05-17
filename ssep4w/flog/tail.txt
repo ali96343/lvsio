@@ -1,0 +1,16 @@
+def follow(thefile):
+     while True:
+        line = thefile.readline()
+        if not line or not line.endswith('\n'):
+            time.sleep(0.1)
+            continue
+        yield line
+
+
+
+if __name__ == '__main__':
+    logfile = open("run/foo/access-log","r")
+    loglines = follow(logfile)
+    for line in loglines:
+        print(line, end='')
+

@@ -120,12 +120,19 @@ def flog_data():
 
             with open(file_path, 'r') as f:
 
+                @threadsafe_generator
+                def fgen():
+                    for _ in range(lastId): next(f)
+                
+                fgen()
+
                 while True:
+
 
                     line = f.readline()
 
                     if not line : #or not line.endswith("\n"):
-                        sleep(0.2)
+                        sleep(0.5)
                         continue
 
                     json_data = json.dumps(
@@ -167,5 +174,5 @@ def flog_data():
 
 @action( "flog/flog", method=[ "GET", ],)
 @action.uses( "flog/flog.html",)
-def sse_time():
+def flog():
     return dict(stream_url=URL("flog/flog_data"))

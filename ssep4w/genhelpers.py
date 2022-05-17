@@ -1,7 +1,22 @@
+from py4web import action, request, response, abort, redirect, URL
 import threading
 import inspect 
 import ctypes
 
+
+
+# some flask-function
+
+def fjsonify( data={}, status=200  ):
+    response.headers["Content-Type"] = "application/json"
+    response.status= int(status)
+    return json.dumps(data)
+
+def freturn( data="hi!", status = 200 ):
+    response.status= int(status)
+    return data
+
+# ---------------------------------------------------------------------------
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
 
 # System dependent, see e.g. /usr/include/x86_64-linux-gnu/asm/unistd_64.h
@@ -49,6 +64,47 @@ async def main():
 
 #run(main)
 
+
+
+class XSafeList:
+    def __init__(self):
+        self._list = list()
+        self._lock = Lock()
+
+    def append(self, value):
+        with self._lock:
+            self._list.append(value)
+
+    def check(self, value):
+        with self._lock:
+            return value in self._list
+
+    def remove(self, value):
+        with self._lock:
+            self._list.remove(value)
+
+    def pop(self):
+        with self._lock:
+            return self._list.pop()
+
+    def get(self, index):
+        with self._lock:
+            return self._list[index]
+
+    def __call__(self):
+        with self._lock:
+            return self._list
+
+    @property
+    def all(self):
+        with self._lock:
+            return self._list
+
+    def length(self):
+        with self._lock:
+            return len(self._list)
+
+
 # custom class wrapping a list in order to make it thread safe
 class SafeList:
     # constructor
@@ -82,6 +138,15 @@ class SafeList:
         with self._lock:
             # read a value at the index
             return self._list[index]
+
+    def __call__(self):
+        with self._lock:
+            return self._list
+
+    @property
+    def all(self):
+        with self._lock:
+            return self._list
 
     # return the number of items in the list
     def length(self):

@@ -9,6 +9,7 @@ from time import sleep, time
 from datetime import datetime
 import json
 import threading
+from ..genhelpers  import threadsafe_generator 
 
 from itertools import count
 generator_num = count(start=0, step = 1)
@@ -19,48 +20,10 @@ generator_num = count(start=0, step = 1)
 # https://ably.com/docs/sse?__hsfp=952507618&__hssc=12655464.2.1646870400151&__hstc=12655464.6fa385653ecd7c9674ba06f08984886d.1646870400148.1646870400149.1646870400150.1
 
 
-# -------------------------------------------------------------------------
-
-# ./py4web.py run apps --watch=off -s wsgirefThreadingServer
-
-# ---------------------------------------------------------------------------
-
-# https://gist.github.com/platdrag/e755f3947552804c42633a99ffd325d4
-
-class threadsafe_iter:
-    """Takes an iterator/generator and makes it thread-safe by
-    serializing call to the `next` method of given iterator/generator.
-    """
-
-    def __init__(self, it):
-        self.it = it
-        self.lock = threading.Lock()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        with self.lock:
-            return self.it.__next__()
-
-
-def threadsafe_generator(f):
-    """A decorator that takes a generator function and makes it thread-safe."""
-
-    def g(*a, **kw):
-        return threadsafe_iter(f(*a, **kw))
-
-    return g
-
-
-
 #red = redis.StrictRedis()
 from redis import StrictRedis
 red = StrictRedis()
-
-RED_CHAN = "monit"
-
-
+RED_CHAN='monit'
 
 def clear_red_ns(ns):
     """
@@ -126,7 +89,12 @@ def sse_time_data():
 
             user = sys._getframe().f_code.co_name
     
-            pub_mess( msg='start', id_str=gen_id, from_= user  )
+            #pub_mess( msg='start', id_str=gen_id, from_= user  )
+
+
+            red_chan= f"{gen_id}_generate_time_data"
+
+
 
             start_flag = True
             last_event = lastId + 1
@@ -183,5 +151,8 @@ def sse_time():
 @action.uses(CORS())
 def get_hint1_data():
    q = request.GET.get('q', '' )
+   g = request.GET.get('generatorId','')
+   red_chan= f"{g}_generate_time_data"
+   #print (red_chan)
    return f'{q}'
 
