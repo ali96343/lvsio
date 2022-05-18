@@ -28,6 +28,7 @@ from redis import StrictRedis
 red = StrictRedis('localhost', 6379, charset="utf-8", decode_responses=True)
 
 CHAN_SUF= 'generate_ltask_data'
+CEL_SUF = '_celery'
 
 def pub_mess(msg='hello',id_str='XXX',from_= "func"):
         RED_CHAN='monit'
@@ -71,8 +72,9 @@ def ltask_data():
             gen_id = str(next(generator_num) )
 
             red_chan= f"{gen_id}_{CHAN_SUF}"
+            red_chan2= f"{gen_id}_{CHAN_SUF}{CEL_SUF}"
             pubsub = red.pubsub()
-            pubsub.subscribe( [ red_chan, red_chan + '_cel'  ] )
+            pubsub.subscribe( [ red_chan, red_chan2  ] )
 
             start_flag = True
             last_event = lastId + 1
@@ -88,7 +90,7 @@ def ltask_data():
                 if message and message['type'] == 'message':
                     if message['channel'] == red_chan:
                         msg_str = message['data']
-                    if message['channel'] == red_chan+ '_cel':
+                    if message['channel'] == red_chan2:
                         ltask_result = message['data']
                         
                 json_data = json.dumps(
@@ -118,7 +120,7 @@ def ltask_data():
 
 
         finally:
-            pubsub.unsubscribe([ red_chan, red_chan + '_cel'  ])
+            pubsub.unsubscribe([ red_chan, red_chan2 ])
             print ( f"finally: {sys._getframe().f_code.co_name}; id: {gen_id}" )
             message = 'stop' + ' ' + gen_id 
 #            pub_mess( msg='stop', id_str=gen_id, from_= user  )
@@ -126,8 +128,6 @@ def ltask_data():
     response.headers["Content-Type"] = "text/event-stream"
     response.headers["Cache-Control"] = "no-cache" 
     return generate_ltask_data()
-
-# mymap = r_server.keys(pattern='example.*')
 
 
 @action("ltask/ltask", )
@@ -159,7 +159,7 @@ from ..ltask_worker import longtask_mytask
 def runltask():
     generatorId = request.forms.get('generatorId')
     #print ( '+++++++++ ',f"{generatorId}_{CHAN_SUF}"  )
-    clientid = f"{generatorId}_{CHAN_SUF}_cel"  
+    clientid = f"{generatorId}_{CHAN_SUF}{CEL_SUF}"  
     red.publish( clientid , "wait... did you run ltask_worker.sh ?" )
     longtask_mytask.delay(clientid=clientid)
     #response.status = 202

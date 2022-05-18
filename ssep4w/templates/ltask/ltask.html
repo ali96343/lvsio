@@ -1,12 +1,12 @@
 [[extend 'layout.html']]
 
-<p>long celery task, pubsub.redis </p>
+<p>long running celery task, pubsub.redis </p>
 
 <button type="button" onclick="window.open(  window.location.href  );">new tab</button>
 <button id="breaj_but" type="button" onclick="window.location.reload(true);">reload</button>
 <button id='ltask_but'>Run Task</button>
 
-<p id="task_result">?</p>
+<p id="task_result">task result</p>
 
 <span id='gen_id'></span> <span id="red_chan">X</span>
 <p id="event_id"></p>
@@ -102,13 +102,56 @@ let generatorId= null;
   
   setupEventSource();
   
-}( "[[=XML(stream_url) ]]"  )
+}( "[[=XML(stream_url) ]]"  );
+
+
+</script>
+
+
+<script>
+
+const XXXdebounce = (func, delay=300) => {
+    let debounceTimer;
+    return function() {
+        const context = this;
+        const args = arguments;
+            clearTimeout(debounceTimer)
+            debounceTimer = setTimeout(() => func.apply(context, args), delay);
+    }
+} 
+
+
+const debounce= function(func, wait=300, immediate=true) {
+  let timeout;
+
+  return function executedFunction() {
+    let context = this;
+    let args = arguments;
+        
+    const later = function() {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+
+    let callNow = immediate && !timeout;
+    
+    clearTimeout(timeout);
+
+    timeout = setTimeout(later, wait);
+    
+    if (callNow) func.apply(context, args);
+  };
+};
+
+
 
 </script>
 
 
 <form>
-<input type="text" onkeyup="showHint(this.value)" placeholder="type and send to generator" style="font: 16px/1.6 menlo, monospace;">
+    <input type="text" onkeyup="debounce(showHint(this.value))" 
+           placeholder="type-send str to generator" 
+           style="font: 16px/1.6 menlo, monospace;">
 </form>
 <p><span id="txtHint" style="padding-left: 1em;font: 16px/1.6 menlo, monospace;"></span></p>
 <p><span id="evData" style="padding-left: 1em;font: 16px/1.6 menlo, monospace;"></span></p>
@@ -116,14 +159,15 @@ let generatorId= null;
 <script>
 function showHint(str) {
   const xmlhttp = new XMLHttpRequest();
-  if (str.length === 0) {
+  const hint=document.getElementById("txtHint");
+  if (!str.length ) {
     xmlhttp.open("GET", "[[=XML(hint1_url)]]?&generatorId=" + generatorId);
-    document.getElementById("txtHint").innerHTML = "";
+    hint.innerHTML = "";
 
   } else {
     xmlhttp.open("GET", "[[=XML(hint1_url)]]?q=" + str + '&generatorId=' + generatorId);
     xmlhttp.onload = function() {
-    document.getElementById("txtHint").innerHTML = this.responseText;
+         hint.innerHTML = this.responseText;
     }
   }
  xmlhttp.send();
@@ -138,18 +182,14 @@ function showHint(str) {
             const request = new XMLHttpRequest();
             request.open('POST', "[[=XML(ltask_url) ]]", true);
 
-        request.setRequestHeader(
-            'Content-Type',
-            'application/x-www-form-urlencoded; charset=utf-8');
-        request.onload = function() {
-            resultElement.textContent = request.responseText;
-        };
+            request.setRequestHeader(
+                'Content-Type',
+                'application/x-www-form-urlencoded; charset=utf-8');
+            request.onload = function() {
+                 resultElement.textContent = request.responseText;
+            };
         request.send('generatorId=' + generatorId);
 
-         //   request.onload = function() {
-         //       resultElement.textContent = request.responseText;
-         //   };
-         //   request.send()
         };
     </script>
 
