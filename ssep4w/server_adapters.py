@@ -1,6 +1,7 @@
 import logging
 
 from ombott.server_adapters import ServerAdapter
+import socketio
 
 try:
     from .utils.wsservers import *
@@ -27,7 +28,7 @@ def geventWebSocketServer():
                 (self.host, self.port),
                 handler,
                 handler_class=WebSocketHandler,
-                **self.options
+                **self.options,
             )
 
             if not self.quiet:
@@ -40,17 +41,66 @@ def geventWebSocketServer():
     return GeventWebSocketServer
 
 
+
+# ------------------------------------------------------------------------
+#https://stackoverflow.com/questions/919897/how-to-obtain-a-thread-id-in-python
+import ctypes
+libc = ctypes.cdll.LoadLibrary('libc.so.6')
+
+# System dependent, see e.g. /usr/include/x86_64-linux-gnu/asm/unistd_64.h
+SYS_gettid = 186
+
+def getThreadId():
+   """Returns OS thread id - Specific to Linux"""
+   return libc.syscall(SYS_gettid)
+
+
+
+import inspect, sys, threading
+# https://stackoverflow.com/questions/1095543/get-name-of-calling-functions-module-in-python
+def info(msg='mod.__name__'):
+    frm = inspect.stack()[1]
+    mod = inspect.getmodule(frm[0])
+    print( '     [%s] %s' % (mod.__name__, msg) )
+
+
+def worker_info():
+    print ( f"========== {sys._getframe().f_code.co_name}" )
+
+    #print (sys._current_frames().values() )
+    f = list(sys._current_frames().values())[0]
+    print ("    ",f.f_back.f_globals['__file__'] )
+    print ("    ", f.f_back.f_globals['__name__'] )
+    getframe_expr = "sys._getframe({}).f_code.co_name"
+    caller = eval(getframe_expr.format(2))
+    callers_caller = eval(getframe_expr.format(3))
+    print(" --  called from: ", caller)
+    print("    ", caller, "was called from: ", callers_caller, "--")
+
+    print("     name:  ",threading.current_thread().name)
+    print("     ident: ",threading.get_ident())
+    print("     sys-ident: ",getThreadId())
+    _ = [     print('           ',thread.name) for thread in threading.enumerate() ]
+
+
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
 
     import socket
+    import sys
     from concurrent.futures import ThreadPoolExecutor  # pip install futures
     from socketserver import ThreadingMixIn
-    from wsgiref.simple_server import (WSGIRequestHandler, WSGIServer,
-                                       make_server)
+    from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
+
+    logging.basicConfig(filename="std.log", format='%(message)s', filemode='w') 
+    logger=logging.getLogger() 
+    logger.setLevel(logging.INFO) 
 
     class WSGIRefThreadingServer(ServerAdapter):
+
         def run(self, app):
+
+            self_quiet = self.quiet
             class PoolMixIn(ThreadingMixIn):
                 def process_request(self, request, client_address):
                     self.pool.submit(
@@ -93,7 +143,23 @@ def wsgirefThreadingServer():
                     if not self.quiet:
                         return WSGIRequestHandler.log_request(*args, **kw)
 
-            handler_cls = self.options.get("handler_class", FixedHandler)
+
+            # https://stackoverflow.com/questions/31433682/control-wsgiref-simple-server-log
+
+            class LoggingHandler(WSGIRequestHandler):
+
+               def log_message(self, format, *args):
+                   if not self_quiet:
+                       log_message = "%s - - [%s] %s" % (self.client_address[0], 
+                                                          self.log_date_time_string(), 
+                                                          format%args)
+                       #sys.stderr.write( log_message + '\n')
+                       logger.info(log_message) 
+                       #worker_info()
+
+            handler_cls = self.options.get("handler_class", LoggingHandler )
+            #handler_cls = self.options.get("handler_class", FixedHandler)
+
             server_cls = Server
 
             if ":" in self.host:  # Fix wsgiref for IPv6 addresses.
@@ -121,24 +187,45 @@ def rocketServer():
                 log = logging.getLogger("Rocket")
                 log.setLevel(logging.INFO)
                 log.addHandler(logging.StreamHandler())
-            interface = (self.host, self.port, self.options["keyfile"], self.options["certfile"]) if self.options.get("certfile", None) else (self.host, self.port)
+            interface = (
+                (
+                    self.host,
+                    self.port,
+                    self.options["keyfile"],
+                    self.options["certfile"],
+                )
+                if self.options.get("certfile", None)
+                else (self.host, self.port)
+            )
             server = Rocket(interface, "wsgi", dict(wsgi_app=app))
             server.start()
 
     return RocketServer
 
+
 def waitressServer():
     from waitress import serve  # pip install waitress
+
     class WaitressServer(ServerAdapter):
         def run(self, handler):
-           if not self.quiet:
+            if not self.quiet:
                 log = logging.getLogger("waitress")
                 log.setLevel(logging.INFO)
                 log.addHandler(logging.StreamHandler())
 
-           self.options = {'threads':10, }
-           serve(handler, host=self.host, port=self.port, _quiet=self.quiet, **self.options)
+            self.options = {
+                "threads": 10,
+            }
+            serve(
+                handler,
+                host=self.host,
+                port=self.port,
+                _quiet=self.quiet,
+                **self.options,
+            )
+
     return WaitressServer
+
 
 def waitressPyruvate():
 
@@ -147,19 +234,35 @@ def waitressPyruvate():
     # https://gitlab.com/tschorr/pyruvate
     # https://pypi.org/project/pyruvate/
 
-    import pyruvate # pip install pyruvate
+    import pyruvate  # pip install pyruvate
 
     class srvPyruvate(ServerAdapter):
         def run(self, handler):
+
+            sio = socketio.Server(async_mode="threading", engineio_logger=False, logger=True)
+
+            @sio.event
+            def connect(sid, environ):
+                print("connect ", sid)
+
+            @sio.event
+            def disconnect(sid):
+                print("disconnect ", sid)
+
+            @sio.on("to_py4web")
+            def echo(sid, data):
+                print("from client: ", data)
+                sio.emit("py4web_echo", data)
+
             if not self.quiet:
                 log = logging.getLogger("pyruvate")
-                #log.setLevel(logging.DEBUG)
+                # log.setLevel(logging.DEBUG)
                 log.setLevel(logging.INFO)
-                log.addHandler(logging.StreamHandler())
+                # log.addHandler(logging.StreamHandler())
 
-            workers = 100 
+            handler = socketio.WSGIApp(sio, handler)
+
+            workers = 1000 # self.options['workers']
             pyruvate.serve(handler, f"{self.host}:{self.port}", workers)
 
     return srvPyruvate
-
-
