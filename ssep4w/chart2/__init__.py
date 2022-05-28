@@ -57,12 +57,12 @@ def sse_chart_data(lastId=0):
         lastId = 0 
 
     #print ( f'sse_chart_data: lastId {lastId}' )
+    gen_id = str(next(unique_num) )
 
     @threadsafe_generator
     def generate_chart_data():
 
         try:
-            gen_id = str(next(unique_num) )
             
             xvalue= lastId + 1
             event_id = lastId + 1 

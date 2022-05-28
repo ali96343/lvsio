@@ -1,3 +1,4 @@
+
 from py4web import action, request, response, abort, redirect, URL
 from py4web.utils.cors import CORS
 
@@ -13,6 +14,9 @@ import threading
 from itertools import count
 
 generator_num = count(start=0, step=1)
+
+
+
 
 class threadsafe_iter:
     """Takes an iterator/generator and makes it thread-safe by
@@ -106,10 +110,10 @@ def flog_data():
         }
         red.publish(RED_CHAN, json.dumps(data))
 
+    gen_id = str(next(generator_num))
     @threadsafe_generator
     def generate_flog_data():
         try:
-            gen_id = str(next(generator_num))
 
             user = sys._getframe().f_code.co_name
 
@@ -120,12 +124,26 @@ def flog_data():
 
             with open(file_path, 'r') as f:
 
+
+# https://stackoverflow.com/questions/13456735/how-to-wrap-a-python-iterator-to-make-it-thread-safe
+#def locked_iter(it):
+#    it = iter(it)
+#    lock = threading.Lock()
+#    while True:
+#        try:
+#            with lock:
+#                value = next(it)
+#        except StopIteration:
+#            return
+#        yield value
+
                 _flock = threading.Lock()
                 for _ in range(lastId): 
                      with  _flock:
                           next(f)
                 
                 while True:
+
 
                     line = f.readline()
 

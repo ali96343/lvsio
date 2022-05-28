@@ -82,10 +82,10 @@ def sse_time_data():
         red.publish(RED_CHAN , json.dumps(data))
 
 
+    gen_id = str(next(generator_num) )
     @threadsafe_generator
     def generate_time_data():
         try:
-            gen_id = str(next(generator_num) )
 
             user = sys._getframe().f_code.co_name
     

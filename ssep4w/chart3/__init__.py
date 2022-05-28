@@ -57,11 +57,11 @@ def chart3_data():
     except:
         lastId = 0
 
+    gen_id = str(next(unique_num) )
     @threadsafe_generator
     def generate_chart3_data():
 
         try:
-            gen_id = str(next(unique_num) )
             
             xvalue= lastId + 1
             event_id = lastId + 1 

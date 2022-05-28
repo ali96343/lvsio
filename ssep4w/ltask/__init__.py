@@ -65,11 +65,11 @@ def ltask_data():
         print (ex_msg)
         lastId = 0
 
+    gen_id = str(next(generator_num) )
 
     @threadsafe_generator
     def generate_ltask_data():
         try:
-            gen_id = str(next(generator_num) )
 
             red_chan= f"{gen_id}_{CHAN_SUF}"
             red_chan2= f"{gen_id}_{CHAN_SUF}{CEL_SUF}"
@@ -92,6 +92,9 @@ def ltask_data():
                         msg_str = message['data']
                     if message['channel'] == red_chan2:
                         ltask_result = message['data']
+
+
+                #import IPython; IPython.embed()
                         
                 json_data = json.dumps(
                     {

@@ -95,12 +95,12 @@ def threads_info():
 @action("polling/stream_sqrt_id_data", method=["GET", ])
 def stream_sqrt_id_data():
 
+    gen_id = str(next(unique_num) )
     @threadsafe_generator
     def generate_sqrt():
 
         #threads_info()
 
-        gen_id = str(next(unique_num) )
         try:
 
             yield_id = str(uuid.uuid4())

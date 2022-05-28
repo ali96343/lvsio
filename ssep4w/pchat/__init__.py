@@ -63,11 +63,11 @@ def pchat_stream():
     #print ( lastId)
 
 
+    gen_id = str(next(generator_num) )
     @threadsafe_generator
     def generate_pchat():
 
         try:
-            gen_id = str(next(generator_num) )
 
             pubsub = red.pubsub()
             pubsub.subscribe( RED_CHAT_CHAN )
