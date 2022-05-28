@@ -57,11 +57,12 @@ def webm_stream_data():
     CHUNK = 20 * 1024
     if not os.path.isfile(file_path):
         raise RuntimeError(f"Could not open {file_path}.")
+
+    gen_id = str(next(generator_num) )
   
     @threadsafe_generator 
     def generate_webm(): 
         try:
-            gen_id = str(next(generator_num) )
     
             with open(file_path, "rb") as f:
 
