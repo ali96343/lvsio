@@ -1,6 +1,7 @@
 import logging
 
 from ombott.server_adapters import ServerAdapter
+import socketio
 
 try:
     from .utils.wsservers import *
@@ -11,6 +12,9 @@ __all__ = [
     "geventWebSocketServer",
     "wsgirefThreadingServer",
     "rocketServer",
+    "waitressServer",
+    "waitressPyruvate",
+    "waitressPyruvateSio",
 ] + wsservers_list
 
 
@@ -25,7 +29,7 @@ def geventWebSocketServer():
                 (self.host, self.port),
                 handler,
                 handler_class=WebSocketHandler,
-                **self.options
+                **self.options,
             )
 
             if not self.quiet:
@@ -41,11 +45,10 @@ def geventWebSocketServer():
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
 
-    import socket
+    import socket, sys
     from concurrent.futures import ThreadPoolExecutor  # pip install futures
     from socketserver import ThreadingMixIn
-    from wsgiref.simple_server import (WSGIRequestHandler, WSGIServer,
-                                       make_server)
+    from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
     class WSGIRefThreadingServer(ServerAdapter):
         def run(this, app):
@@ -54,12 +57,24 @@ def wsgirefThreadingServer():
                 logging.basicConfig(
                     filename="wsgiref.log",
                     format="%(threadName)s | %(message)s",
+                    #format="%(message)s",
+                    # format='%(name)s :: %(levelname)-8s :: %(message)s',
                     filemode="a",
                     encoding="utf-8",
                     level=logging.DEBUG,
                 )
 
                 this.log = logging.getLogger("WSGIRef")
+
+                p4w_app = logging.FileHandler("ssep4w.log")
+                p4w_app.setFormatter(
+                    logging.Formatter(
+                        fmt="%(threadName)-26s | %(message)s"
+                        #fmt="%(threadName)s | %(levelname)-8s | %(message)s"
+                    )
+                )
+                this.log.addHandler(p4w_app)
+
 
             class PoolMixIn(ThreadingMixIn):
                 def process_request(self, request, client_address):
@@ -69,7 +84,7 @@ def wsgirefThreadingServer():
 
             class ThreadingWSGIServer(PoolMixIn, WSGIServer):
                 daemon_threads = True
-                pool = ThreadPoolExecutor(max_workers=40)
+                pool = ThreadPoolExecutor(max_workers=1000)
 
             class Server:
                 def __init__(
@@ -114,10 +129,18 @@ def wsgirefThreadingServer():
                             self.log_date_time_string(),
                             format % args,
                         )
+
+                        msg = "%s | %s" % (
+                            self.log_date_time_string().split(' ')[1],
+                            format % args,
+                        )
+
                         this.log.info(msg)
+                        # sys.stderr.write(msg + "\n")
 
             handler_cls = this.options.get("handler_class", LogHandler)
-            #handler_cls = this.options.get("handler_class", FixedHandler)
+            # handler_cls = this.options.get("handler_class", FixedHandler)
+
             server_cls = Server
 
             if ":" in this.host:  # Fix wsgiref for IPv6 addresses.
@@ -145,8 +168,108 @@ def rocketServer():
                 log = logging.getLogger("Rocket")
                 log.setLevel(logging.INFO)
                 log.addHandler(logging.StreamHandler())
-            interface = (self.host, self.port, self.options["keyfile"], self.options["certfile"]) if self.options.get("certfile", None) else (self.host, self.port)
+            interface = (
+                (
+                    self.host,
+                    self.port,
+                    self.options["keyfile"],
+                    self.options["certfile"],
+                )
+                if self.options.get("certfile", None)
+                else (self.host, self.port)
+            )
             server = Rocket(interface, "wsgi", dict(wsgi_app=app))
             server.start()
 
     return RocketServer
+
+
+def waitressServer():
+    from waitress import serve  # pip install waitress
+
+    class WaitressServer(ServerAdapter):
+        def run(self, handler):
+            if not self.quiet:
+                log = logging.getLogger("waitress")
+                log.setLevel(logging.INFO)
+                log.addHandler(logging.StreamHandler())
+
+            self.options = {
+                "threads": 10,
+            }
+            serve(
+                handler,
+                host=self.host,
+                port=self.port,
+                _quiet=self.quiet,
+                **self.options,
+            )
+
+    return WaitressServer
+
+
+def waitressPyruvateSio():
+
+    # https://2020.ploneconf.org/talks/pyruvate-a-reasonably-fast-non-blocking-multithreaded-wsgi-server
+    # https://maurits.vanrees.org/weblog/archive/2021/10/thomas-schorr-pyruvate-wsgi-server-status-update
+    # https://gitlab.com/tschorr/pyruvate
+    # https://pypi.org/project/pyruvate/
+
+    import pyruvate  # pip install pyruvate
+
+    class srvPyruvateSio(ServerAdapter):
+        def run(self, handler):
+
+            sio = socketio.Server(
+                async_mode="threading", engineio_logger=False, logger=True
+            )
+
+            @sio.event
+            def connect(sid, environ):
+                print("connect ", sid)
+
+            @sio.event
+            def disconnect(sid):
+                print("disconnect ", sid)
+
+            @sio.on("to_py4web")
+            def echo(sid, data):
+                print("from client: ", data)
+                sio.emit("py4web_echo", data)
+
+            if not self.quiet:
+                log = logging.getLogger("pyruvate")
+                # log.setLevel(logging.DEBUG)
+                log.setLevel(logging.INFO)
+                # log.addHandler(logging.StreamHandler())
+
+            handler = socketio.WSGIApp(sio, handler)
+
+            workers = 1000  # self.options['workers']
+            pyruvate.serve(handler, f"{self.host}:{self.port}", workers)
+
+    return srvPyruvateSio
+
+
+def waitressPyruvate():
+
+    # https://2020.ploneconf.org/talks/pyruvate-a-reasonably-fast-non-blocking-multithreaded-wsgi-server
+    # https://maurits.vanrees.org/weblog/archive/2021/10/thomas-schorr-pyruvate-wsgi-server-status-update
+    # https://gitlab.com/tschorr/pyruvate
+    # https://pypi.org/project/pyruvate/
+
+    import pyruvate  # pip install pyruvate
+
+    class srvPyruvate(ServerAdapter):
+        def run(self, handler):
+
+            if not self.quiet:
+                log = logging.getLogger("Pyruvate")
+                log.setLevel(logging.DEBUG)
+                log.addHandler(logging.StreamHandler())
+
+            workers = 1000  # self.options['workers']
+            pyruvate.serve(handler, f"{self.host}:{self.port}", workers)
+
+    return srvPyruvate
+

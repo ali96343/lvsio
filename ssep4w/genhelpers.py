@@ -2,8 +2,65 @@ from py4web import action, request, response, abort, redirect, URL
 import threading
 import inspect 
 import ctypes
+import itertools
+from datetime import datetime
 
 
+
+# --------------------------------------------------------------
+
+class EnterExitLog():
+    def __init__(self, funcName):
+        self.funcName = funcName
+
+    def __enter__(self):
+        #gLog.debug('Started: %s' % self.funcName)
+        print ('Started: %s' % self.funcName)
+        self.init_time = datetime.now()
+        return self
+
+    def __exit__(self, type, value, tb):
+        #gLog.debug('Finished: %s in: %s seconds' % (self.funcName, datetime.datetime.now() - self.init_time))
+        print('Finished: %s in: %s seconds' % (self.funcName, datetime.now() - self.init_time))
+
+def func_timer_decorator(func):
+    def func_wrapper(*args, **kwargs):
+        with EnterExitLog(func.__name__):
+            return func(*args, **kwargs)
+
+    return func_wrapper
+
+
+
+# http://www.dabeaz.com/GIL/gilvis/linuxonecpu.html
+#---------------------------------------------------------------
+
+class _badFastReadCounter(object):
+    def __init__(self):
+        self.value = 0
+        self._lock = threading.Lock()
+        
+    def increment(self):
+        with self._lock:
+            self.value += 1
+
+class _badFastWriteCounter(object):
+    def __init__(self):
+        self._number_of_read = 0
+        self._counter = itertools.count()
+        self._read_lock = threading.Lock()
+
+    def increment(self):
+        next(self._counter)
+
+    def value(self):
+        with self._read_lock:
+            value = next(self._counter) - self._number_of_read
+            self._number_of_read += 1
+        return value
+
+
+#---------------------------------------------------------------
 
 # some flask-function
 

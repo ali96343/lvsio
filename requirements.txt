@@ -2,6 +2,7 @@ python-socketio
 uvicorn[standard]
 aioredis
 redis
+pillow
 httpx
 sockjs-tornado
 sseclient

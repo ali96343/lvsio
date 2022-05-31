@@ -4,14 +4,13 @@
 
 <button type="button" onclick="window.open(  window.location.href  );">new tab</button>
 <button id="breaj_but" type="button" onclick="window.location.reload(true);">reload</button>
-<button id='ltask_but'>Run Task</button>
+<button id='ltask_but'>run task</button>
 
-<p id="task_result">task result</p>
+<p id="task_result">Here will be the task result</p>
 
-<span id='gen_id'></span> <span id="red_chan">X</span>
+<p id='gen_id'></p> <p id="red_chan">X</p>
 <p id="event_id"></p>
-<p id="time"></p>
-<p id="value"></p>
+<span id="time"></span><span>;&nbsp;&nbsp;</span><span id="value"></span>
 
 
 <script>
@@ -85,7 +84,7 @@ let generatorId= null;
       evtSource.addEventListener("generator_start", function(e) {
           const data = JSON.parse(e.data);
           document.getElementById("gen_id").innerHTML = 'Generator id: ' + data.gen_id ;
-          document.getElementById("red_chan").innerHTML = '; red_chan: ' + data.red_chan ;
+          document.getElementById("red_chan").innerHTML = 'red_chan: ' + data.red_chan ;
           generatorId = data.gen_id;
       });
 
