@@ -5,7 +5,7 @@
 
 
     <title>Long Celery Task</title>
-    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
 
 <style>
 
@@ -17,15 +17,15 @@ body{
 </style>
 [[end ]]
 
-    <p>To test it, you need to run the celery-worker (. worker.sh) </p>
+    <p>To test it, you need to run the celery-worker (. ltask_worker.sh) </p>
     <p id='sio_status'>status</p>
     <button type="button">Run Celery Task</button>
     <br>
     Result: <span id="result"></span>
     <br>
-    At begin: <span id="at_begin"></span>
+    db.Longtask.f0 at begin =  <span id="at_begin"></span>
     <br>
-    At end: <span id="at_end"></span>
+    db.Longtask.f0 at end = <span id="at_end"></span>
 
 <script>
 

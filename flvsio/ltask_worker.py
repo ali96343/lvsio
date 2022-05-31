@@ -53,7 +53,7 @@ app = Celery(f'{C.APPS_DIR}.{C.P4W_APP}.{MODULE}', broker = C.longtask_broker)
 
 
 @app.task(base=NotifierTask)
-def longtask_mytask(clientid=None, tbl='Longtask', _id = '1'):
+def longtask_mytask(clientid=None, tbl='Longtask', _id = '1', sleep_time = 5):
 
     data_str = datetime.now().strftime("%H:%M:%S.%f") 
     data_dict = {'f0': data_str}
@@ -72,7 +72,7 @@ def longtask_mytask(clientid=None, tbl='Longtask', _id = '1'):
 
 
     """Simulates a slow computation."""
-    time.sleep(5)
+    time.sleep(sleep_time)
 
     res='X'
     try:

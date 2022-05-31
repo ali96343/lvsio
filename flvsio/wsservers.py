@@ -232,8 +232,8 @@ def tornadoSioWsServer():
 
             global p4w_app_names
             if p4w_app_names is None:
-                p4w_app_names = { x.split('/',2)[0] for x in handler.routes.keys() } 
-                #print ( p4w_app_names )
+                p4w_app_names = { x.split('/',2)[0] for x in handler.routes.keys() if x } 
+                print ( p4w_app_names )
             
             # print (  container.wsgi_application )
             SockjsRouter = sockjs.tornado.SockJSRouter(SockjsConnection, '/sockjs')

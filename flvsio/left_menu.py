@@ -10,11 +10,7 @@ from .common import (
     session,
 )
 
-
 #signed_url = URLSigner(session, lifespan=3600)
-
-
-
 
 _app = APP_NAME
 menu_str = f'{_app}/index'

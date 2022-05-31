@@ -549,7 +549,7 @@ def sse_time_data():
     @threadsafe_generator
     def generate_time_data():
         num = 0
-        worker_info()
+        #worker_info()
         try:
 
             while True:

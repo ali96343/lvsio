@@ -3,5 +3,5 @@ cwd=$(pwd)
 cd ..
 cd ..
 pwd
-celery -A apps.flvsio.worker worker -l info
+celery -A apps.flvsio.ltask_worker worker -l info
 cd $cwd

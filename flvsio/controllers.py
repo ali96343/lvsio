@@ -2,7 +2,9 @@ from py4web import action, request, abort, redirect, URL
 from yatl.helpers import A, I, SPAN, XML, DIV, P
 from py4web import action, request, response, abort, redirect, URL, Field
 from py4web.utils.form import Form, FormStyleBulma
+from py4web.utils.cors import CORS
 import copy
+from random import randint
 
 
 # workers https://developers.refinitiv.com/en/article-catalog/article/how-implement-elektron-websocket-api-javascript-application-html-web-workers
@@ -32,7 +34,8 @@ import copy
 # https://gist.github.com/viyatb/9641999
 # https://pypi.org/project/asyncmc/#history
 # https://github.com/MitchellChu/torndsession
- 
+
+
 
 from .common import (
     db,
@@ -40,10 +43,10 @@ from .common import (
     T,
     cache,
     auth,
+    flash,
     logger,
     authenticated,
     unauthenticated,
-    flash,
 )
 
 
@@ -102,6 +105,7 @@ def index():
         DIV(
             A("longtask", _role="button", _href=URL("longtask",),),    
             A("sockjs", _role="button", _href=URL("sockjs/index",),),
+            A( "hint", _role="button", _href=URL( "get_hint1",),),
            ),
     )
 
@@ -112,6 +116,12 @@ def index():
 # ------------------------------------------------------------
 # https://matthewminer.com/2015/02/21/pattern-for-async-task-queue-results
 
+
+#from worker import longtask_mytask
+from .ltask_worker import app as ltask_app
+
+from .ltask_worker import longtask_mytask
+
 @action("longtask", method=["GET", "POST"])
 @action.uses(db, session, auth, T, "longtask.html")
 def longtask():
@@ -120,14 +130,24 @@ def longtask():
     return locals()
 
 
-from .worker import longtask_mytask
 
 @action("longtask_run", method=["POST"])
 def longtask_run():
+
+    sleep_time = randint(3,7)
+    msg = (
+        f"celery worker running, wait result {sleep_time} sec ..."
+        if ltask_app.control.inspect().active()
+        else "run ltask_worker.sh !!! "
+    )
+
+
+    print (msg)
+
     clientid = request.forms.get('clientid')
-    longtask_mytask.delay(clientid=clientid)
+    longtask_mytask.delay(clientid=clientid, sleep_time=sleep_time)
     response.status= 202
-    return f'clientid: {clientid}, running 5-sec-celery task...'
+    return f'clientid: {clientid}, running task, wait {sleep_time} sec ...'
 
 @action("longtask_notify", method=["POST",])
 def longtask_notify():
@@ -156,7 +176,7 @@ def longtask_notify():
 
 
 @action("js_autocomplete", method=["GET", "POST"])
-@action.uses(db, session, auth, T, "js-autocomplete.html")
+@action.uses( "js-autocomplete.html",flash,  db, session, auth, T, CORS())
 def js_autocomplete():
     t_vars = copy.deepcopy(C.html_vars)
     tbl = "Autocomplete"
@@ -166,7 +186,7 @@ def js_autocomplete():
     if f_autocomplete.accepted:
         f0 = f_autocomplete.vars.get("f0")
         auth.flash.set(f"f0={f0}", sanitize=True)
-        # print (f'f0={f0}')
+        print (f'f0={f0}')
     elif f_autocomplete.errors:
         print(f"f_autocomplete has errors: {f_autocomplete.errors}")
 
@@ -311,8 +331,46 @@ def sio_chan_post():
     return "ok"
 
 
+
+
+
 # To overwrite existing route you can
 # @action('/route/to/overwrite',  overwrite=True)
 @action("/socket.io", overwrite=True)
 def socketio_txt():
     return ""
+
+@action("/favicon.ico")
+def favicon_ico():
+    # return ombott.static_file( 'favicon.ico', static_path, )
+    response.headers["Content-Type"] = "text/plain"
+    response.headers["Content-disposition"] = 'inline; filename="favicon.ico"'
+    return ""
+
+# ---------------------------------------------------------------
+hint1_list = [ "Anna", "Brittany", "Cinderella", "Diana", "Eva", "Fiona", "Gunda", "Hege",
+              "Inga", "Johanna", "Kitty", "Linda", "Nina", "Ophelia", "Petunia", "Amanda",
+               "Raquel", "Cindy", "Doris", "Eve", "Evita", "Sunniva", "Tove", "Unni",
+               "Violet", "Liza", "Elizabeth", "Ellen", "Wenche", "Vicky", ]
+
+@action('get_hint1_data')
+@action.uses(CORS())
+def get_hint1_data():
+   q = request.GET.get('q', '' )
+   suggest = []
+   if q:
+       ql = q.lower()
+       for e in hint1_list:
+           maybe = e.lower()
+           if maybe.startswith(ql):
+               suggest.append(e)
+   return ','.join(suggest) if suggest else 'no suggestion'
+
+@action('get_hint1')
+@action.uses('hint1.html')
+def get_hint1():
+    t_vars = copy.deepcopy(C.html_vars)
+    hint1_url=URL('get_hint1_data')
+    return locals()
+# ------------------------------------------------------------
+

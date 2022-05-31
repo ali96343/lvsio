@@ -1,0 +1,33 @@
+/home/w3p/set7-py39/py4web/apps/flvsio/templates/js-image-resize.html
+    strlen=32
+     -7:    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+     +7:    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+
+/home/w3p/set7-py39/py4web/apps/flvsio/templates/js-autocomplete.html
+    strlen=28
+     -4:    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+     +4:    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+
+/home/w3p/set7-py39/py4web/apps/flvsio/templates/longtask.html
+    strlen=24
+     -7:    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+     +7:    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+
+/home/w3p/set7-py39/py4web/apps/flvsio/templates/js-sliders.html
+    strlen=23
+     -6:    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+     +6:    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+
+/home/w3p/set7-py39/py4web/apps/flvsio/templates/js-count.html
+    strlen=33
+     -4:    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+     +4:    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+
+  ---------------------------- work_dir: /home/w3p/set7-py39/py4web/apps/flvsio --------------
+
+ find: 4.4.1
+ replace: 4.5.1
+
+ extensions_tuple: ('.md', '.un', '.js', '.jsx', '.py', '.html', '.css', '.ts', '.tsx', '.sh', '.vue', '.scss', '.json')
+ view_only: False
+ found_in_files: 5
