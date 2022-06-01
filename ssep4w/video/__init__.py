@@ -28,8 +28,8 @@ class Camera(object):
         self.jpeg_list = [ os.path.join(self.this_dir, f + ".jpg") for f in ['1', '2', '3'] ]
         self.frames = [open(f , 'rb').read() for f in self.jpeg_list   ]
         self.lock = threading.Lock()
-        with self.lock :
-            self.colorize_jpeg()
+        #with self.lock :
+        self.colorize_jpeg()
 
 
     def colorize_jpeg(self,):
@@ -38,28 +38,30 @@ class Camera(object):
         b_color = colors [ randint(0, len(colors )-1) ]
         right =  left =  top =  bottom = 7
 
-        for i, curimg in enumerate(self.frames):
-            in_buff = BytesIO()
-            out_buff = BytesIO()
-            in_buff.write(curimg)
-            in_buff.seek(0) #need to jump back to the beginning before handing it off to PIL
+        tmp_buf = BytesIO()
+        for i, cur_ima in enumerate(self.frames):
 
-            ima = Image.open(in_buff)
+            tmp_buf.truncate(0)
+            tmp_buf.seek(0) #need to jump back to the beginning before handing it off to PIL
+            tmp_buf.write(cur_ima)
+            tmp_buf.seek(0) 
+
+            ima = Image.open(tmp_buf)
   
             w, h = ima.size
   
-            result = Image.new(ima.mode, (w + right + left ,h + top + bottom), b_color )
-            result.paste(ima, (left, top))
+            new_ima = Image.new(ima.mode, (w + right + left ,h + top + bottom), b_color )
+            new_ima.paste(ima, (left, top))
       
-            out_buff.seek(0) #need to jump back to the beginning before handing it off to PIL
-            result.save(out_buff , format='JPEG')
-            self.frames[i] = out_buff.getvalue() 
-            #self.frames[i] = deepcopy(out_buff.getvalue() )
+            tmp_buf.seek(0) #need to jump back to the beginning before handing it off to PIL
+            new_ima.save(tmp_buf , format='JPEG')
+            self.frames[i] = deepcopy( tmp_buf.getvalue() )
+        del tmp_buf
               
 
     def get_frame(self):
-        with self.lock:
-            return self.frames[int(time()) % 3]
+        #with self.lock:
+        return self.frames[int(time()) % 3]
 
 # -------------------------------------------------------------------------
 
