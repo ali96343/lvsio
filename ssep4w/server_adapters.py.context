@@ -61,7 +61,16 @@ def wsgirefThreadingServer():
 
                 self.log = logging.getLogger("WSGIRef")
 
-            self_run = self # used in inner classes to access options and logger
+            self_run = self # used in internal classes to access options and logger
+
+            certfile = self.options.get("certfile", None)
+            if certfile: 
+                context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLSv1_2)
+                context.load_cert_chain(
+                    certfile=certfile,
+                    keyfile=self.options.get("certfile", None),
+                )
+                context.set_ciphers('EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH')
 
             class PoolMixIn(ThreadingMixIn):
                 def process_request(self, request, client_address):
@@ -75,7 +84,7 @@ def wsgirefThreadingServer():
 
             class Server:
                 def __init__(
-                    self, server_address=("127.0.0.1", 8000), handler_cls=None
+                    self, server_address=("127.0.0.1", 8000), handler_cls=None, **kw,
                 ):
                     self.wsgi_app = None
                     self.listen, self.port = server_address
@@ -100,20 +109,12 @@ def wsgirefThreadingServer():
                     # ./py4web.py run apps -s wsgirefThreadingServer --watch=off --port=8443 --ssl_cert=cert.pem --ssl_key=key.pem
                     # openssl s_client -showcerts -connect 127.0.0.1:8443
 
-                    certfile = self_run.options.get("certfile", None)
-
                     if certfile:
-                        try:                     
-                            self.server.socket = ssl.wrap_socket (
-                                self.server.socket,
-                                certfile = certfile,
-                                keyfile = self_run.options.get("keyfile", None),
-                                ssl_version = ssl.PROTOCOL_SSLv23,
-                                server_side = True,
-                                do_handshake_on_connect = False,
-                            )
-                        except ssl.SSLError: 
-                            pass
+                        self.server.socket = context.wrap_socket(
+                            self.server.socket, 
+                            server_side=True,
+                            do_handshake_on_connect=False,
+                        )
 
                     self.server.serve_forever()
 
