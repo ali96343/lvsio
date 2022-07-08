@@ -14,6 +14,7 @@ __all__ = [
     "gevent",
 ] + wsservers_list
 
+
 def gevent():
     # basically tihis is the same as ombotts version, but
     # since reload was added as keyword argument that's being passed to the server
@@ -21,6 +22,7 @@ def gevent():
     # Therefor 'reloader' is removed below in the options passed to the server.
     from gevent import pywsgi, local
     import threading
+
     if not isinstance(threading.local(), local.local):
         msg = "Ombott requires gevent.monkey.patch_all() (before import)"
         raise RuntimeError(msg)
@@ -32,14 +34,11 @@ def gevent():
             options = self.options.copy()
             try:
                 # keep only ssl options
-                del options['reloader']
-            except: pass
+                del options["reloader"]
+            except:
+                pass
 
-            server = pywsgi.WSGIServer(
-                (self.host, self.port),
-                handler,
-                **options
-            )
+            server = pywsgi.WSGIServer((self.host, self.port), handler, **options)
             server.serve_forever()
 
     return GeventServer
@@ -56,7 +55,7 @@ def geventWebSocketServer():
                 (self.host, self.port),
                 handler,
                 handler_class=WebSocketHandler,
-                **self.options
+                **self.options,
             )
 
             if not self.quiet:
@@ -71,7 +70,7 @@ def geventWebSocketServer():
 
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
-    import socket, ssl, sys 
+    import socket, ssl, sys
     from datetime import datetime
     from concurrent.futures import ThreadPoolExecutor  # pip install futures
     from socketserver import ThreadingMixIn
@@ -80,12 +79,11 @@ def wsgirefThreadingServer():
     # redirector http -> https ----------------------
     class Redirect:
         # https://www.elifulkerson.com/projects/http-https-redirect.php
-        def __init__(self, socket, address, host='127.0.0.1', port=8000, 
-                     logger=None):
+        def __init__(self, socket, address, host="127.0.0.1", port=8000, logger=None):
             self.socket = socket
             self.ip = address[0]
             self.host = host
-            self.port = str( port )
+            self.port = str(port)
             self.logger = logger
             self.client_closed = False
 
@@ -93,49 +91,67 @@ def wsgirefThreadingServer():
             if not self.client_closed:
                 try:
                     self.socket.send(data + b"\r\n")
-                except ( ConnectionResetError, BrokenPipeError ):
+                except (ConnectionResetError, BrokenPipeError):
                     self.client_closed = True
-        
+
         def fileno(self):
             return self.socket.fileno()
 
-        def run(self,):
+        def run(self):
             go_to = f"https://{self.host}:{self.port}".encode()
-            data = self.socket.recv( 8192 )
+            method = b"UNKNOWN"
+            data = self.socket.recv(1024)
             # try:
             #    data = self.socket.recv(1024, socket.MSG_DONTWAIT )
             # except BlockingIOError:
             #    pass
 
             if data:
-                req_url = data.split(b' ', 2)
-                if req_url and req_url[2].startswith( b'HTTP/1.1'):
+                req_url = data.split(b" ", 2)
+                if req_url and req_url[2].startswith(b"HTTP/1.1\r\n"):
                     go_to += req_url[1]
+                    method = req_url[0]
+
                 # send our https redirect
-                self.sendline( b"HTTP/1.1 302 Encryption Required")
-                self.sendline( b"Location: " + go_to)
-                self.sendline( b"Connection: close")
-                self.sendline( b"Cache-control: private")
-                self.sendline( b"")
-                self.sendline( b"<html><body>Encryption Required <a href='" 
-                               + go_to + b"'>" 
-                               + go_to + b"</a></body></html>")
-                self.sendline( b"")
+                self.sendline(b"HTTP/1.1 302 Encryption Required")
+                self.sendline(b"Location: " + go_to)
+                self.sendline(b"Connection: close")
+                self.sendline(b"Cache-control: private")
+                self.sendline(b"")
+
+                self.sendline(
+                    b"<html><body>Encryption Required <a href='"
+                    + go_to
+                    + b"'>"
+                    + go_to
+                    + b"</a></body></html>"
+                )
+                self.sendline(b"")
+
             self.socket.close
             if self.logger:
                 dt = datetime.now().strftime("%d/%b/%Y %H:%M:%S")
-                to_url = go_to.decode()
-                self.logger.info( f'{self.ip} - - [{dt}] to "{to_url}"')
+                self.logger.info(
+                    f'{self.ip} - - [{dt}] go "{go_to.decode()}" {method.decode()}'
+                )
 
     class SmartSocket:
         # https://stackoverflow.com/questions/13325642/python-magic-smart-dual-mode-ssl-socket
 
-        def __init__( self, sock, certfile, keyfile, allow_http=False, 
-                      host='127.0.0.1', port=8000, logger=None, ):
+        def __init__(
+            self,
+            sock,
+            certfile,
+            keyfile,
+            allow_http=False,
+            host="127.0.0.1",
+            port=8000,
+            logger=None,
+        ):
             self.sock = sock
             self.certfile = certfile
-            self.keyfile = keyfile 
-            self.allow_http = allow_http 
+            self.keyfile = keyfile
+            self.allow_http = allow_http
             self.host = host
             self.port = str(port)
             self.logger = logger
@@ -150,11 +166,11 @@ def wsgirefThreadingServer():
                 return (
                     ssl.wrap_socket(
                         conn,
-                        certfile = self.certfile,
-                        keyfile = self.keyfile,
-                        do_handshake_on_connect = False,
-                        server_side = True,
-                        ssl_version = ssl.PROTOCOL_SSLv23, 
+                        certfile=self.certfile,
+                        keyfile=self.keyfile,
+                        do_handshake_on_connect=False,
+                        server_side=True,
+                        ssl_version=ssl.PROTOCOL_SSLv23,
                     ),
                     addr,
                 )
@@ -164,23 +180,24 @@ def wsgirefThreadingServer():
                 Redirect(conn, addr, self.host, self.port, self.logger).run()
                 # to prevent ConnectionResetError in the server
                 try:
-                    while conn.recv( 1, ): pass
-                except ( ConnectionResetError, BrokenPipeError ):
-                    pass 
+                    while conn.recv(1):
+                        pass
+                except (ConnectionResetError, BrokenPipeError):
+                    pass
                 return (conn, addr)
 
     # end redirector http -> https ----------------------
-    
+
     class WSGIRefThreadingServer(ServerAdapter):
         def run(self, app):
 
             if not self.quiet:
                 logging.basicConfig(
-                    filename = "wsgiref.log",
-                    format = "%(threadName)s | %(message)s",
-                    filemode = "a",
-                    encoding = "utf-8",
-                    level = logging.DEBUG,
+                    filename="wsgiref.log",
+                    format="%(threadName)s | %(message)s",
+                    filemode="a",
+                    encoding="utf-8",
+                    level=logging.DEBUG,
                 )
 
                 self.log = logging.getLogger("WSGIRef")
@@ -191,6 +208,7 @@ def wsgirefThreadingServer():
                 # raise Exception('Test to standard error' )
 
             self_run = self  # used in inner classes to access options and logger
+
             class PoolMixIn(ThreadingMixIn):
                 def process_request(self, request, client_address):
                     self.pool.submit(
@@ -236,17 +254,14 @@ def wsgirefThreadingServer():
                     certfile = self_run.options.get("certfile", None)
 
                     if certfile:
-                         try:
-                            self.server.socket = SmartSocket(
-                                sock = self.server.socket,
-                                certfile = certfile,
-                                keyfile = self_run.options.get("keyfile", None),
-                                host = self.listen,
-                                port = self.port,
-                                logger = self_run.log,
-                            )
-                         except ssl.SSLError:
-                             pass
+                        self.server.socket = SmartSocket(
+                            sock=self.server.socket,
+                            certfile=certfile,
+                            keyfile=self_run.options.get("keyfile", None),
+                            host=self.listen,
+                            port=self.port,
+                            # logger=self_run.log,
+                        )
 
                     self.server.serve_forever()
 
@@ -259,7 +274,6 @@ def wsgirefThreadingServer():
                         return WSGIRequestHandler.log_request(*args, **kw)
 
             class LogHandler(WSGIRequestHandler):
-
                 def address_string(self):  # Prevent reverse DNS lookups please.
                     return self.client_address[0]
 
@@ -282,10 +296,11 @@ def wsgirefThreadingServer():
                     class server_cls(server_cls):
                         address_family = socket.AF_INET6
 
-            srv = make_server( self.host, self.port, app, server_cls, handler_cls,)
+            srv = make_server(self.host, self.port, app, server_cls, handler_cls)
             srv.serve_forever()
 
     return WSGIRefThreadingServer
+
 
 def rocketServer():
     try:
@@ -300,7 +315,16 @@ def rocketServer():
                 log = logging.getLogger("Rocket")
                 log.setLevel(logging.INFO)
                 log.addHandler(logging.StreamHandler())
-            interface = (self.host, self.port, self.options["keyfile"], self.options["certfile"]) if self.options.get("certfile", None) else (self.host, self.port)
+            interface = (
+                (
+                    self.host,
+                    self.port,
+                    self.options["keyfile"],
+                    self.options["certfile"],
+                )
+                if self.options.get("certfile", None)
+                else (self.host, self.port)
+            )
             server = Rocket(interface, "wsgi", dict(wsgi_app=app))
             server.start()
 
