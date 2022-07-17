@@ -70,8 +70,7 @@ def geventWebSocketServer():
 
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
-    import socket, ssl, sys
-    from datetime import datetime
+    import socket, ssl, datetime  # , sys
     from concurrent.futures import ThreadPoolExecutor  # pip install futures
     from socketserver import ThreadingMixIn
     from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
@@ -79,32 +78,29 @@ def wsgirefThreadingServer():
     # redirector http -> https ----------------------
     class Redirect:
         # https://www.elifulkerson.com/projects/http-https-redirect.php
+        # __slots__ = ( 'sock', 'ip', 'host', 'port',
+        #              'logger','client_closed', 'fileno')
         def __init__(self, socket, address, host="127.0.0.1", port=8000, logger=None):
-            self.socket = socket
+            self.sock = socket
             self.ip = address[0]
             self.host = host
             self.port = str(port)
             self.logger = logger
             self.client_closed = False
+            for method in ["fileno"]:
+                setattr(self, method, getattr(self.sock, method))
 
         def sendline(self, data):
             if not self.client_closed:
                 try:
-                    self.socket.send(data + b"\r\n")
+                    self.sock.send(data + b"\r\n")
                 except (ConnectionResetError, BrokenPipeError):
                     self.client_closed = True
-
-        def fileno(self):
-            return self.socket.fileno()
 
         def run(self):
             go_to = f"https://{self.host}:{self.port}".encode()
             method = b"UNKNOWN"
-            data = self.socket.recv(1024)
-            # try:
-            #    data = self.socket.recv(1024, socket.MSG_DONTWAIT )
-            # except BlockingIOError:
-            #    pass
+            data = self.sock.recv(1024)
 
             if data:
                 req_url = data.split(b" ", 2)
@@ -128,19 +124,21 @@ def wsgirefThreadingServer():
                 )
                 self.sendline(b"")
 
-            self.socket.close
+            self.sock.close
             if self.logger:
-                dt = datetime.now().strftime("%d/%b/%Y %H:%M:%S")
+                dt = datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")
                 self.logger.info(
-                    f'{self.ip} - - [{dt}] go "{go_to.decode()}" {method.decode()}'
+                    f'{self.ip} - - [{dt}] -> "{go_to.decode()}" {method.decode()}'
                 )
 
     class SmartSocket:
         # https://stackoverflow.com/questions/13325642/python-magic-smart-dual-mode-ssl-socket
 
+        # __slots__ = ( 'sock', 'certfile', 'keyfile', 'allow_http',
+        #              'host', 'port', 'logger', 'fileno')
         def __init__(
             self,
-            sock,
+            socket,
             certfile,
             keyfile,
             allow_http=False,
@@ -148,21 +146,21 @@ def wsgirefThreadingServer():
             port=8000,
             logger=None,
         ):
-            self.sock = sock
+            self.sock = socket
             self.certfile = certfile
             self.keyfile = keyfile
             self.allow_http = allow_http
             self.host = host
             self.port = str(port)
             self.logger = logger
-            # delegate methods as needed
-            _delegate_methods = ["fileno"]
-            for method in _delegate_methods:
+            for method in ["fileno"]:
                 setattr(self, method, getattr(self.sock, method))
 
         def accept(self):
             (conn, addr) = self.sock.accept()
             if conn.recv(1, socket.MSG_PEEK) == b"\x16":
+                # setattr(SmartSocket, "read", "Xread")
+                self.read = self.Xread
                 return (
                     ssl.wrap_socket(
                         conn,
@@ -220,6 +218,7 @@ def wsgirefThreadingServer():
                 pool = ThreadPoolExecutor(max_workers=40)
 
             class Server:
+                # __slots__ = ('wsgi_app','handler_cls','listen','port','server')
                 def __init__(
                     self, server_address=("127.0.0.1", 8000), handler_cls=None
                 ):
@@ -255,7 +254,7 @@ def wsgirefThreadingServer():
 
                     if certfile:
                         self.server.socket = SmartSocket(
-                            sock=self.server.socket,
+                            socket=self.server.socket,
                             certfile=certfile,
                             keyfile=self_run.options.get("keyfile", None),
                             host=self.listen,
@@ -285,6 +284,7 @@ def wsgirefThreadingServer():
                             format % args,
                         )
                         self_run.log.info(msg)
+                        # sys.stderr.write(msg)
 
             handler_cls = self.options.get("handler_class", LogHandler)
             # handler_cls = self.options.get("handler_class", FixedHandler)
