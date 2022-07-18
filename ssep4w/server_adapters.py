@@ -159,8 +159,6 @@ def wsgirefThreadingServer():
         def accept(self):
             (conn, addr) = self.sock.accept()
             if conn.recv(1, socket.MSG_PEEK) == b"\x16":
-                # setattr(SmartSocket, "read", "Xread")
-                self.read = self.Xread
                 return (
                     ssl.wrap_socket(
                         conn,
