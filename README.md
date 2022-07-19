@@ -1,6 +1,17 @@
 ## lvsio - py4web apps
 
 ---------------------------------------------
+
+server_adapters.py 
+
+the file server_adapters.py  contains a wsgiref server version 
+
+with a redirector-http->https and ssl-keys
+
+to use, copy the file server_adapters.py  to py4web/server_adapters.py
+
+
+---------------------------------------------
 ssep4w - examples of using generators in py4web-controllers 
 
 ( polling, server sent events, file-push, live charts ... etc )

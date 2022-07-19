@@ -70,16 +70,16 @@ def geventWebSocketServer():
 
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
-    import socket, ssl, datetime  # , sys
+    import socket, ssl, datetime, sys
     from concurrent.futures import ThreadPoolExecutor  # pip install futures
     from socketserver import ThreadingMixIn
     from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
     # redirector http -> https ----------------------
+
     class Redirect:
         # https://www.elifulkerson.com/projects/http-https-redirect.php
-        # __slots__ = ( 'sock', 'ip', 'host', 'port',
-        #              'logger','client_closed', 'fileno')
+        __slots__ = ( 'sock', 'ip', 'host', 'port', 'logger','client_closed', 'fileno')
         def __init__(self, socket, address, host="127.0.0.1", port=8000, logger=None):
             self.sock = socket
             self.ip = address[0]
@@ -124,7 +124,8 @@ def wsgirefThreadingServer():
                 )
                 self.sendline(b"")
 
-            self.sock.close
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
             if self.logger:
                 dt = datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")
                 self.logger.info(
@@ -133,19 +134,8 @@ def wsgirefThreadingServer():
 
     class SmartSocket:
         # https://stackoverflow.com/questions/13325642/python-magic-smart-dual-mode-ssl-socket
-
-        # __slots__ = ( 'sock', 'certfile', 'keyfile', 'allow_http',
-        #              'host', 'port', 'logger', 'fileno')
-        def __init__(
-            self,
-            socket,
-            certfile,
-            keyfile,
-            allow_http=False,
-            host="127.0.0.1",
-            port=8000,
-            logger=None,
-        ):
+        __slots__ = ( 'sock', 'certfile', 'keyfile', 'allow_http', 'host', 'port', 'logger', 'fileno')
+        def __init__( self, socket, certfile, keyfile, allow_http=False, host="127.0.0.1", port=8000, logger=None,):
             self.sock = socket
             self.certfile = certfile
             self.keyfile = keyfile
@@ -174,12 +164,8 @@ def wsgirefThreadingServer():
                 return (conn, addr)
             else:
                 Redirect(conn, addr, self.host, self.port, self.logger).run()
-                # to prevent ConnectionResetError in the server
-                try:
-                    while conn.recv(1):
-                        pass
-                except (ConnectionResetError, BrokenPipeError):
-                    pass
+                conn.shutdown(socket.SHUT_RDWR)
+                conn.close()
                 return (conn, addr)
 
     # end redirector http -> https ----------------------
@@ -204,7 +190,6 @@ def wsgirefThreadingServer():
                 # raise Exception('Test to standard error' )
 
             self_run = self  # used in inner classes to access options and logger
-
             class PoolMixIn(ThreadingMixIn):
                 def process_request(self, request, client_address):
                     self.pool.submit(
@@ -231,13 +216,16 @@ def wsgirefThreadingServer():
                     return self.wsgi_app
 
                 def serve_forever(self):
-                    self.server = make_server(
-                        self.listen,
-                        self.port,
-                        self.wsgi_app,
-                        ThreadingWSGIServer,
-                        self.handler_cls,
-                    )
+                    try:
+                        self.server = make_server(
+                            self.listen,
+                            self.port,
+                            self.wsgi_app,
+                            ThreadingWSGIServer,
+                            self.handler_cls,
+                        )
+                    except OSError as ex:
+                        sys.exit(ex)
 
                     # openssl req  -newkey rsa:4096 -new -x509 -keyout server.pem -out server.pem -days 365 -nodes
                     # ./py4web.py run apps -s wsgirefThreadingServer  --watch=off --port=8000 --ssl_cert=server.pem
@@ -294,6 +282,7 @@ def wsgirefThreadingServer():
                     class server_cls(server_cls):
                         address_family = socket.AF_INET6
 
+            
             srv = make_server(self.host, self.port, app, server_cls, handler_cls)
             srv.serve_forever()
 
