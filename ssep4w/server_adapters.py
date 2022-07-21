@@ -70,7 +70,7 @@ def geventWebSocketServer():
 
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
-    import socket, ssl, datetime, sys
+    import socket, ssl, datetime, sys, os
     from concurrent.futures import ThreadPoolExecutor  # pip install futures
     from socketserver import ThreadingMixIn
     from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
@@ -97,7 +97,7 @@ def wsgirefThreadingServer():
                 except (ConnectionResetError, BrokenPipeError):
                     self.client_closed = True
 
-        def run(self):
+        def __call__(self):
             go_to = f"https://{self.host}:{self.port}".encode()
             method = b"UNKNOWN"
             data = self.sock.recv(1024)
@@ -108,7 +108,6 @@ def wsgirefThreadingServer():
                     go_to += req_url[1]
                     method = req_url[0]
 
-                # send our https redirect
                 self.sendline(b"HTTP/1.1 302 Encryption Required")
                 self.sendline(b"Location: " + go_to)
                 self.sendline(b"Connection: close")
@@ -119,7 +118,7 @@ def wsgirefThreadingServer():
                     b"<html><body>Encryption Required <a href='"
                     + go_to
                     + b"'>"
-                    + go_to
+                    + b"go_to"
                     + b"</a></body></html>"
                 )
                 self.sendline(b"")
@@ -163,7 +162,7 @@ def wsgirefThreadingServer():
             elif self.allow_http:
                 return (conn, addr)
             else:
-                Redirect(conn, addr, self.host, self.port, self.logger).run()
+                Redirect(conn, addr, self.host, self.port, self.logger)()
                 conn.shutdown(socket.SHUT_RDWR)
                 conn.close()
                 return (conn, addr)
@@ -201,7 +200,7 @@ def wsgirefThreadingServer():
                 pool = ThreadPoolExecutor(max_workers=40)
 
             class Server:
-                # __slots__ = ('wsgi_app','handler_cls','listen','port','server')
+                __slots__ = ('wsgi_app','handler_cls','listen','port','server')
                 def __init__(
                     self, server_address=("127.0.0.1", 8000), handler_cls=None
                 ):
@@ -225,6 +224,7 @@ def wsgirefThreadingServer():
                             self.handler_cls,
                         )
                     except OSError as ex:
+                        os.system( f"[[  $(command -v fuser) ]] && fuser {self.port}/tcp" )
                         sys.exit(ex)
 
                     # openssl req  -newkey rsa:4096 -new -x509 -keyout server.pem -out server.pem -days 365 -nodes
