@@ -1,27 +1,26 @@
 from py4web import URL
 from .settings import APP_NAME
 
-_app = APP_NAME
-menu_str = f"{_app}/index"
+ctrl_pref = f"{APP_NAME}/"
 
-def nav_item(item_nm, ctrl_nm):
-    return item_nm, False, URL(f"{APP_NAME}/" + ctrl_nm)
+def nav_item(item_nm, ctrl_nm, flag= False):
+    return item_nm, flag, URL( ctrl_pref  + ctrl_nm)
 
 
 l_menu = [
-    ("Home", False, URL(menu_str), []),
+    ("Home", False, URL(ctrl_pref), []),
 
     ( "Func", False, "#", [
-            ("mi1", False, URL(f"{_app}/mi1")),
-            ("upload", False, URL(menu_str)),
-            ("tlist", False, URL(menu_str)),
+            ("mi1", False, URL(ctrl_pref + "mi1")),
+            ("upload", False, URL(ctrl_pref )),
+            ("tlist", False, URL(ctrl_pref )),
         ],
     ),
 
     ( "Demo", False, "#", [
-            ("mi2", False, URL(f"{_app}/mi2")),
-            ("index", False, URL(menu_str)),
-            ("mi3", False, URL(f"{_app}/mi3")),
+            ("mi2", False, URL(ctrl_pref + "mi2")),
+            ("index", False, URL(ctrl_pref )),
+            ("mi3", False, URL(ctrl_pref + "mi3")),
             nav_item("yyy", "mi4"),
         ],
     ),
