@@ -2,24 +2,27 @@
 
 ---------------------------------------------
 
+lmenu - layout.html with lef_menu 
+
+---------------------------------------------
+
 ssep4w/server_adapters.py 
 
-the file server_adapters.py  contains a wsgiref server version 
+the file server_adapters.py contains a wsgiref server version 
 
 with a redirector-http->https and ssl-keys
 
 to use, copy the file server_adapters.py  to py4web/server_adapters.py
 
-
 ---------------------------------------------
-ssep4w - examples of using generators in py4web-controllers 
+ssep4w - generators in py4web-controllers 
 
 ( polling, server sent events, file-push, live charts ... etc )
 
 run  ./py4web.py run apps --watch=off -s wsgirefThreadingServer  
 
 
-Examples from the following sources were used:
+The following sources were used:
 
 https://github.com/djdmorrison/flask-progress-example
 
