@@ -1,7 +1,7 @@
 from py4web import URL
 from .settings import APP_NAME
 
-# the menu navigation file is borrowed from web2py
+# the menu navigation from web2py
 
 app_url = f"{APP_NAME}/"
 
@@ -32,6 +32,7 @@ l_menu = [
             nav_item("y", "mi2"),
             nav_item("z", "mi3"),
             nav_item("a", "mi4"),
+            nav_item("b", "mi5"),
         ],
     ),
 ]

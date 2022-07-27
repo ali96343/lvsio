@@ -191,7 +191,7 @@ if settings.USE_CELERY:
 #auth.enable(uses=(session, T, db), env=dict(T=T))
 from .left_menu import l_menu
 from py4web.utils.factories import Inject
-auth.enable(uses=(session, T, Inject(l_menu=l_menu)), env=dict(T=T))
+auth.enable(uses=(session, T, db, Inject(l_menu=l_menu)), env=dict(T=T))
 
 # #######################################################
 # Define convenience decorators

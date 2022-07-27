@@ -37,7 +37,7 @@ from .left_menu import l_menu
 @action.uses("index.html", auth, T)
 def index():
     user = auth.get_user()
-    message = T("Hello {first_name}".format(**user) if user else "Hello")
+    message = T("index Hello {first_name}".format(**user) if user else "index Hello")
     actions = {"allowed_actions": auth.param.allowed_actions}
     return dict(message=message, actions=actions, l_menu=l_menu)
 
@@ -57,5 +57,20 @@ def mi3():
     return "its mi3" 
 
 @action("mi4")
+@action.uses("mi4.html", auth, T)
 def mi4():
-    return "its mi4" 
+    user = auth.get_user()
+    message = T("imi4 Hello {first_name}".format(**user) if user else "mi4 Hello")
+    actions = {"allowed_actions": auth.param.allowed_actions}
+    return dict(message=message, actions=actions, l_menu=l_menu)
+
+
+@action("mi5")
+@action.uses("mi5.html", auth, T)
+def mi5():
+    user = auth.get_user()
+    message = T("imi5 Hello {first_name}".format(**user) if user else "mi5 Hello")
+    actions = {"allowed_actions": auth.param.allowed_actions}
+    return dict(message=message, actions=actions, )
+
+
