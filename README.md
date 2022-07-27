@@ -2,7 +2,7 @@
 
 ---------------------------------------------
 
-lmenu - layout.html with lef_menu 
+lmenu - layout.html with left_menu 
 
 ---------------------------------------------
 
