@@ -1,0 +1,109 @@
+1 cp -a _scaffold mymenu && cd mymenu
+
+2 put file left_menu.py
+------------------------------
+from py4web import action, request, abort, redirect, URL
+from yatl.helpers import A
+from .settings import APP_NAME
+
+
+
+_app = APP_NAME
+menu_str = f'{_app}/index'
+
+l_menu = [
+    ('Home', False, URL(menu_str), []),
+
+    ('Func', False, '#', [
+           ('mi1', False, URL(f'{_app}/mi1')),
+           ('upload', False, URL(menu_str)),
+           ('tlist', False,  URL(menu_str)),
+    ]),
+
+    ('Demo', False, '#'   , [
+           ('mi2', False, URL(f'{_app}/mi2')),
+           ('index', False, URL(menu_str)),
+           ('mi3', False, URL(f'{_app}/mi3')),
+    ]),
+]
+
+-----------------------------
+3
+
+insert in common.py
+----------------------------------------
+# #######################################################
+# Enable authentication
+# #######################################################
+#auth.enable(uses=(session, T, db), env=dict(T=T))
+from .left_menu import l_menu
+from py4web.utils.factories import Inject
+auth.enable(uses=(session, T, Inject(l_menu=l_menu)), env=dict(T=T))
+----------------------------------------
+
+4
+
+vi templates/left_menu.html
+
+[[block page_left_menu]]
+  <ul>
+    [[ for _item in  l_menu or []: ]]
+      [[ if len(_item)<4 or not _item[3]: ]]
+         <li> <a href="[[ = _item[2] ]]">[[ = _item[0] ]]</a> </li>
+      [[ else: ]]
+         <li>
+             [[ = _item[0] ]]
+             <ul>
+                [[ for _subitem in _item[3]: ]]
+                   <li> <a href="[[ = _subitem[2] ]]">[[ = _subitem[0] ]]</a></li>
+                [[ pass ]]
+             </ul>
+         </li>
+      [[ pass ]]
+    [[ pass ]]
+  </ul>
+[[end]]
+
+
+5
+
+vi templates/layout.html
+
+        <input type="checkbox" id="hamburger">
+        <!-- Left menu ul/li -->
+        [[block page_left_menu]][[end]]
+        [[include 'left_menu.html']]
+        <!-- Right menu ul/li -->
+
+6
+
+vi controllers.py
+
+
+from .left_menu import l_menu
+
+
+@action("index")
+@action.uses("index.html", auth, T)
+def index():
+    user = auth.get_user()
+    message = T("Hello {first_name}".format(**user) if user else "Hello")
+    actions = {"allowed_actions": auth.param.allowed_actions}
+    return dict(message=message, actions=actions, l_menu=l_menu)
+
+
+
+@action("mi1")
+def mi1():
+    return "its mi1"
+
+
+@action("mi2")
+def mi2():
+    return "its mi2"
+
+@action("mi3")
+def mi3():
+    return "its mi3"
+
+
