@@ -12,6 +12,7 @@ __all__ = [
     "wsgirefThreadingServer",
     "rocketServer",
     "gevent",
+    "waitressPyruvate",
 ] + wsservers_list
 
 
@@ -79,7 +80,7 @@ def wsgirefThreadingServer():
 
     class Redirect:
         # https://www.elifulkerson.com/projects/http-https-redirect.php
-        __slots__ = ( 'sock', 'ip', 'host', 'port', 'logger','client_closed', 'fileno')
+        __slots__ = ( 'sock', 'ip', 'host', 'port', 'logger','client_closed','fileno')
         def __init__(self, socket, address, host="127.0.0.1", port=8000, logger=None):
             self.sock = socket
             self.ip = address[0]
@@ -87,8 +88,8 @@ def wsgirefThreadingServer():
             self.port = str(port)
             self.logger = logger
             self.client_closed = False
-            for method in ["fileno"]:
-                setattr(self, method, getattr(self.sock, method))
+            for m in ["fileno"]:
+                setattr(self, m, getattr(self.sock, m))
 
         def sendline(self, data):
             if not self.client_closed:
@@ -131,7 +132,7 @@ def wsgirefThreadingServer():
                     f'{self.ip} - - [{dt}] -> "{go_to.decode()}" {method.decode()}'
                 )
 
-    class SmartSocket:
+    class HttpProxy:
         # https://stackoverflow.com/questions/13325642/python-magic-smart-dual-mode-ssl-socket
         __slots__ = ( 'sock', 'certfile', 'keyfile', 'allow_http', 'host', 'port', 'logger', 'fileno')
         def __init__( self, socket, certfile, keyfile, allow_http=False, host="127.0.0.1", port=8000, logger=None,):
@@ -142,9 +143,9 @@ def wsgirefThreadingServer():
             self.host = host
             self.port = str(port)
             self.logger = logger
-            for method in ["fileno"]:
-                setattr(self, method, getattr(self.sock, method))
-
+            for m in ["fileno"]:
+                setattr(self, m, getattr(self.sock, m))
+    
         def accept(self):
             (conn, addr) = self.sock.accept()
             if conn.recv(1, socket.MSG_PEEK) == b"\x16":
@@ -169,6 +170,19 @@ def wsgirefThreadingServer():
 
     # end redirector http -> https ----------------------
 
+    class ToLog(object):
+        def __init__(self, logger, level):
+           self.logger = logger
+           self.level = level
+           self.linebuf = ''
+    
+        def write(self, buf):
+           for line in buf.rstrip().splitlines():
+              self.logger.log(self.level, line.rstrip())
+    
+        def flush(self):
+            pass
+    
     class WSGIRefThreadingServer(ServerAdapter):
         def run(self, app):
 
@@ -187,6 +201,8 @@ def wsgirefThreadingServer():
                 # sys.stdout.write = self.log.info
                 # print('Test to standard out')
                 # raise Exception('Test to standard error' )
+                # sys.stdout = ToLog(self.log, logging.INFO)
+                sys.stderr = ToLog(self.log, logging.ERROR)
 
             self_run = self  # used in inner classes to access options and logger
             class PoolMixIn(ThreadingMixIn):
@@ -239,13 +255,13 @@ def wsgirefThreadingServer():
                     certfile = self_run.options.get("certfile", None)
 
                     if certfile:
-                        self.server.socket = SmartSocket(
+                        self.server.socket = HttpProxy(
                             socket=self.server.socket,
                             certfile=certfile,
                             keyfile=self_run.options.get("keyfile", None),
                             host=self.listen,
                             port=self.port,
-                            # logger=self_run.log,
+                            logger=self_run.log,
                         )
 
                     self.server.serve_forever()
@@ -316,3 +332,28 @@ def rocketServer():
             server.start()
 
     return RocketServer
+
+
+
+def waitressPyruvate():
+
+    # https://2020.ploneconf.org/talks/pyruvate-a-reasonably-fast-non-blocking-multithreaded-wsgi-server
+    # https://maurits.vanrees.org/weblog/archive/2021/10/thomas-schorr-pyruvate-wsgi-server-status-update
+    # https://gitlab.com/tschorr/pyruvate
+    # https://pypi.org/project/pyruvate/
+
+    import pyruvate  # pip install pyruvate
+
+    class srvPyruvate(ServerAdapter):
+        def run(self, handler):
+
+            if not self.quiet:
+                log = logging.getLogger("Pyruvate")
+                log.setLevel(logging.DEBUG)
+                log.addHandler(logging.StreamHandler())
+
+            workers = 1000  # self.options['workers']
+            pyruvate.serve(handler, f"{self.host}:{self.port}", workers)
+
+    return srvPyruvate
+
