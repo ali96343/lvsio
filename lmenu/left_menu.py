@@ -3,7 +3,8 @@ from .settings import APP_NAME
 
 # the menu navigation from web2py
 
-app_url = f"{APP_NAME}/"
+app_url = APP_NAME + "/"
+#app_url = f"{APP_NAME}/"
 
 def nav_item(item_nm, ctrl_nm, flag= False):
     return item_nm, flag, URL( app_url + ctrl_nm )
