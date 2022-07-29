@@ -4,17 +4,15 @@ from .settings import APP_NAME
 # the menu navigation from web2py
 
 app_url = APP_NAME + "/"
-#app_url = f"{APP_NAME}/"
 
 def nav_item(item_nm, ctrl_nm, flag= False):
     return item_nm, flag, URL( app_url + ctrl_nm )
-
 
 l_menu = [
     ("Home", False, URL(app_url), []),
 
     ( "Func", False, "#", [
-            ("mi1", False, URL(app_url + "mi1")),
+            ("mi1", False, URL(app_url + "mi1" )),
             ("upload", False, URL(app_url )),
             ("tlist", False, URL(app_url )),
         ],
