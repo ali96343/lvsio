@@ -1,0 +1,76 @@
+timestamp: 2022-08-04T12:58:18.818087
+CREATE TABLE "auth_user"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "username" CHAR(512) UNIQUE,
+    "email" CHAR(512) UNIQUE,
+    "password" CHAR(512),
+    "first_name" CHAR(512),
+    "last_name" CHAR(512),
+    "sso_id" CHAR(512),
+    "action_token" CHAR(512),
+    "last_password_change" TIMESTAMP,
+    "past_passwords_hash" TEXT
+);
+success!
+timestamp: 2022-08-04T12:58:18.831017
+CREATE TABLE "auth_user_tag_groups"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "tagpath" CHAR(512),
+    "record_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE ON UPDATE CASCADE  
+);
+success!
+timestamp: 2022-08-04T12:58:18.851383
+CREATE TABLE "auth_user_tag_grps"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "tagpath" CHAR(512),
+    "record_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE ON UPDATE CASCADE  
+);
+success!
+timestamp: 2022-08-04T12:58:18.863031
+CREATE TABLE "auth_group"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "name" CHAR(512),
+    "description" CHAR(512)
+);
+success!
+timestamp: 2022-08-04T12:58:18.874451
+CREATE TABLE "auth_user_tag_x"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "tagpath" CHAR(512),
+    "record_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE ON UPDATE CASCADE  
+);
+success!
+timestamp: 2022-08-04T12:58:18.885620
+CREATE TABLE "auth_group_tag_x"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "tagpath" CHAR(512),
+    "record_id" INTEGER REFERENCES "auth_group" ("id") ON DELETE CASCADE ON UPDATE CASCADE  
+);
+success!
+timestamp: 2022-08-04T12:58:18.940497
+CREATE TABLE "uploaded_files"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "orig_file_name" CHAR(512),
+    "remark" TEXT,
+    "uniq_file_name" CHAR(512),
+    "time" TIMESTAMP
+);
+success!
+timestamp: 2022-08-04T12:58:19.049636
+CREATE TABLE "test_table"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "f0" CHAR(512),
+    "f1" CHAR(512),
+    "f2" CHAR(512)
+);
+success!
+timestamp: 2022-08-04T12:58:19.111589
+CREATE TABLE "user_table"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "name" CHAR(512),
+    "age" INTEGER,
+    "address" CHAR(512),
+    "phone" CHAR(512),
+    "email" CHAR(512)
+);
+success!
