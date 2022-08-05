@@ -26,6 +26,13 @@ try:
 except ImportError:
     l_menu = []
 
+# https://blog.miguelgrinberg.com/post/beautiful-interactive-tables-for-your-flask-templates
+# https://github.com/epykure/epyk-studio
+# https://github.com/epykure/epyk-ui
+# https://github.com/epykure/tabulator-extensions
+#  https://stackoverflow.com/questions/67166839/how-to-show-a-table-with-tabulator-using-flask-and-a-json-variable
+# https://webdevkin.ru/posts/frontend/tabulator
+# https://github.com/olifolkerd/tabulator
 
 @action("index")
 @action.uses("index.html", auth, T)

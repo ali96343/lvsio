@@ -5,7 +5,7 @@ from .settings import APP_NAME
 
 _url = APP_NAME + "/"
 
-def nav_item(item_nm, route, flag= False):
+def nav_item(item_nm="", route="", flag= False):
     return item_nm, flag, URL( _url + route )
 
 def ctrl_item(route, flag= False):
@@ -35,7 +35,8 @@ l_menu = [
 
     ( "Grps", False, "#", [
             ctrl_item('db_tables'),
-            ctrl_item("manager", "find_tag/manager"),
+            # nav_item(),
+            nav_item("manager", "find_tag/manager"),
             ctrl_item("find_tag/dancer"),
             ctrl_item("find_tag/teacher"),
         ],
