@@ -25,24 +25,24 @@ def add_ctrl2nav(main_item, route):
 l_menu = [
     ("Home", False, URL(_url), []),
 
-    ( "Func", False, "#", [
-            ctrl_item("t1/basic_table"),
-            ctrl_item("t1/ajax_table"),
-            ctrl_item("t1/server_table"),
-            ctrl_item("t1/editable_table"),
-            ctrl_item('db_tables'),
+    ( "Gs", False, "#", [
+            ctrl_item("g1/editable_table"),
+            ctrl_item("g1/server_table"),
+            ctrl_item("g1/ajax_table"),
+            ctrl_item("g1/basic_table"),
         ],
     ),
 
     ( "Grps", False, "#", [
-            nav_item("manager", "find_tag/manager"),
+            ctrl_item('db_tables'),
+            ctrl_item("manager", "find_tag/manager"),
             ctrl_item("find_tag/dancer"),
             ctrl_item("find_tag/teacher"),
         ],
     ),
 ]
 
-add_ctrl2nav('Func', 'mi5')
-add_ctrl2nav('Func', 'mi4')
-add_ctrl2nav('Func', 'mi3')
+#add_ctrl2nav('Func', 'mi5')
+#add_ctrl2nav('Func', 'mi4')
+#add_ctrl2nav('Func', 'mi3')
 

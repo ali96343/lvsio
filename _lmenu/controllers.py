@@ -17,9 +17,8 @@ from py4web.utils.factories import Inject
 from py4web.utils.url_signer import URLSigner
 
 from .models import grps, x_groups, x_permissions
+from .ex1 import *
 
-
-from .g1 import *
 
 try:
     from .left_menu import l_menu
