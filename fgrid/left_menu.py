@@ -35,7 +35,6 @@ l_menu = [
 
     ( "Grps", False, "#", [
             ctrl_item('db_tables'),
-            # nav_item(),
             nav_item("manager", "find_tag/manager"),
             ctrl_item("find_tag/dancer"),
             ctrl_item("find_tag/teacher"),

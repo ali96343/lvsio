@@ -9,7 +9,11 @@
              [[ = _item[0] ]]
              <ul>
                 [[ for _subitem in _item[3]: ]]
+                   [[ if not len( _subitem[0]  ):]]
+                      <li></li>
+                   [[ else: ]]
                    <li><a href="[[ = _subitem[2] ]]">[[ = _subitem[0] ]]</a></li>
+                   [[pass ]]
                 [[ pass ]]
              </ul>
          </li>

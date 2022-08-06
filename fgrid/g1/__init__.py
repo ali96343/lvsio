@@ -26,9 +26,7 @@ from functools import reduce
 
 # https://blog.miguelgrinberg.com/post/beautiful-flask-tables-part-2
 
-
 # ------------------------------------------------------------------------------
-
 
 @action( "g1/basic_table",)
 @action.uses( "g1/basic_table.html", db, session, T,)
@@ -36,9 +34,7 @@ def g1_basic_table():
     tbl = "user_table"
     return dict(users=db(db.user_table).select())
 
-
 # ------------------------------------------------------------------------------
-
 
 @action( "g1/ajax_table",)
 @action.uses( "g1/ajax_table.html", db, session, T,)
@@ -49,9 +45,10 @@ def g1_ajax_table():
 @action("g1/api_ajax/data")
 def g1_api_ajax_data():
     tbl = "user_table"
+    #query = db.user_table
+    query = db[tbl]
     response.headers["Content-Type"] = "application/json"
-    return json.dumps({"data": [u.as_dict() for u in db(db.user_table).select()]})
-
+    return json.dumps({"data": [u.as_dict() for u in db(query).select()]})
 
 # ------------------------------------------------------------------------------
 
@@ -87,8 +84,7 @@ def g1_api_server():
     if sort:
         order = []
         for s in sort.split(","):
-            direction = s[0]
-            name = s[1:]
+            (direction, name) = (s[0], s[1:])
             if name not in ["name", "age", "email", ]:
                 name = "name"
 
@@ -97,21 +93,23 @@ def g1_api_server():
                  orderby = ~orderby
 
     # pagination
-    start = int(request.GET.get("start", default=-1))
-    length = int(request.GET.get("length", default=-1))
-    if all([start != -1, length != -1]):
-        users = db(query).select(limitby=(start, start + length), orderby=orderby)
-    else:
-        users = db(query).select(orderby=orderby)
+    (start, length) = (
+        int(request.GET.get("start", default=-1)),
+        int(request.GET.get("length", default=-1)),
+    )
+
+    users = (
+        db(query).select(limitby=(start, start + length), orderby=orderby)
+        if all([start != -1, length != -1])
+        else db(query).select(orderby=orderby)
+    )
 
     # response
-    total = db(query).count()
-    # print (users)
     response.headers["Content-Type"] = "application/json"
     return json.dumps(
         {
             "data": [u.as_dict() for u in users],
-            "total": total,
+            "total": len(users), # db(query).count(), 
         }
     )
 
@@ -137,7 +135,7 @@ def g1_api_editable():
     # search filter
     search = request.GET.get("search")
     if search:
-        fields = ['name','address','email', 'phone']
+        fields = ['name','address','email','phone']
         qt = [db.user_table[f].contains(search) for f in fields]
         query = reduce( lambda a,b: a| b, qt  )
 
@@ -146,8 +144,8 @@ def g1_api_editable():
     if sort:
         order = []
         for s in sort.split(","):
-            direction = s[0]
-            name = s[1:]
+            (direction, name) = (s[0], s[1:])
+
             if name not in ["name", "age", "email", ]:
                 name = "name"
 
@@ -156,21 +154,23 @@ def g1_api_editable():
                  orderby = ~orderby
 
     # pagination
-    start = int(request.GET.get("start", default=-1))
-    length = int(request.GET.get("length", default=-1))
+    (start, length) = (
+        int(request.GET.get("start", default=-1)),
+        int(request.GET.get("length", default=-1)),
+    )
 
-    if all([start != -1, length != -1]):
-        users = db(query).select(limitby=(start, start + length), orderby=orderby)
-    else:
-        users = db(query).select(orderby=orderby)
+    users = (
+        db(query).select(limitby=(start, start + length), orderby=orderby)
+        if all([start != -1, length != -1])
+        else db(query).select(orderby=orderby)
+    )
 
     # response
-    total = db(query).count()
     response.headers["Content-Type"] = "application/json"
     return json.dumps(
         {
             "data": [u.as_dict() for u in users],
-            "total": total,
+            "total": len(users), # db(query).count(), 
         }
     )
 
