@@ -17,11 +17,9 @@ from py4web.utils.factories import Inject
 from py4web.utils.url_signer import URLSigner
 
 from .models import grps, x_groups, x_permissions
-from .ex1 import *
-
 
 try:
-    from .left_menu import l_menu
+    from .left_menu import (l_menu, b_menu, t_menu )
 except ImportError:
     l_menu = []
 
@@ -69,8 +67,20 @@ def mi5():
     return dict(
         message=message,
         actions=actions,
+        b_menu=b_menu,
     )
 
+@action("mi6")
+@action.uses("mi6.html", auth, T, Inject(l_menu=l_menu))
+def mi6():
+    user = auth.get_user()
+    message = T("mi6 Hello {first_name}".format(**user) if user else "mi6 Hello")
+    actions = {"allowed_actions": auth.param.allowed_actions}
+    return dict(
+        message=message,
+        actions=actions,
+        t_menu=t_menu,
+    )
 
 # ---------------------------------------------------------------
 # https://py4web.com/_documentation/static/en/chapter-13.html?highlight=tag
