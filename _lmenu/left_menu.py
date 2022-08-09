@@ -58,6 +58,18 @@ l_menu = [
 #add_ctrl2nav('Func', 'mi3')
 # ---------------------------------------------------
 
+bb_menu = [
+
+    ( "bb_x", False, "#", [
+            ctrl_item('db_tables'),
+            ("upload", False, URL(_url )),
+            ("tlist", False, URL(_url )),
+        ],
+    ),
+    ("X_1", False, URL(_url), []),
+]
+
+
 def button_menu( x_menu=l_menu  ):
     but_menu = []
     for _item in x_menu or []: 
@@ -69,20 +81,21 @@ def button_menu( x_menu=l_menu  ):
           but_menu.append(f'<a role="button" href="{_ii[2]}">{_ii[0]}</a>' )
     return ''.join( but_menu  ) 
 
-b_menu = button_menu()
+b_menu = button_menu(  )
+#b_menu = button_menu(  bb_menu  )
 
 # ---------------------------------------------------
 def table_menu( x_menu=l_menu  ):
     tab_menu = []
     tab_menu.append('<table class="table">')
     for _item in x_menu or []:
-          tab_menu.append( \
+          tab_menu.append( 
              '<tr style="background: #e1e1e1">'
              + f'<th colspan="2" class="is-info">{_item[0]}</th>'
              + '</tr>'
           )
           if not _item[3]:
-              tab_menu.append( \
+              tab_menu.append( 
                   '<tr>'
                   + f'<td>{_item[0]}</td>'
                   + f'<td><a role="button" href="{_item[2]}">go</a></td>'
@@ -90,7 +103,7 @@ def table_menu( x_menu=l_menu  ):
               )
 
           for _ii in _item[3]:
-              tab_menu.append( \
+              tab_menu.append( 
                   '<tr>'
                   + f'<td>{_ii[0]}</td>'
                   + f'<td><a role="button" href="{_ii[2]}">go</a></td>'

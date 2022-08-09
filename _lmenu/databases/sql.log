@@ -64,3 +64,13 @@ CREATE TABLE "uploaded_files"(
     "time" TIMESTAMP
 );
 success!
+timestamp: 2022-08-07T16:50:07.647784
+CREATE TABLE "user_table"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "name" CHAR(512),
+    "age" INTEGER,
+    "address" CHAR(512),
+    "phone" CHAR(512),
+    "email" CHAR(512)
+);
+success!

@@ -2,7 +2,7 @@
  [[if locals().get('l_menu'): ]]
   <ul>
     [[ for _item in  l_menu or []: ]]
-      [[ if len(_item)<4 or not _item[3]: ]]
+      [[ if not _item[3]: ]]
          <li> <a href="[[ = _item[2] ]]">[[ = _item[0] ]]</a> </li>
       [[ else: ]]
          <li>
