@@ -1,5 +1,8 @@
 from py4web import URL
 from .settings import APP_NAME
+from py4web.utils.url_signer import URLSigner
+from .g2 import url2_signer
+
 
 # the navigation menu from http://www.web2py.com/ 
 
@@ -14,6 +17,15 @@ def ctrl_item(route, flag= False):
     #    item_nm = item_nm.replace(*r)
     return item_nm, flag, URL( _url + route )
 
+
+def ctrl_item_sign(route, flag= False):
+    item_nm = route
+    #for r in (("/", "_"), (".", "_")):
+    #    item_nm = item_nm.replace(*r)
+    return item_nm, flag, URL( _url + route, signer = url2_signer )
+
+
+
 def add_ctrl2nav(main_item, route):
     global l_menu 
     for e in l_menu:
@@ -23,13 +35,29 @@ def add_ctrl2nav(main_item, route):
            
 
 l_menu = [
-    ("Home", False, URL(_url), []),
+    # ("Home", False, URL(_url), []),
 
-    ( "Gs", False, "#", [
+    ( "g1", False, "#", [
             ctrl_item("g1/editable_table"),
             ctrl_item("g1/server_table"),
             ctrl_item("g1/ajax_table"),
             ctrl_item("g1/basic_table"),
+        ],
+    ),
+
+    ( "g2", False, "#", [
+            ctrl_item("g2/editable_table"),
+            ctrl_item("g2/server_table"),
+            ctrl_item("g2/ajax_table"),
+            #ctrl_item("g2/basic_table"),
+            ctrl_item_sign("g2/basic_table"),
+        ],
+    ),
+
+    ( "t1", False, "#", [
+            ctrl_item("t1/basic_table"),
+            ctrl_item("t1/ajax_table"),
+            ctrl_item("t1/server_table"),
         ],
     ),
 

@@ -1,0 +1,61 @@
+<html>
+  <head>
+    <title>Server-Driven Table</title>
+    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+    <style>
+      body {
+        font-family: Sans-Serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h3>Server-Driven Table + url_signer</h3>
+      <p>[[= data_url  ]]</p>
+      <hr>
+      <div id="table"></div>
+    </div>
+    <script>
+      const updateUrl = (prev, query) => {
+        return prev + (prev.indexOf('?') >= 0 ? '&' : '?') + new URLSearchParams(query).toString();
+      };
+
+      new gridjs.Grid({
+        columns: [[=XML( columns  ) ]],
+        server: {
+          url: '[[= data_url  ]]', 
+          then: results => results.data,
+          total: results => results.total,
+        },
+        search: {
+          enabled: true,
+          server: {
+            url: (prev, search) => {
+              return updateUrl(prev, {search});
+            },
+          },
+        },
+        sort: {
+          enabled: true,
+          multiColumn: true,
+          server: {
+            url: (prev, columns) => {
+              const columnIds =  [[=XML(columnIds) ]]; //  ['name', 'age', 'address', 'phone', 'email'];
+              const sort = columns.map(col => (col.direction === 1 ? '+' : '-') + columnIds[col.index]);
+              return updateUrl(prev, {sort});
+            },
+          },
+        },
+        pagination: {
+          enabled: true,
+          server: {
+            url: (prev, page, limit) => {
+              return updateUrl(prev, {start: page * limit, length: limit});
+            },
+          },
+        },
+      }).render(document.getElementById('table'));
+    </script>
+  </body>
+</html>

@@ -3,6 +3,7 @@ from py4web.utils.cors import CORS
 from py4web.utils.form import Form, FormStyleDefault
 from pydal.validators import IS_NOT_EMPTY
 from yatl.helpers import A, DIV
+from py4web.utils.url_signer import URLSigner
 from ..common import (
     db,
     session,
@@ -24,59 +25,78 @@ import json
 from functools import reduce
 
 
+url_signer = URLSigner(session, lifespan=3600) 
+url2_signer = URLSigner(lifespan=3600) 
+
+
 # https://blog.miguelgrinberg.com/post/beautiful-flask-tables-part-2
 
 # ------------------------------------------------------------------------------
 
-@action( "g1/basic_table",)
-@action.uses( "g1/basic_table.html", db, session, T,)
-def g1_basic_table():
+@action( "g2/basic_table",)
+@action.uses( "g2/basic_table.html", db, session, T,)
+@action.uses(url2_signer.verify())
+def g2_basic_table():
     tbl = "user_table"
-    return dict(users=db(db.user_table).select())
+
+    fields =  [f for f in db[tbl].fields ]
+    columns = [ {'id':f, 'name': db[tbl][f].label} for f in fields]
+    ftypes = [ {f : db[tbl][f].type} for f in fields if  db[tbl][f].type == 'string']
+    query = db[tbl]
+    data = [ u.as_dict() for u in db(query).select() ]
+    return dict(data=data,  columns= columns, )
 
 # ------------------------------------------------------------------------------
 
-@action( "g1/ajax_table",)
-@action.uses( "g1/ajax_table.html", db, session, T,)
-def g1_ajax_table():
-    return dict(data_url=URL("g1/api_ajax/data"))
-
-
-# curl http://localhost:8000/fgrid/g1/api_ajax/data -H "Accept: application/json"
-@action("g1/api_ajax/data")
-def g1_api_ajax_data():
+@action( "g2/ajax_table",)
+@action.uses( "g2/ajax_table.html", db, session, T, url_signer)
+def g2_ajax_table():
     tbl = "user_table"
-    #query = db.user_table
+    columns = [ {'id':f, 'name': db[tbl][f].label} for f in db[tbl].fields]
+    return dict(data_url=URL("g2/api_ajax/data", signer = url_signer), columns=columns,)
+
+
+@action("g2/api_ajax/data")
+@action.uses(url_signer, session)
+#@action.uses(url_signer.verify(), session)
+def g2_api_ajax_data():
+    tbl = "user_table"
     query = db[tbl]
     response.headers["Content-Type"] = "application/json"
-    return json.dumps({"data": [u.as_dict() for u in db(query).select()]})
+    return json.dumps({"data": [u.as_dict() for u in db(query).select()], })
 
 # ------------------------------------------------------------------------------
 
 
-@action( "g1/server_table",)
-@action.uses( "g1/server_table.html", db, session, T,)
-def g1_server_table():
-    return dict(data_url=URL("g1/api_server/data"))
+@action( "g2/server_table",)
+@action.uses( "g2/server_table.html", db, session, T, url_signer)
+def g2_server_table():
+    tbl = "user_table"
+    columns = [ {'id':f, 'name': db[tbl][f].label} for f in db[tbl].fields]
+    columnIds = [ f for f in db[tbl].fields ]
+    return dict(data_url=URL("g2/api_server/data", signer = url_signer ), columns=columns, columnIds=columnIds )
 
 
-@action("g1/api_server/data")
-def g1_api_server():
+@action("g2/api_server/data")
+@action.uses(session, url_signer)
+#@action.uses(url_signer.verify(), session, url_signer)
+def g2_api_server():
 
     tbl = "user_table"
 
-    # field_objects = [f for f in db.user_table]
-    # [db.user_table[fieldname] for fieldname in db.user_table.fields]
+    all_fields =  [f for f in db[tbl].fields ]
+    columns = [ {'id':f, 'name': db[tbl][f].label} for f in all_fields]
+    sfields = [ f  for f in all_fields if  db[tbl][f].type == 'string']
+    fields = sfields #['name','address','email','phone']
+    orderby = db[tbl].fields[0]
 
-    users = []
-    orderby = db.user_table.name 
-
-    query = db.user_table
+    query = db[tbl]
+    columnIds = [ f for f in db[tbl].fields ]
 
     # search filter
     search = request.GET.get("search")
     if search:
-        fields = ['name','address','email', 'phone']
+        #fields = ['name','address','email', 'phone']
         qt = [db.user_table[f].contains(search) for f in fields]
         query = reduce( lambda a,b: a| b, qt  )
 
@@ -86,8 +106,8 @@ def g1_api_server():
         order = []
         for s in sort.split(","):
             (direction, name) = (s[0], s[1:])
-            if name not in ["name", "age", "email", ]:
-                name = "name"
+            if name not in fields: # ["name", "age", "email", ]:
+                name = fields[0] #"name"
 
             orderby = db.user_table[name]
             if direction == "-":
@@ -118,26 +138,36 @@ def g1_api_server():
 # ------------------------------------------------------------------------------
 
 
-@action( "g1/editable_table",)
-@action.uses( "g1/editable_table.html", db, session, T,)
-def g1_editable_table():
-    return dict(data_url=URL("g1/api_editable/data"))
+@action( "g2/editable_table",)
+@action.uses( "g2/editable_table.html", db, session, T, url_signer)
+def g2_editable_table():
+    tbl = "user_table"
+    columns = [ {'id':f, 'name': db[tbl][f].label} for f in db[tbl].fields]
+    columnIds = [ f for f in db[tbl].fields ]
+    return dict(data_url=URL("g2/api_editable/data", signer=url_signer), columns=columns, columnIds=columnIds)
 
 
-@action("g1/api_editable/data")
-def g1_api_editable():
+@action("g2/api_editable/data")
+@action.uses( session, url_signer)
+#@action.uses(url_signer.verify(), session, url_signer)
+def g2_api_editable():
 
     tbl = "user_table"
 
-    users = []
-    orderby = db.user_table.name 
-    query = db.user_table
+    query = db[tbl]
+
+    all_fields =  [f for f in db[tbl].fields ]
+    columns = [ {'id':f, 'name': db[tbl][f].label} for f in all_fields]
+    sfields = [ f  for f in all_fields if  db[tbl][f].type == 'string']
+    fields = sfields #['name','address','email','phone']
+    orderby = db[tbl].fields[0]
+
+
 
     # search filter
     search = request.GET.get("search")
     if search:
-        fields = ['name','address','email','phone']
-        qt = [db.user_table[f].contains(search) for f in fields]
+        qt = [db[tbl][f].contains(search) for f in fields]
         query = reduce( lambda a,b: a| b, qt  )
 
     # sorting
@@ -147,8 +177,9 @@ def g1_api_editable():
         for s in sort.split(","):
             (direction, name) = (s[0], s[1:])
 
-            if name not in ["name", "age", "email", ]:
-                name = "name"
+            #if name not in ["name", "age", "email", ]:
+            if name not in fields:
+                name = fields[0] #"name"
 
             orderby = db.user_table[name]
             if direction == "-":
@@ -176,8 +207,10 @@ def g1_api_editable():
     )
 
 
-@action("g1/api_editable/data", method=["POST"])
-def g1_editable_update():
+@action("g2/api_editable/data", method=["POST"])
+@action.uses(session, url_signer)
+#@action.uses(url_signer.verify(), session, url_signer)
+def g2_editable_update():
 
     tbl = "user_table"
     if request.headers.get("Content-Type") != "application/json":

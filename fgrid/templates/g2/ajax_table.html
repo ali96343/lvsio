@@ -11,19 +11,14 @@
   </head>
   <body>
     <div>
-      <h3>Ajax Table</h3>
+      <h3>Ajax Table + url_signer</h3>
+     <p>[[= data_url  ]]</p>
       <hr>
       <div id="table"></div>
     </div>
     <script>
       new gridjs.Grid({
-        columns: [
-          { id: 'name', name: 'Name' },
-          { id: 'age', name: 'Age' },
-          { id: 'address', name: 'Address', sort: false },
-          { id: 'phone', name: 'Phone Number', sort: false },
-          { id: 'email', name: 'Email' },
-        ],
+        columns: [[= XML(columns)  ]], 
         server: {
           url: '[[= data_url  ]]',
           then: results => results.data,
