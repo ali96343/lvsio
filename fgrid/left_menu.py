@@ -2,6 +2,7 @@ from py4web import URL
 from .settings import APP_NAME
 from py4web.utils.url_signer import URLSigner
 from .g2 import url2_signer
+from .t1 import url_t_signer 
 
 
 # the navigation menu from http://www.web2py.com/ 
@@ -18,11 +19,11 @@ def ctrl_item(route, flag= False):
     return item_nm, flag, URL( _url + route )
 
 
-def ctrl_item_sign(route, flag= False):
+def ctrl_item_sign(route, x_sign, flag= False,):
     item_nm = route
     #for r in (("/", "_"), (".", "_")):
     #    item_nm = item_nm.replace(*r)
-    return item_nm, flag, URL( _url + route, signer = url2_signer )
+    return item_nm, flag, URL( _url + route, signer = x_sign )
 
 
 
@@ -50,7 +51,7 @@ l_menu = [
             ctrl_item("g2/server_table"),
             ctrl_item("g2/ajax_table"),
             #ctrl_item("g2/basic_table"),
-            ctrl_item_sign("g2/basic_table"),
+            ctrl_item_sign("g2/basic_table", url2_signer),
         ],
     ),
 

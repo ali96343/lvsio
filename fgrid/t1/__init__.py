@@ -26,7 +26,7 @@ from functools import reduce
 
 from py4web.utils.url_signer import URLSigner
 url_signer = URLSigner(session, lifespan=3600)
-url2_signer = URLSigner(lifespan=3600)
+url_t_signer = URLSigner(lifespan=3600)
 
 
 
