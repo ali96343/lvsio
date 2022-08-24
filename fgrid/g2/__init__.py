@@ -57,8 +57,8 @@ def g2_ajax_table():
 
 
 @action("g2/api_ajax/data")
+@action.uses(url_signer.verify())
 @action.uses(url_signer, session)
-#@action.uses(url_signer.verify(), session)
 def g2_api_ajax_data():
     tbl = "user_table"
     query = db[tbl]
@@ -78,8 +78,8 @@ def g2_server_table():
 
 
 @action("g2/api_server/data")
+@action.uses(url_signer.verify(), )
 @action.uses(session, url_signer)
-#@action.uses(url_signer.verify(), session, url_signer)
 def g2_api_server():
 
     tbl = "user_table"
@@ -148,8 +148,8 @@ def g2_editable_table():
 
 
 @action("g2/api_editable/data")
+@action.uses(url_signer.verify(), )
 @action.uses( session, url_signer)
-#@action.uses(url_signer.verify(), session, url_signer)
 def g2_api_editable():
 
     tbl = "user_table"
@@ -208,8 +208,8 @@ def g2_api_editable():
 
 
 @action("g2/api_editable/data", method=["POST"])
+@action.uses(url_signer.verify())
 @action.uses(session, url_signer)
-#@action.uses(url_signer.verify(), session, url_signer)
 def g2_editable_update():
 
     tbl = "user_table"

@@ -24,6 +24,12 @@ import json
 from functools import reduce
 
 
+from py4web.utils.url_signer import URLSigner
+url_signer = URLSigner(session, lifespan=3600)
+url2_signer = URLSigner(lifespan=3600)
+
+
+
 # https://stackoverflow.com/questions/67166839/how-to-show-a-table-with-tabulator-using-flask-and-a-json-variable 
 # https://webdevkin.ru/posts/frontend/tabulator
 # https://webdevkin.ru/examples/tabulator/
@@ -46,12 +52,13 @@ def t1_basic_table():
 # ------------------------------------------------------------------------------
 #
 @action( "t1/ajax_table",)
-@action.uses( "t1/ajax_table.html", db, session, T,)
+@action.uses( "t1/ajax_table.html", db, session, T, url_signer)
 def t1_ajax_table():
-    return dict(data_url=URL("t1/api_ajax/data"))
+    return dict(data_url=URL("t1/api_ajax/data", signer= url_signer))
 #
 #
 @action("t1/api_ajax/data")
+@action.uses(url_signer.verify())
 def t1_api_ajax_data():
     tbl = "user_table"
     query = db[tbl]
@@ -62,12 +69,13 @@ def t1_api_ajax_data():
 # ------------------------------------------------------------------------------
 #
 @action( "t1/server_table",)
-@action.uses( "t1/server_table.html", db, session, T,)
+@action.uses( "t1/server_table.html", db,url_signer, session, T,)
 def t1_server_table():
     tbl = "user_table"
     all_fields =  [f for f in db[tbl].fields ]
 
     columns = [ (f, db[tbl][f].label) for f in all_fields]
+    columns.append(columns.pop(0))
     #columns.insert(0, ( '', '') )
     opts = [OPTION(k, _value=k) for k,v in columns]
     #opts = [OPTION(k, _value=v) for k,v in columns]
@@ -77,14 +85,16 @@ def t1_server_table():
     opts_oper = [OPTION(k, _value=v) for k,v in oper]
     attr_oper = dict( _id = "filter-type" )
 
-    return dict(data_url=URL("t1/api_server/data"), 
+    return dict(data_url=URL("t1/api_server/data", signer=url_signer), 
                 sel=SELECT(*opts, **attr ), 
                 sel_oper = SELECT(*opts_oper, **attr_oper ),
            )
 #
 #
 @action("t1/api_server/data")
+@action.uses(url_signer.verify())
 def t1_api_server_data():
+
     tbl = "user_table"
     query = db[tbl]
     orderby = db[tbl].id 
@@ -109,13 +119,24 @@ def t1_api_server_data():
         print (oper)
         if oper in [ '=', '<', '<=', '>', '>=', '!=', ]:
              if oper == '=':
-                oper = '=='
-             query = eval ( 'db[tbl][fld]' + oper +  'val' )
+                query = db[tbl][fld] == val 
+             elif oper == '>':
+                query = db[tbl][fld] > val 
+             elif oper == '>=':
+                query = db[tbl][fld] >= val 
+             elif oper == '<':
+                query = db[tbl][fld] < val 
+             elif oper == '<=':
+                query = db[tbl][fld] <= val 
+             elif oper == '!=':
+                query = db[tbl][fld] != val 
+
+             #query = eval ( 'db[tbl][fld]' + oper +  'val' )
+
         elif oper in [ 'like', ]:
              if db[tbl][fld].type == 'string':
-                 print ('ok')
+                 #print ('ok')
                  query = db[tbl][fld].contains( val ) 
-                
     # sort
     if 'sort[0][field]' in rdict:
         fld = rdict['sort[0][field]']

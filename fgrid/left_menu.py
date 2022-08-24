@@ -55,9 +55,9 @@ l_menu = [
     ),
 
     ( "t1", False, "#", [
-            ctrl_item("t1/basic_table"),
-            ctrl_item("t1/ajax_table"),
             ctrl_item("t1/server_table"),
+            ctrl_item("t1/ajax_table"),
+            ctrl_item("t1/basic_table"),
         ],
     ),
 
