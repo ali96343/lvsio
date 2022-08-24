@@ -1,0 +1,8 @@
+  ---------------------------- work_dir: /home/w3p/set7-py39/py4web/apps/fgrid/templates/g2 --------------
+
+ find: g1
+ replace: g2
+
+ extensions_tuple: ('.md', '.un', '.js', '.jsx', '.py', '.html', '.css', '.ts', '.tsx', '.sh', '.vue', '.scss', '.json')
+ view_only: False
+ found_in_files: 0
