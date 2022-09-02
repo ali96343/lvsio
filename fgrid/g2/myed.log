@@ -1,0 +1,123 @@
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -30:    @action( "g1/basic_table",)
+     +30:    @action( "g2/basic_table",)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -31:    @action.uses( "g1/basic_table.html", db, session, T,)
+     +31:    @action.uses( "g2/basic_table.html", db, session, T,)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -32:    def g1_basic_table():
+     +32:    def g2_basic_table():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -38:    @action( "g1/ajax_table",)
+     +38:    @action( "g2/ajax_table",)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -39:    @action.uses( "g1/ajax_table.html", db, session, T,)
+     +39:    @action.uses( "g2/ajax_table.html", db, session, T,)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -40:    def g1_ajax_table():
+     +40:    def g2_ajax_table():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -41:    return dict(data_url=URL("g1/api_ajax/data"))
+     +41:    return dict(data_url=URL("g2/api_ajax/data"))
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -44:    @action("g1/api_ajax/data")
+     +44:    @action("g2/api_ajax/data")
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -45:    def g1_api_ajax_data():
+     +45:    def g2_api_ajax_data():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -55:    @action( "g1/server_table",)
+     +55:    @action( "g2/server_table",)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -56:    @action.uses( "g1/server_table.html", db, session, T,)
+     +56:    @action.uses( "g2/server_table.html", db, session, T,)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -57:    def g1_server_table():
+     +57:    def g2_server_table():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -58:    return dict(data_url=URL("g1/api_server/data"))
+     +58:    return dict(data_url=URL("g2/api_server/data"))
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -61:    @action("g1/api_server/data")
+     +61:    @action("g2/api_server/data")
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -62:    def g1_api_server():
+     +62:    def g2_api_server():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -119:    @action( "g1/editable_table",)
+     +119:    @action( "g2/editable_table",)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -120:    @action.uses( "g1/editable_table.html", db, session, T,)
+     +120:    @action.uses( "g2/editable_table.html", db, session, T,)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -121:    def g1_editable_table():
+     +121:    def g2_editable_table():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -122:    return dict(data_url=URL("g1/api_editable/data"))
+     +122:    return dict(data_url=URL("g2/api_editable/data"))
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -125:    @action("g1/api_editable/data")
+     +125:    @action("g2/api_editable/data")
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -126:    def g1_api_editable():
+     +126:    def g2_api_editable():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -177:    @action("g1/api_editable/data", method=["POST"])
+     +177:    @action("g2/api_editable/data", method=["POST"])
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=26
+     -178:    def g1_editable_update():
+     +178:    def g2_editable_update():
+
+  ---------------------------- work_dir: /home/w3p/set7-py39/py4web/apps/fgrid/g2 --------------
+
+ find: g1
+ replace: g2
+
+ extensions_tuple: ('.md', '.un', '.js', '.jsx', '.py', '.html', '.css', '.ts', '.tsx', '.sh', '.vue', '.scss', '.json')
+ view_only: False
+ found_in_files: 23

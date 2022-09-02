@@ -1,0 +1,83 @@
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -48:    @action( "t1/basic_table",)
+     +48:    @action( "t2/basic_table",)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -49:    @action.uses( "t1/basic_table.html", db, session, T,)
+     +49:    @action.uses( "t2/basic_table.html", db, session, T,)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -50:    def t1_basic_table():
+     +50:    def t2_basic_table():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -58:    @action( "t1/ajax_table",)
+     +58:    @action( "t2/ajax_table",)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -59:    @action.uses( "t1/ajax_table.html", db, session, T, url_signer)
+     +59:    @action.uses( "t2/ajax_table.html", db, session, T, url_signer)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -60:    def t1_ajax_table():
+     +60:    def t2_ajax_table():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -61:    return dict(data_url=URL("t1/api_ajax/data", signer= url_signer))
+     +61:    return dict(data_url=URL("t2/api_ajax/data", signer= url_signer))
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -64:    @action("t1/api_ajax/data")
+     +64:    @action("t2/api_ajax/data")
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -66:    def t1_api_ajax_data():
+     +66:    def t2_api_ajax_data():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -75:    @action( "t1/server_table",)
+     +75:    @action( "t2/server_table",)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -76:    @action.uses( "t1/server_table.html", db,url_signer, session, T,)
+     +76:    @action.uses( "t2/server_table.html", db,url_signer, session, T,)
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -77:    def t1_server_table():
+     +77:    def t2_server_table():
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -92:    return dict(data_url=URL("t1/api_server/data", signer=url_signer), 
+     +92:    return dict(data_url=URL("t2/api_server/data", signer=url_signer), 
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -98:    @action("t1/api_server/data")
+     +98:    @action("t2/api_server/data")
+
+/home/w3p/set7-py39/py4web/apps/fgrid/t2/__init__.py
+    strlen=31
+     -100:    def t1_api_server_data():
+     +100:    def t2_api_server_data():
+
+  ---------------------------- work_dir: /home/w3p/set7-py39/py4web/apps/fgrid/t2 --------------
+
+ find: t1
+ replace: t2
+
+ extensions_tuple: ('.md', '.un', '.js', '.jsx', '.py', '.html', '.css', '.ts', '.tsx', '.sh', '.vue', '.scss', '.json')
+ view_only: False
+ found_in_files: 15

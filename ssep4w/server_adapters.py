@@ -178,7 +178,7 @@ def wsgirefThreadingServer():
     
         def write(self, buf):
            for line in buf.rstrip().splitlines():
-              self.logger.log(self.level, line.rstrip())
+              self.logger.log(self.level, 'OUTPUT:' +  line.rstrip())
     
         def flush(self):
             pass
@@ -201,7 +201,7 @@ def wsgirefThreadingServer():
                 # sys.stdout.write = self.log.info
                 # print('Test to standard out')
                 # raise Exception('Test to standard error' )
-                # sys.stdout = ToLog(self.log, logging.INFO)
+                sys.stdout = ToLog(self.log, logging.INFO)
                 sys.stderr = ToLog(self.log, logging.ERROR)
 
             self_run = self  # used in inner classes to access options and logger
@@ -261,7 +261,7 @@ def wsgirefThreadingServer():
                             keyfile=self_run.options.get("keyfile", None),
                             host=self.listen,
                             port=self.port,
-                            logger=self_run.log,
+                            # logger=self_run.log,
                         )
 
                     self.server.serve_forever()

@@ -1,7 +1,7 @@
 ## lvsio - py4web apps
 ---------------------------------------------
 
-fgrid - grid.js and tabulator.js in py4web app
+fgrid - grid.js and tabulator.js
 
 based on https://blog.miguelgrinberg.com/post/beautiful-flask-tables-part-2
 

@@ -8,16 +8,9 @@ from .models import db
 
 # by importing controllers you expose the actions defined in it
 from . import controllers
-
-# grid.js
-from . import g2 
-from . import g1
-
-# tabulator.js
-from . import t1
-from . import t2
+from . import adm1
 
 # optional parameters
-__version__ = "0.0.1"
-__author__ = "Alex Bsk <ab96343@gmail.com>"
+__version__ = "0.0.0"
+__author__ = "you <you@example.com>"
 __license__ = "anything you want"

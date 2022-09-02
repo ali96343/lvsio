@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Basic Table</title>
+  </head>
+  <body>
+  <div class="wrapper">
+      <header class="header">
+        <div class="header_logo">Movie</div>
+        <div class="header_actions">
+          <form onsubmit="handle_form(event)" id="header_form">
+            <div class="header_form-icon">
+            <input type="search" class="header_form-input" placeholder="Search, Press Enter to Submit" />
+            <svg class="icon" width="22px" height="22px"><use href="#icon-search" /></svg>
+          </div>
+          </form>
+          <img id="img_icon" width="32px" height="32px" src="" alt="" >
+        </div>
+      </header>
+      <main id="main">
+        <section>
+          <article class="movie">
+            <div class="movie_img">
+              <img id="img_src" src="" alt="" srcset="">
+            </div>
+            <div class="movie_info">
+              <header><h1 class="movie_title"></h1></header>
+              <div class="movie_desc"></div>
+              <div class="movie_details">
+                <h2>Details</h2>
+                <ul class="flex">
+                  <li>Premiered: <span id="movie_date"></span></li>
+                  <li>Rating: <span id="movie_rating"></span></li>
+                  <li>Runtime: <span id="movie_runtime"></span></li>
+                  <li>Status: <span id="movie_status"></span></li>
+                </ul>
+              </div>
+              <a href="" class="btn" target="_blank" rel="noopener noreferrer">
+            <svg class="icon" width="16px" height="16px"><use href="#icon-play" /></svg>
+                Watch Movie</a>
+            </div>
+          </article>
+          <div class="episodes_list">
+            <h3 class="episodes_title"></h3>
+          <ol class="episodes" id="episodes"></ol>
+        </div>
+        </section>
+      </main>
+    </div>
+
+
+
+  </body>
+</html>

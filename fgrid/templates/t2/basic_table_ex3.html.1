@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabulator Example</title>
+
+
+<!-- jQuery v1.9.1 -->
+  <script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+  <!-- jQuery UI v1.9.1 -->
+  <link href="https://code.jquery.com/ui/1.9.1/themes/smoothness/jquery-ui.css" rel="stylesheet" />
+  <script src="https://code.jquery.com/ui/1.9.1/jquery-ui.min.js"></script>
+  <!-- jQuery Sparklines v2.1.2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-sparklines/2.1.2/jquery.sparkline.min.js"></script>
+  <!-- Tabulator v3.4.0 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.4.0/css/tabulator.min.css" rel="stylesheet" />
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.4.0/js/tabulator.min.js"></script>
+
+
+
+</head>
+
+<body>
+
+<div id="example"></div>
+  <script>
+    var lineFormatter = function( cell, formatterParams )
+    {
+        setTimeout(function(){
+            // 自訂圖表欄位模式，透過 jQuery Sparklines 產生圖表
+            cell.getElement().sparkline(cell.getValue(), {width:"100%", type:"line", disableTooltips:true});
+        }, 10);
+    };
+    $( "#example" ).tabulator({
+        // 參數設定[註1]
+        height: "auto", // 表格高度
+        layout: "fitColumns", // 表格風格
+        tooltips: true, // 顯示欄位提示訊息
+        addRowPos: "top", // 新增欄位位置
+        history: true, // 歷史紀錄
+        pagination: "local", // 顯示分頁
+        paginationSize: 7, // 分頁數量
+        resizableRows: true, // 可縮放欄位
+        columns:[
+            //資料格式設定
+            {   title: "Name", // 標題名稱
+                field: "name", // 欄位名稱
+                width: 150 // 欄位寬度
+            },
+            { 
+                title: "Age",
+                field: "age",
+                align: "left",// 靠齊方向
+                formatter: "progress" // 欄位模式(列表[註2])
+            },
+            { 
+                title: "Activity",
+                field: "activity",
+                width: 160, 
+                formatter: lineFormatter,
+                headerSort: false
+            },
+            { 
+                title: "Rating",
+                field: "rating",
+                formatter: "star", 
+                align: "center", 
+                width: 100,
+                editor: true // 可編輯
+            }
+        ],
+        rowClick:function( e, row )
+        {
+            // 當欄位被點選時，則執行此函式
+            alert( "ID: " + row.getData().id + "" );
+        }
+    });
+    var tabledata = [
+        // 表格內容
+        {id:1, name:"Tom", age:"25", activity: [ 3,4,2 ], rating: 5 },
+        {id:2, name:"Mike", age:"30", activity: [ 3,1,2 ], rating: 4 },
+        {id:3, name:"Jack", age:"20", activity: [ 3,2,1 ], rating: 3 },
+        {id:4, name:"Bob", age:"15", activity: [ 1,2,3 ], rating: 2 }
+    ];
+
+    $( "#example" ).tabulator( "setData", tabledata );
+
+</script>
+
+
+
+</body>
+
+</html>
+
+

@@ -25,8 +25,8 @@ import json
 from functools import reduce
 
 
-url_signer = URLSigner(session, lifespan=3600) 
-url2_signer = URLSigner(lifespan=3600) 
+url_signer = URLSigner(session, lifespan=3600, signing_info=lambda: str("user=xxxxxxxxxxxx")   ) 
+url2_signer = URLSigner(lifespan=3600,  signing_info=lambda: str("user=yyyyyyyyyyyyyy")  ) 
 
 
 # https://blog.miguelgrinberg.com/post/beautiful-flask-tables-part-2
@@ -37,6 +37,13 @@ url2_signer = URLSigner(lifespan=3600)
 @action.uses( "g2/basic_table.html", db, session, T,)
 @action.uses(url2_signer.verify())
 def g2_basic_table():
+
+    #headers_string = ['{}: {}'.format(h, request.headers.get(h)) for h in request.headers.keys()] 
+    #print('URL={}, method={}\nheaders:\n{}'.format(request.url, request.method, '\n'.join(headers_string)))
+
+    print ( request.url )
+    my_url = request.url
+
     tbl = "user_table"
 
     fields =  [f for f in db[tbl].fields ]
@@ -44,7 +51,7 @@ def g2_basic_table():
     ftypes = [ {f : db[tbl][f].type} for f in fields if  db[tbl][f].type == 'string']
     query = db[tbl]
     data = [ u.as_dict() for u in db(query).select() ]
-    return dict(data=data,  columns= columns, )
+    return dict(data=data,  columns= columns, my_url=my_url )
 
 # ------------------------------------------------------------------------------
 

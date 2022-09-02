@@ -25,8 +25,9 @@ from functools import reduce
 
 
 from py4web.utils.url_signer import URLSigner
-url_signer = URLSigner(session, lifespan=3600)
-url_t_signer = URLSigner(lifespan=3600)
+url_signer = URLSigner(session, lifespan=3600, signing_info=lambda: str("user=xxxxxxxxxxxx")   )
+url_t_signer = URLSigner(lifespan=3600,  signing_info=lambda: str("user=yyyyyyyyyyyyyy")  )
+
 
 
 
@@ -36,6 +37,10 @@ url_t_signer = URLSigner(lifespan=3600)
 # https://javascript.tutorialink.com/tabulator-processing-ajax-data-before-load/
 # https://www.tmssoftware.com/site/blog.asp?post=948
 # https://coldfusion.adobe.com/2019/11/using-coldfusion-tabulator-wordpress-unison/
+# https://www.c-sharpcorner.com/article/display-data-in-tabulator-js-table-from-c-sharp/
+# https://www.enjoysharepoint.com/tabulator-js-tutorial/
+# https://kvision.gitbook.io/kvision-guide/v/kvision-1.x/part-2-advanced-features/tabulator-tables
+# https://github.com/dreamfactorysoftware/dreamfactory-tabulator/blob/master/index.html
 
 
 
@@ -94,6 +99,14 @@ def t1_server_table():
 @action("t1/api_server/data")
 @action.uses(url_signer.verify())
 def t1_api_server_data():
+
+# https://stackoverflow.com/questions/1740726/turn-string-into-operator
+#import operator
+#ops = { "+": operator.add, "-": operator.sub } # etc.
+
+#print(ops["+"](1,1)) # prints 2 
+
+
 
     tbl = "user_table"
     query = db[tbl]

@@ -1,6 +1,7 @@
 from py4web import URL
 from .settings import APP_NAME
 from py4web.utils.url_signer import URLSigner
+
 from .g2 import url2_signer
 from .t1 import url_t_signer 
 
@@ -61,6 +62,17 @@ l_menu = [
             ctrl_item("t1/basic_table"),
         ],
     ),
+
+    ( "t2", False, "#", [
+            ctrl_item("t2/basic_table_ex3"),
+            ctrl_item("t2/basic_table_ex2"),
+            ctrl_item("t2/basic_table_ex1"),
+            ctrl_item("t2/basic_table"),
+        ],
+    ),
+
+
+
 
     ( "Grps", False, "#", [
             ctrl_item('db_tables'),

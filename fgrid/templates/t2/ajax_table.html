@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+      <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css" rel="stylesheet">
+      <script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
+    </head>
+
+    <body>
+        [[ = data_url ]]
+        <div id="example-table"></div>
+
+    <script>
+
+       const table = new Tabulator("#example-table", {
+         ajaxURL: "[[ = data_url ]]",
+         autoColumns: true ,
+         layout:"fitColumns",
+pagination: "local",
+  paginationSize: 15,
+       });
+
+// setTimeout(() => {
+  // simulate async data loaded
+//  table.setData()
+// }, 5000) ;
+
+//custom filter function
+function matchAny(data, filterParams){
+    //data - the data for the row being filtered
+    //filterParams - params object passed to the filter
+
+    var match = false;
+
+    for(var key in data){
+        if(data[key] == filterParams.value){
+            match = true;
+        }
+    }
+
+    return match;
+}
+
+//set filter to custom function
+// table.setFilter(matchAny, {value:5});
+
+
+
+    </script>
+    </body>
+</html>
+

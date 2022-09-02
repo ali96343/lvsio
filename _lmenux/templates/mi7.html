@@ -1,0 +1,54 @@
+[[extend 'layout.html']]
+
+[[block page_head]]
+
+<style>
+
+/* Table structure with ul and li (responsive) */
+/* https://codepen.io/kelbon/pen/QOdZdB */
+
+.as-talk-details li {
+    border-bottom:0.5px solid rgba(0,0,0,0.1);
+    list-style:none;
+    padding:5px;
+    margin-right:-5px;
+    width:32%;
+    display:inline-block;
+    text-align: left;
+}
+
+.as-talk-details ul {
+    margin-top: 30px;
+}
+
+.as-talk-details li:nth-child(3n+2) {
+        font-weight: bold;
+    }
+
+@media only screen and (max-width: 767px) {
+    
+    .as-talk-details li {
+        border-bottom:0.5px solid rgba(0,0,0,0.05);
+        list-style:disc;
+        padding:8px;
+        margin-right:0;
+        width:100%;
+        text-align: left;
+    }
+    
+    .as-talk-details li:nth-child(3n) {
+        border-bottom:0.5px solid rgba(0,0,0,0.5);
+    }
+    
+}
+</style>
+[[end ]]
+
+
+<div class="section">
+  <div class="vars">
+      [[=message]]
+  </div>
+  [[=XML(u_menu) ]]
+</div>
+
