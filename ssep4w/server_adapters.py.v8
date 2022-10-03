@@ -71,7 +71,7 @@ def geventWebSocketServer():
 
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
-    import socket, ssl, datetime, sys, os, pprint
+    import socket, ssl, datetime, sys, os
     from concurrent.futures import ThreadPoolExecutor  # pip install futures
     from socketserver import ThreadingMixIn
     from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
@@ -132,7 +132,7 @@ def wsgirefThreadingServer():
                     f'{self.ip} - - [{dt}] -> "{go_to.decode()}" {method.decode()}'
                 )
 
-    class Is_Https:
+    class HttpProxy:
         # https://stackoverflow.com/questions/13325642/python-magic-smart-dual-mode-ssl-socket
         __slots__ = ( 'sock', 'certfile', 'keyfile', 'allow_http', 'host', 'port', 'logger', 'fileno')
         def __init__( self, socket, certfile, keyfile, allow_http=False, host="127.0.0.1", port=8000, logger=None,):
@@ -178,35 +178,19 @@ def wsgirefThreadingServer():
     
         def write(self, buf):
            for line in buf.rstrip().splitlines():
-              self.logger.log(self.level, 'STD:' +  line.rstrip())
+              self.logger.log(self.level, 'OUTPUT:' +  line.rstrip())
     
         def flush(self):
             pass
-
-
-    def log_routes(adict, fname = 'routes.txt'):
-         rl = list( adict.keys()  )
-         rl.sort()
-         try:
-             with open(fname, 'w') as f:
-                for k  in rl:
-                   if k and( not k.startswith('_')) :
-                      #k=k.replace('\r','')
-                      f.write (k + '\n')
-         except OSError as ex:
-             sys.exit(ex)
     
     class WSGIRefThreadingServer(ServerAdapter):
         def run(self, app):
-
-            log_routes(app.routes)
 
             if not self.quiet:
                 logging.basicConfig(
                     filename="wsgiref.log",
                     format="%(threadName)s | %(message)s",
-                    filemode="w",
-                    # filemode="a",
+                    filemode="a",
                     encoding="utf-8",
                     level=logging.DEBUG,
                 )
@@ -271,7 +255,7 @@ def wsgirefThreadingServer():
                     certfile = self_run.options.get("certfile", None)
 
                     if certfile:
-                        self.server.socket = Is_Https(
+                        self.server.socket = HttpProxy(
                             socket=self.server.socket,
                             certfile=certfile,
                             keyfile=self_run.options.get("keyfile", None),
@@ -290,6 +274,10 @@ def wsgirefThreadingServer():
                     if not self_run.quiet:
                         return WSGIRequestHandler.log_request(*args, **kw)
 
+            class LogHandler(WSGIRequestHandler):
+                def address_string(self):  # Prevent reverse DNS lookups please.
+                    return self.client_address[0]
+
                 def log_message(self, format, *args):
                     if not self_run.quiet:  # and ( not args[1] in ['200','304']):
                         msg = "%s - - [%s] %s" % (
@@ -300,7 +288,8 @@ def wsgirefThreadingServer():
                         self_run.log.info(msg)
                         # sys.stderr.write(msg)
 
-            handler_cls = self.options.get("handler_class", FixedHandler)
+            handler_cls = self.options.get("handler_class", LogHandler)
+            # handler_cls = self.options.get("handler_class", FixedHandler)
             server_cls = Server
 
             if ":" in self.host:  # Fix wsgiref for IPv6 addresses.
