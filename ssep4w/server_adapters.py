@@ -69,6 +69,22 @@ def geventWebSocketServer():
     return GeventWebSocketServer
 
 
+def log_routes(apps_routes, log_file = 'routes-wsgi.txt'):
+    from collections import OrderedDict
+    od = OrderedDict(sorted(apps_routes.items()))
+
+    try:
+       with open(log_file, 'w') as f:
+           for k, v in od.items():
+               if '\r' in k:
+                   f.write (v.rule + '\n')
+               else:
+                   f.write ('/' + k + '\n')
+    except OSError as ex:
+       sys.exit(ex)
+
+
+
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
     import socket, ssl, datetime, sys, os, pprint
@@ -183,19 +199,6 @@ def wsgirefThreadingServer():
         def flush(self):
             pass
 
-
-    def log_routes(adict, fname = 'routes.txt'):
-         rl = list( adict.keys()  )
-         rl.sort()
-         try:
-             with open(fname, 'w') as f:
-                for k  in rl:
-                   if k and( not k.startswith('_')) :
-                      #k=k.replace('\r','')
-                      f.write (k + '\n')
-         except OSError as ex:
-             sys.exit(ex)
-    
     class WSGIRefThreadingServer(ServerAdapter):
         def run(self, app):
 
