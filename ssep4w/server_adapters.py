@@ -72,18 +72,13 @@ def geventWebSocketServer():
 def log_routes(apps_routes, log_file = 'routes-wsgi.txt'):
     from collections import OrderedDict
     od = OrderedDict(sorted(apps_routes.items()))
-
     try:
-       with open(log_file, 'w') as f:
+        with open(log_file, 'w') as f:
            for k, v in od.items():
-               if '\r' in k:
-                   f.write (v.rule + '\n')
-               else:
-                   f.write ('/' + k + '\n')
+               out = v.rule if '\r' in k else '/' + k
+               f.write ( out + '\n')
     except OSError as ex:
-       sys.exit(ex)
-
-
+        sys.exit(ex)
 
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
