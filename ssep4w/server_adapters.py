@@ -1,4 +1,4 @@
-import logging, os
+import logging, os, sys
 
 from ombott.server_adapters import ServerAdapter
 
@@ -83,7 +83,7 @@ def log_routes(apps_routes, log_file = 'routes-wsgi.txt'):
 
 def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
-    import socket, ssl, datetime, sys, os, pprint
+    import socket, ssl, datetime
     from concurrent.futures import ThreadPoolExecutor  # pip install futures
     from socketserver import ThreadingMixIn
     from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
