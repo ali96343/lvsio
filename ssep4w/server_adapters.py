@@ -1,4 +1,4 @@
-import logging
+import logging, os
 
 from ombott.server_adapters import ServerAdapter
 
@@ -71,9 +71,12 @@ def geventWebSocketServer():
 
 def log_routes(apps_routes, log_file = 'routes-wsgi.txt'):
     try:
+        if os.path.isfile(log_file):
+             return 
         with open(log_file, 'w') as f:
-            f.write( '\n'.join([ v.rule if '\r' in k else ( '/' + k)  
+            f.write( '\n'.join([ v.rule if '\r' in k else ('/' + k )  
                         for k, v in sorted(apps_routes.items()) ]) )
+        print (f'wrote {log_file}')
     except OSError as ex:
         sys.exit(ex)
 
