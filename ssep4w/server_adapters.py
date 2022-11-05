@@ -198,8 +198,8 @@ def wsgirefThreadingServer():
     class WSGIRefThreadingServer(ServerAdapter):
         def run(self, app):
 
+            log_routes(app.routes)
             if not self.quiet:
-                log_routes(app.routes)
                 logging.basicConfig(
                     filename="wsgiref.log",
                     format="%(threadName)s | %(message)s",
@@ -254,7 +254,7 @@ def wsgirefThreadingServer():
                             self.handler_cls,
                         )
                     except OSError as ex:
-                        os.system( f"[[  $(command -v fuser) ]] && fuser {self.port}/tcp" )
+                        os.system( f"[[  $(command -v fuser) ]] && fuser -v  {self.port}/tcp" )
                         sys.exit(ex)
 
                     # openssl req  -newkey rsa:4096 -new -x509 -keyout server.pem -out server.pem -days 365 -nodes
@@ -343,6 +343,7 @@ def rocketServer():
     return RocketServer
 
 
+#  ./py4web.py run apps -s waitressPyruvate  --watch=off
 
 def waitressPyruvate():
 
