@@ -23,6 +23,33 @@ try:
 except ImportError:
     l_menu = []
 
+# https://blog.miguelgrinberg.com/post/beautiful-interactive-tables-for-your-flask-templates
+# https://github.com/epykure/epyk-studio
+# https://github.com/epykure/epyk-ui
+# https://github.com/epykure/tabulator-extensions
+#  https://stackoverflow.com/questions/67166839/how-to-show-a-table-with-tabulator-using-flask-and-a-json-variable
+# https://webdevkin.ru/posts/frontend/tabulator
+# https://github.com/olifolkerd/tabulator
+# utc_dt=datetime.datetime.utcnow()
+# https://www.digitalocean.com/community/tutorials/how-to-use-templates-in-a-flask-application
+# https://tutorialmeta.com/question/generate-html-elements-automatically-with-python-flask
+# https://github.com/playerla/flask-socketio-lit-html
+# https://www.sitepoint.com/dynamic-tables-json/
+# https://getstream.io/blog/series-building-a-social-network-with-flask-stream-part-1/
+
+# https://medium.com/spatial-data-science/styling-pandas-dataframe-elegantly-with-tabulator-c66f33b1905f
+# https://github.com/pyviz-topics/examples
+# https://github.com/holoviz/panel
+# https://towardsdatascience.com/flask-and-chart-js-tutorial-i-d33e05fba845
+
+# https://stackoverflow.com/questions/61495898/tabulator-put-via-ajax-to-django-rest-endpoint-reduces-table-to-last-edited-re
+# https://www.pythonfixing.com/2021/10/fixed-how-to-show-table-with-tabulator.html
+# https://www.anycodings.com/1questions/3192142/tabulator-put-via-ajax-to-django-rest-endpoint-reduces-table-to-last-edited-record
+# https://www.sitepoint.com/dynamic-tables-json/
+
+# https://www.javascripttutorial.net/javascript-array-foreach/
+
+
 
 @action("index")
 @action.uses("index.html", auth, T)

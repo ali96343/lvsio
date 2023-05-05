@@ -82,10 +82,12 @@ def g1_api_server():
 
     # sorting
     sort = request.GET.get("sort")
-    if sort:
+    #if sort and (not any(e is True  for e in sort) ):
+    if sort :
         order = []
-        for s in sort.split(","):
-            (direction, name) = (s[0], s[1:])
+        for s in sort:
+          if s:
+            direction, name = s[0], s[1:]
             if name not in ["name", "age", "email", ]:
                 name = "name"
 
@@ -95,8 +97,8 @@ def g1_api_server():
 
     # pagination
     (start, length) = (
-        int(request.GET.get("start", default=-1)),
-        int(request.GET.get("length", default=-1)),
+        int(request.GET.get("start", -1)),
+        int(request.GET.get("length", -1)),
     )
 
     users = (
@@ -144,25 +146,29 @@ def g1_api_editable():
     sort = request.GET.get("sort")
     if sort:
         order = []
-        for s in sort.split(","):
-            (direction, name) = (s[0], s[1:])
+        for s in sort:
+           if s:
+              direction, name = s[0], s[1:]
 
-            if name not in ["name", "age", "email", ]:
-                name = "name"
+              if name not in ["name", "age", "email", ]:
+                  name = "name"
 
-            orderby = db.user_table[name]
-            if direction == "-":
-                 orderby = ~orderby
+              orderby = db.user_table[name]
+              if direction == "-":
+                  orderby = ~orderby
 
     # pagination
-    (start, length) = (
-        int(request.GET.get("start", default=-1)),
-        int(request.GET.get("length", default=-1)),
-    )
+    try:
+        (start, length) = (
+            int(request.GET.get("start")),
+            int(request.GET.get("length")),
+        )
+    except ValueError:
+       start, length = None, None
 
     users = (
         db(query).select(limitby=(start, start + length), orderby=orderby)
-        if all([start != -1, length != -1])
+        if all([start , length ])
         else db(query).select(orderby=orderby)
     )
 

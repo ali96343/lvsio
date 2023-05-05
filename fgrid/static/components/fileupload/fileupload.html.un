@@ -1,0 +1,5 @@
+<html>
+ <body>
+  <input class="file" id="file_input" type="file" v-on:change="upload_file($event)"/>
+ </body>
+</html>

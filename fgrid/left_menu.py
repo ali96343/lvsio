@@ -2,7 +2,7 @@ from py4web import URL
 from .settings import APP_NAME
 from py4web.utils.url_signer import URLSigner
 
-from .g2 import url2_signer
+from .g2 import url_signer_no_session
 from .t1 import url_t_signer 
 
 
@@ -52,7 +52,7 @@ l_menu = [
             ctrl_item("g2/server_table"),
             ctrl_item("g2/ajax_table"),
             #ctrl_item("g2/basic_table"),
-            ctrl_item_sign("g2/basic_table", url2_signer),
+            ctrl_item_sign("g2/basic_table", url_signer_no_session),
         ],
     ),
 

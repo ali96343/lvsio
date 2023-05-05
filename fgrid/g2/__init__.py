@@ -4,6 +4,7 @@ from py4web.utils.form import Form, FormStyleDefault
 from pydal.validators import IS_NOT_EMPTY
 from yatl.helpers import A, DIV
 from py4web.utils.url_signer import URLSigner
+from py4web.utils.factories import Inject
 from ..common import (
     db,
     session,
@@ -25,8 +26,8 @@ import json
 from functools import reduce
 
 
-url_signer = URLSigner(session, lifespan=3600, signing_info=lambda: str("user=xxxxxxxxxxxx")   ) 
-url2_signer = URLSigner(lifespan=3600,  signing_info=lambda: str("user=yyyyyyyyyyyyyy")  ) 
+url_signer = URLSigner(session, signing_info=lambda: str("user=xxxxxxxxxxxx")) 
+url_signer_no_session = URLSigner(signing_info=lambda: str("user=yyyyyyyyyyyyyy")) 
 
 
 # https://blog.miguelgrinberg.com/post/beautiful-flask-tables-part-2
@@ -35,13 +36,13 @@ url2_signer = URLSigner(lifespan=3600,  signing_info=lambda: str("user=yyyyyyyyy
 
 @action( "g2/basic_table",)
 @action.uses( "g2/basic_table.html", db, session, T,)
-@action.uses(url2_signer.verify())
+@action.uses( url_signer_no_session.verify(), )
 def g2_basic_table():
 
     #headers_string = ['{}: {}'.format(h, request.headers.get(h)) for h in request.headers.keys()] 
     #print('URL={}, method={}\nheaders:\n{}'.format(request.url, request.method, '\n'.join(headers_string)))
 
-    print ( request.url )
+    print ( "signed_url_no_session:" + request.url )
     my_url = request.url
 
     tbl = "user_table"
@@ -64,8 +65,7 @@ def g2_ajax_table():
 
 
 @action("g2/api_ajax/data")
-@action.uses(url_signer.verify())
-@action.uses(url_signer, session)
+@action.uses(url_signer, session, url_signer.verify())
 def g2_api_ajax_data():
     tbl = "user_table"
     query = db[tbl]
@@ -85,8 +85,7 @@ def g2_server_table():
 
 
 @action("g2/api_server/data")
-@action.uses(url_signer.verify(), )
-@action.uses(session, url_signer)
+@action.uses(session, url_signer, url_signer.verify(), )
 def g2_api_server():
 
     tbl = "user_table"
@@ -111,8 +110,9 @@ def g2_api_server():
     sort = request.GET.get("sort")
     if sort:
         order = []
-        for s in sort.split(","):
-            (direction, name) = (s[0], s[1:])
+        for s in sort:
+          if s:
+            direction, name = s[0], s[1:]
             if name not in fields: # ["name", "age", "email", ]:
                 name = fields[0] #"name"
 
@@ -122,8 +122,8 @@ def g2_api_server():
 
     # pagination
     (start, length) = (
-        int(request.GET.get("start", default=-1)),
-        int(request.GET.get("length", default=-1)),
+        int(request.GET.get("start", -1)),
+        int(request.GET.get("length", -1)),
     )
 
     users = (
@@ -155,8 +155,7 @@ def g2_editable_table():
 
 
 @action("g2/api_editable/data")
-@action.uses(url_signer.verify(), )
-@action.uses( session, url_signer)
+@action.uses( session, url_signer, url_signer.verify(), )
 def g2_api_editable():
 
     tbl = "user_table"
@@ -181,8 +180,9 @@ def g2_api_editable():
     sort = request.GET.get("sort")
     if sort:
         order = []
-        for s in sort.split(","):
-            (direction, name) = (s[0], s[1:])
+        for s in sort:
+          if s:
+            direction, name = s[0], s[1:]
 
             #if name not in ["name", "age", "email", ]:
             if name not in fields:
@@ -194,8 +194,8 @@ def g2_api_editable():
 
     # pagination
     (start, length) = (
-        int(request.GET.get("start", default=-1)),
-        int(request.GET.get("length", default=-1)),
+        int(request.GET.get("start", -1)),
+        int(request.GET.get("length", -1)),
     )
 
     users = (
@@ -215,8 +215,7 @@ def g2_api_editable():
 
 
 @action("g2/api_editable/data", method=["POST"])
-@action.uses(url_signer.verify())
-@action.uses(session, url_signer)
+@action.uses( session, url_signer, url_signer.verify(), )
 def g2_editable_update():
 
     tbl = "user_table"

@@ -1,0 +1,33 @@
+/home/w3p/set7-py39/py4web/apps/fgrid/left_menu.py
+    strlen=24
+     -4:    from .g2 import url2_signer
+     +4:    from .g2 import url_signer_no_session
+
+/home/w3p/set7-py39/py4web/apps/fgrid/left_menu.py
+    strlen=24
+     -54:    ctrl_item_sign("g2/basic_table", url2_signer),
+     +54:    ctrl_item_sign("g2/basic_table", url_signer_no_session),
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=30
+     -28:    url2_signer = URLSigner(signing_info=lambda: str("user=yyyyyyyyyyyyyy")  ) 
+     +28:    url_signer_no_session = URLSigner(signing_info=lambda: str("user=yyyyyyyyyyyyyy")  ) 
+
+/home/w3p/set7-py39/py4web/apps/fgrid/g2/__init__.py
+    strlen=30
+     -37:    @action.uses( url2_signer.verify())
+     +37:    @action.uses( url_signer_no_session.verify())
+
+/home/w3p/set7-py39/py4web/apps/fgrid/templates/g2/basic_table.html
+    strlen=22
+     -16:    <h3>Basic Table + url2_signer</h3>
+     +16:    <h3>Basic Table + url_signer_no_session</h3>
+
+  ---------------------------- work_dir: /home/w3p/set7-py39/py4web/apps/fgrid --------------
+
+ find: url2_signer
+ replace: url_signer_no_session
+
+ extensions_tuple: ('.md', '.un', '.js', '.jsx', '.py', '.html', '.css', '.ts', '.tsx', '.sh', '.vue', '.scss', '.json')
+ view_only: False
+ found_in_files: 5
