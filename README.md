@@ -1,6 +1,9 @@
 ## lvsio - py4web apps
 ---------------------------------------------
 
+stleft - sveltejs + left menu
+
+---------------------------------------------
 fgrid - grid.js and tabulator.js
 
 based on https://blog.miguelgrinberg.com/post/beautiful-flask-tables-part-2
