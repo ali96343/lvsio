@@ -1,0 +1,22 @@
+[[extend 'layout.html']]
+
+
+[[block page_scripts]]
+
+         <script>
+            const CTRL_PARAM = '[[=some_param ]]';
+            const E1_MESSAGE  = '[[=e1_message ]]';
+            const E1_RANDOM = '[[=e1_random ]]';
+            const E1_JSON = '[[=e1_json ]]';
+        </script>
+
+
+        <link rel='icon' type='image/png' href="[[=URL(mod_path + '/favicon.png') ]]">
+        <!-- link rel='stylesheet' href="[[=URL(mod_path + '/global.css') ]]" -->
+        <link rel='stylesheet' href="[[=URL(mod_path + '/build/bundle.css') ]]">
+
+
+        <script defer src="[[=URL(mod_path + '/build/bundle.js') ]]"></script>
+        <!-- script defer src="[[=URL('static/e1/client/mod_pathlic/build/bundle.js') ]]"></script --> 
+[[end]] 
+
