@@ -1,6 +1,15 @@
 ## lvsio - py4web apps
 ---------------------------------------------
 
+flvsiossl
+
+./py4web.py  run apps -s tornadoSio --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000
+
+cp flvsiossl/server_adapters.py to py4web/server_adapters.py
+
+
+---------------------------------------------
+
 stleft - sveltejs + left menu
 
 ---------------------------------------------

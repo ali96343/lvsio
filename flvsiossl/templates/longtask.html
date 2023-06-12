@@ -1,0 +1,112 @@
+
+[[extend 'layout.html']]
+
+[[ block page_head ]]
+
+
+    <title>Long Celery Task</title>
+    <script src="https://cdn.socket.io/4.6.2/socket.io.min.js"></script>
+
+<style>
+
+body{
+    background: #F8F8F8;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+</style>
+[[end ]]
+
+    <p>To test it, you need to run the celery-worker (cd apps/flvsiossl && . worker.sh) </p>
+    <p id='sio_status'>status</p>
+    <button type="button">Run Celery Task</button>
+    <br>
+    Result: <span id="result"></span>
+    <br>
+    At begin: <span id="at_begin"></span>
+    <br>
+    At end: <span id="at_end"></span>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function(event) {
+
+    const resultElement = document.getElementById('result'),
+          socket = io("[[ = t_vars['sio_serv_url'] ]]", {forceNew: true} );
+
+    const at_begin = document.getElementById('at_begin'),
+          at_end = document.getElementById('at_end'), 
+          sio_status = document.getElementById('sio_status');
+
+    let clientid = null;
+
+    socket.on('connect', function(result) {
+        sio_status.textContent = 'connect';
+    });
+    socket.on('reconnect', function(result) {
+        sio_status.textContent = 'reconnect';
+    });
+    socket.on('disconnect', function(result) {
+        sio_status.textContent = 'disconnect';
+    });
+
+
+    socket.on('longtask_register', function(id) {
+        clientid = id;
+        sio_status.textContent = 'connect clientid: '+ clientid;
+    });
+
+    socket.on('longtask_result', function(result) {
+        resultElement.textContent = result;
+    });
+
+    socket.on('longtask_begin', function(result) {
+        at_begin.textContent = result;
+    });
+
+    socket.on('longtask_end', function(result) {
+        at_end.textContent = result;
+    });
+
+    del_info = () => {
+        for (const value of [resultElement, at_begin, at_end]) {
+               value.textContent = '';
+           }
+
+
+    };
+
+    document.querySelector('button').onclick = function() {
+
+        del_info() ;
+        const request = new XMLHttpRequest();
+        request.open('POST', "[[ = t_vars['longtask_run_url'] ]]" , true);
+        request.setRequestHeader(
+            'Content-Type',
+            'application/x-www-form-urlencoded; charset=utf-8');
+        request.onload = function() {
+            resultElement.textContent = request.responseText;
+        };
+        request.send('clientid=' + clientid);
+    };
+
+
+
+    document.addEventListener("visibilitychange", function() {
+       if (document.hidden){
+          // console.log("Browser tab is hidden")
+    
+           if((!socket) || (socket && socket.connected )){
+                 socket.disconnect(true);
+           }
+    
+       } else {
+        //   console.log("Browser tab is visible")
+           location.reload();
+       }
+    });
+
+});
+
+
+</script>
