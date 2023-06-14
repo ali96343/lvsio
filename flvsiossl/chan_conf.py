@@ -28,9 +28,7 @@ longtask_post = f"https://{p4w_host}:{p4w_port}/{P4W_APP}/longtask_notify"
 #print (  longtask_post )
 #print ( URL('longtask_notify',use_appname=True,  scheme=True)  )
 
-BROADCAST_SECRET = "71a30ce5d354bf38a303643212af3bf1d826821539331b091ce7e4218d83d35c"
-POST_SECRET = BROADCAST_SECRET 
-
+POST_SECRET = "71a30ce5d354bf38a303643212af3bf1d826821539331b091ce7e4218d83d35c"
 
 SERV_APP_FILE = "chan_sio:app"
 SIO_FILE=SERV_APP_FILE.split(':')[0] + '.py'

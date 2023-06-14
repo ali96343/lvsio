@@ -289,7 +289,7 @@ def sio_chan_post():
         room = json_data["room"]
         data = json_data["data"]
 
-        if json_data["broadcast_secret"] == C.POST_SECRET:
+        if json_data["post_secret"] == C.POST_SECRET:
             cat_value = request.headers.get("app-param", "xxxxxxxx")
             if not event_name in event2data:
                 print("=== bad event === ", event_name)
@@ -316,4 +316,5 @@ def sio_chan_post():
 # @action('/route/to/overwrite',  overwrite=True)
 @action("/socket.io", overwrite=True)
 def socketio_txt():
+    #redirect ( URL( "index" ) )
     return ""
