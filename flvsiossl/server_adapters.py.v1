@@ -406,6 +406,17 @@ def Pyruvate():
 
 # --------------------------------------- tornado + socketio ------------------
 
+def mk_chan_conf(apps_routes, conf_file = 'chan_conf.txt'):
+    try:
+        if os.path.isfile(conf_file):
+             return
+        with open(conf_file, 'w') as f:
+            f.write( '\n'.join([ v.rule if '\r' in k else ('/' + k )
+                        for k, v in sorted(apps_routes.items()) ]) )
+        print (f'{len(apps_routes)} routes written to {conf_file}')
+    except OSError as ex:
+        sys.exit(ex)
+
 def tornadoSio():
 
     # ./py4web.py  run apps -s tornadoSio --ssl_cert=cert.pem --ssl_key=key.pem
@@ -415,44 +426,14 @@ def tornadoSio():
     import tornado
     import socketio  # pip install python-socketio
     import httpx # pip install httpx celery
-    import uuid
-    import asyncio
 
     # sse https://gist.github.com/mivade/d474e0540036d873047f
     # https://alessandro-negri-34754.medium.com/python-add-ssl-to-a-tornado-app-redirect-from-http-to-https-c5625e6bc039
     # https://stackoverflow.com/questions/18353035/redirect-http-requests-to-https-in-tornado
 
-    # https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py
-    class MessageBuffer(object):
-        #def __init__(self):
-        def __init__(self, handler ):
-            # cond is notified whenever the message cache is updated
-            self.cond = tornado.locks.Condition()
-            self.p4w_apps_names = { x.split('/',2)[0] for x in handler.routes.keys() if x } 
-            self.cache = []
-            self.cache_size = 200
-    
-        def get_messages_since(self, cursor):
-            results = []
-            for msg in reversed(self.cache):
-                if msg["sid"] == cursor and  msg["status"] == True:
-                    msg["status"] = False 
-                    #if msg["app_nm"] in self.p4w_apps_names: # slow ?
-                    results.append(msg)
-            results.reverse()
-            return results
-    
-        def add_message(self, message):
-            self.cache.append(message)
-            if len(self.cache) > self.cache_size:
-                self.cache = self.cache[-self.cache_size :]
-            self.cond.notify_all()
-    
     class TornadoSio(ServerAdapter):
         import tornado.wsgi, tornado.httpserver, tornado.ioloop
         def run(self, handler):  # pragma: no cover
-
-            global_message_buffer = MessageBuffer(handler)
 
             self.log = None
             if not self.quiet:
@@ -460,26 +441,30 @@ def tornadoSio():
                 logging_conf( self.options["logging_level"], )
                 self.log = logging.getLogger("tornadoSio")
                 self.log.addHandler(logging.StreamHandler())
+                #self.log.info('start tornadoSio')
 
             # ------------------------------------------------------------------------------------   
 
             P4W_APP = 'flvsiossl'
             
             sio_room = f'{P4W_APP}_room'
-            sio_channel = f"channel_tornadoSio"
-            #sio_channel = f"sio_{P4W_APP}"
+            sio_channel = f"sio_{P4W_APP}"
+            sio_namespaces= ['/','/test','/chat']
             
-            #post_url = f"https://{self.host}:{self.port}/{P4W_APP}/sio_chan_post"
-            # expected controller sio_chan_post in app
+            post_url = f"https://{self.host}:{self.port}/{P4W_APP}/sio_chan_post"
             # python3 -c 'import secrets; print(secrets.token_hex(32))'
             POST_SECRET = "71a30ce5d354bf38a303643212af3bf1d826821539331b091ce7e4218d83d35c"
             
             r_url = "redis://"
 
+            p4w_apps_names = { x.split('/',2)[0] for x in handler.routes.keys() if x } 
+            if self.log and (not P4W_APP in p4w_apps_names):
+                self.log.info ( f"not found {P4W_APP} in  {p4w_apps_names}" )
+        
             # ----------------------------------------------------------------
-            async def sio_event_post(sid, event_name, data=None, room=None, ):
+            async def sio_event_post(event_name, data=None, room=None, ):
+            #async def sio_event_post(event_name, data=None, room=None, post=True):
                 # https://zetcode.com/python/httpx/
-
                 json_data = {
                     "event_name": event_name,
                     "data": data,
@@ -493,32 +478,12 @@ def tornadoSio():
                         'content-type': "application/json",
                         'cache-control': "no-cache"
                 }
-
-                self.log.info(f"sio_event_post: {sid}")
-
-                sid_messages = global_message_buffer.get_messages_since(sid)
-                self.log and self.log.info(f"1111 {sid_messages}" )
-
-                while not sid_messages:
-                    # Save the Future returned here so we can cancel it in
-                    # on_connection_close.
-                    self.wait_future = global_message_buffer.cond.wait()
-                    try:
-                        await self.wait_future
-                    except asyncio.CancelledError:
-                        return
-
-                    for msg in sid_messages:     
-                        postX_url = f"https://{self.host}:{self.port}/{msg['app_nm']}/sio_chan_post"
-                        async with httpx.AsyncClient( verify=False) as client:
-
-                            r = await client.post(postX_url, json=json_data, headers=headers, )
             
-                            if self.log and r.status_code != 200:
-                                self.log.info(f"httpx.AsyncClient - cant post to: {postX_url} {r.status_code}")
-
-                    sid_messages = global_message_buffer.get_messages_since(cursor)
-                self.log and self.log.info(f"2222 {sid_messages}" )
+                async with httpx.AsyncClient( verify=False) as client:
+                    r = await client.post(post_url, json=json_data, headers=headers, )
+            
+                    if self.log and r.status_code != 200:
+                        self.log.info(f"httpx.AsyncClient - can't post to: {post_url}")
             
             # ----------------------------------------------------------------
             r_mgr = socketio.AsyncRedisManager(r_url, channel=sio_channel,  write_only=False)
@@ -549,14 +514,7 @@ def tornadoSio():
 
                  if self.log:
                      self.log.info(f"url:{url}, -2:{app_nm}, -1:{func_nm}")             
-                     #self.log.info(f"{sid} {type(sid)}")
-                     #self.log.info(environ)             
-
-
-                 if app_nm:
-                     sid_message = {"sid": sid, "app_nm": app_nm, "func": func_nm, "status": True}
-                     global_message_buffer.add_message(sid_message)
-                 self.log and self.log.info(sid_message)
+                      #self.log.info(environ)             
 
                  await sio.emit("longtask_register", sid)
         
@@ -564,11 +522,11 @@ def tornadoSio():
             async def disconnect(sid):
                 self.log and self.log.info(f"sio: disconnect! {sid}")
         
-            @sio.on("to_py4web")
-            async def echo(sid, data):
-                e_name = sys._getframe().f_code.co_name
-                self.log and self.log.info(f"sio {e_name}: {data}")
-                await sio.emit("py4web_echo", data)
+            #@sio.on("to_py4web")
+            #async def echo(sid, data):
+            #    e_name = sys._getframe().f_code.co_name
+            #    self.log and self.log.info(f"sio {e_name}: {data}")
+            #    await sio.emit("py4web_echo", data)
         
             # ------------------------- ImaSize ------------------------------
             
@@ -576,7 +534,8 @@ def tornadoSio():
             async def js_image_resize(sid, data):
                 e_name = sys._getframe().f_code.co_name
                 self.log and self.log.info(f"sio {e_name}: {data}")
-                await sio_event_post(sid, e_name, data=data, room="some_room")
+                await sio_event_post( e_name, data=data, room="some_room")
+            
             
             # ---------------------------Counter------------------------------
             
@@ -584,7 +543,7 @@ def tornadoSio():
             async def js_count(sid, data):
                 e_name = sys._getframe().f_code.co_name
                 self.log and self.log.info(f"sio {e_name}: {data}")
-                await sio_event_post( sid, e_name, data=data, room="some_room")
+                await sio_event_post( e_name, data=data, room="some_room")
             
             # ---------------------- Sliders----------------------------------
             
@@ -592,21 +551,17 @@ def tornadoSio():
             async def js_sliders(sid, data):
                 e_name = sys._getframe().f_code.co_name
                 self.log and self.log.info(f"sio {e_name}: {data}")
-                await sio_event_post(sid, e_name, data=data, room="some_room")
+                await sio_event_post( e_name, data=data, room="some_room")
         
             # ----------------------------------------------------------------
 
             container = tornado.wsgi.WSGIContainer(handler)
-           
+            
             app = tornado.web.Application(
                 [
                     (r"/socket.io/", socketio.get_tornado_handler(sio)),
                     (r".*", tornado.web.FallbackHandler, dict(fallback=container)),
-                ] ,
-
-                cookie_secret=str(uuid.uuid4()),
-                #cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
-            #    xsrf_cookies=True,
+                ] 
             )
 
             # https://github.com/siysun/Tornado-wss/blob/master/main.py
@@ -619,11 +574,11 @@ def tornadoSio():
                                         self.options.get("keyfile", None)
 
             if certfile and keyfile :
-                 ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                 ssl_ctx.load_cert_chain(certfile, keyfile )
-                 server = tornado.httpserver.HTTPServer(app, ssl_options=ssl_ctx ) 
+                ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                ssl_ctx.load_cert_chain(certfile, keyfile )
+                server = tornado.httpserver.HTTPServer(app, ssl_options=ssl_ctx ) 
             else:    
-                 server = tornado.httpserver.HTTPServer(app)
+                server = tornado.httpserver.HTTPServer(app)
 
             server.listen(port=self.port, address=self.host)
 
