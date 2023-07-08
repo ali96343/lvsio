@@ -1,4 +1,20 @@
 ## lvsio - py4web apps
+
+---------------------------------------------
+
+mig1ssl, mig2ssl
+
+based on https://github.com/miguelgrinberg/quick-socketio-tutorial/tree/part9
+
+cp mig1ssl/server_adapters.py to py4web/server_adapters.py
+
+
+./py4web.py  run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000
+
+mig1ssl, mig2ssl has controller "siopost123" 
+
+and SIO_POST_SECRET
+
 ---------------------------------------------
 
 flvsiossl
