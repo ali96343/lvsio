@@ -1,0 +1,11 @@
+faker
+httpx
+gevent
+gevent-ws
+python-socketio
+asyncio
+aiohttp
+uvloop
+black
+redis[hiredis]
+celery
