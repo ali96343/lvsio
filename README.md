@@ -11,11 +11,9 @@ cp mig1ssl/server_adapters.py to py4web/server_adapters.py
 
 ./py4web.py  run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000
 
-mig1ssl, mig2ssl has controllers "siopost123" 
+mig1ssl, mig2ssl has controllers "siopost123-random-name" 
 
-and SIO_POST_SECRET
-
-test for async post_event to controller from tornado
+test for async post_event ( with random_uri ) to controller from tornadoMig
 
 ---------------------------------------------
 

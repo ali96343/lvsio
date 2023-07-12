@@ -432,48 +432,31 @@ def tornadoMig():
 
         def run(Z, handler):  
 
+            Z.queue = asyncio.Queue() # https://stackoverflow.com/questions/55693699/how-to-mix-async-socket-io-with-aiohttp
+            # response = await queue.get()  # block until there is something in the queue
+            # await queue.put(data)
+
+            # https://testdriven.io/blog/developing-an-asynchronous-task-queue-in-python/
+
             Z.sids_connected = dict()
+            # Z.sids_connected[sid] = { "sid": sid, "app_nm": app_nm, "func": func_nm, "username": username, "room": myroom}
 
             Z.client_count = 0
             Z.a_count = 0
             Z.b_count = 0
 
             # must exist in apps-controllers
-            Z.post_ctrl = "/siopost123"
-            Z.secret_var = 'SIO_POST_SECRET' # var in module with secret 
+            Z.post_prefix = "/siopost123"
 
             def get_post_uri(handl):
                 post_prefix = f"https://{Z.host}:{Z.port}/" if Z.options.get("certfile", None) else (f"http://{Z.host}:{Z.port}/")
-                maybe =  { x.split("/")[0]: x.split("/")[1] for x in handl.routes.keys() if Z.post_ctrl in x } 
+                maybe =  { x.split("/")[0]: x.split("/")[1] for x in handl.routes.keys() if Z.post_prefix in x } 
                 post_to = { k: post_prefix + k + '/' + v  for k,v in maybe.items() }
                 if not post_to:
-                     sys.exit (f'can not find app with controller {Z.post_ctrl}')
+                     sys.exit (f'can not find app with controller {Z.post_prefix}')
                 return post_to
 
             Z.post_to = get_post_uri(handler)
-
-            def get_secrets():
-
-                apps_names= Z.post_to.keys()
-                modulenames = set(sys.modules)
-                allmodules = [sys.modules[name] for name in modulenames if any ( [ e in name for e in apps_names ] )]
-
-                res = dict()
-                for mod in allmodules:
-                    for name, value in vars(mod).items():
-                        if name.startswith(Z.secret_var):
-                            for e in apps_names:
-                                if e in mod.__name__ :
-                                     res[e] = value
-                                     break
-                if not res:
-                    sys.exit (f'can not find {Z.secret_var}')
-
-                #print (res)
-
-                return res
-
-            Z.secret_to = get_secrets()
 
             Z.log = None
 
@@ -496,11 +479,10 @@ def tornadoMig():
                         return f"app_nm {app_nm} not found in post_to!"
                 else:
                     log_info(f"post_event bad sid={sid}")
-                    return f"sid {sid} not found in waiters!"
+                    return f"sid {sid} not found in sids_connected!"
 
 
                 json_data = {
-                        "post_secret": Z.secret_to[app_nm], 
                         "event_name": event_name,
                         "username": sid_data["username"],
                         "data": data,
@@ -556,7 +538,7 @@ def tornadoMig():
                     
                     if not sid in Z.sids_connected: break
 
-                    await sio.emit( "my_response", {"data": f"periodic_task 7-sec-counter {count}  to {sid}  "},)
+                    await sio.emit( "my_response", {"data": f"periodic_task 7-sec-counter {count} to {sid}  "},)
                     await post_event( sid, e_name, data={"cmd": "cmd", "cmd_args": "cmd_args", "sid": sid, "count": count } )
                     await sio.sleep(7)
 
@@ -590,7 +572,7 @@ def tornadoMig():
                     log_info(f"bad url {url}")
                     return False
 
-                url_items = url.rsplit("/")  # ,2)
+                url_items = url.rsplit("/")  
                 app_nm = url_items[3] if len(url_items) >= 4 else None
                 if not app_nm in Z.post_to: #Z.p4w_apps_names:
                     log_info(f"bad app_nm: {app_nm}")
@@ -605,14 +587,15 @@ def tornadoMig():
 
                 async with sio.session(sid) as session:
                     session["username"] = username
-                await sio.emit("user_joined", f"username: {username} sid: {sid}")
+                    session["sid"] = sid
+                    #session["qu"] = asyncio.Queue() 
+                await sio.emit("user_joined", f"{username} sid: {sid}")
 
                 # end auth etc
 
                 Z.client_count += 1
                 log_info(f"{sid} connected")
 
-                await sio.emit("client_count", Z.client_count)
 
                 myroom= None
                 if random.random() > 0.5:
@@ -627,6 +610,9 @@ def tornadoMig():
                     await sio.emit("room_count", Z.b_count, to="b")
 
                 Z.sids_connected[sid] = { "sid": sid, "app_nm": app_nm, "func": func_nm, "username": username, "room": myroom}
+
+                await sio.emit("client_count", f"{Z.client_count} {set(Z.sids_connected.keys())}")
+                #await sio.emit("client_count", Z.client_count)
 
                 sio.start_background_task(simple_task, sid)
                 sio.start_background_task(periodic_task, sid)

@@ -14,7 +14,8 @@
       <p id="id_result">3</p>
       <p id="id_connected">4</p>
       <p id="id_room_count">5</p>
-      <p id="id_my_response"></p>
+      <p id="id_my_response">6</p>
+      <p id="id_from_do_cmd">7</p>
   </div>
 </div>
 
@@ -27,6 +28,7 @@ const id_result = document.getElementById("id_result")
 const id_connected = document.getElementById("id_connected")
 const id_room_count = document.getElementById("id_room_count")
 const id_my_response = document.getElementById("id_my_response")
+const id_from_do_cmd = document.getElementById("id_from_do_cmd")
 
 
 const sio = io({
@@ -86,6 +88,11 @@ sio.on('user_joined', (username) => {
 sio.on('user_left', (username) => {
   id_user_joined.innerHTML = 'User ' + username + ' has left.' 
   console.log('User ' + username + ' has left.');
+});
+
+sio.on('from_do_cmd', (data) => {
+  id_from_do_cmd.innerHTML = 'from_do_cmd ' + data 
+  console.log( 'from_do_cmd ' + data );
 });
 
 </script>
