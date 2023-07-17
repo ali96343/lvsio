@@ -9,7 +9,11 @@ import sys, os, random, json, uuid, string
 import socketio
 import secrets
 
-r_mgr = socketio.RedisManager("redis://", write_only=True, channel="channel_tornadoMig" )
+SIO_RED_PARAM='redis://', 'channel_tornadoMig'
+
+r_mgr = socketio.RedisManager(SIO_RED_PARAM[0], write_only=True, channel=SIO_RED_PARAM[1] )
+#r_mgr = socketio.RedisManager("redis://", write_only=True, channel="channel_tornadoMig" )
+
 
 #event2data = {
 #    "js_image_resize": ["update_image", "ImaSize"],

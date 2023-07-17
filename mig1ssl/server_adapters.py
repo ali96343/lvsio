@@ -84,6 +84,8 @@ def gevent():
                     ssl_version=ssl.PROTOCOL_SSLv23,
                     server_side=True,
                     do_handshake_on_connect=False,
+                    ca_certs=None,
+                    ciphers=None,
                 ) if certfile else dict()
 
             server = pywsgi.WSGIServer(
@@ -244,6 +246,8 @@ def wsgirefThreadingServer():
                         do_handshake_on_connect=False,
                         server_side=True,
                         ssl_version=ssl.PROTOCOL_SSLv23,
+                        ca_certs=None,
+                        ciphers=None,
                     ),
                     addr,
                 )
@@ -445,18 +449,37 @@ def tornadoMig():
             Z.a_count = 0
             Z.b_count = 0
 
-            # must exist in apps-controllers
-            Z.post_prefix = "/siopost123"
+            def get_post_uri(handl, post_pattern = "siopost123"):
 
-            def get_post_uri(handl):
-                post_prefix = f"https://{Z.host}:{Z.port}/" if Z.options.get("certfile", None) else (f"http://{Z.host}:{Z.port}/")
-                maybe =  { x.split("/")[0]: x.split("/")[1] for x in handl.routes.keys() if Z.post_prefix in x } 
+                # post_pattern must exist in apps-controllers
+                post_scheme = "https" if Z.options.get("certfile", None) else "http"
+                post_prefix = f"{post_scheme}://{Z.host}:{Z.port}/" 
+
+                maybe =  { x.split("/")[0]: x.split("/")[1] for x in handl.routes.keys() if post_pattern in x } 
                 post_to = { k: post_prefix + k + '/' + v  for k,v in maybe.items() }
-                if not post_to:
-                     sys.exit (f'can not find app with controller {Z.post_prefix}')
-                return post_to
+
+                if post_to:
+                    print (post_to)
+                    return post_to
+
+                sys.exit (f'stop! can not find app with controller {post_pattern}')
+
+            def get_red_vars(apps_names, vars_pattern="SIO_RED_PARAM"):
+
+                # vars_pattern must exist in apps-controllers
+                apps_modules = [sys.modules[name] for name in set( sys.modules ) if any ( [ e in name for e in apps_names ] )]
+
+                for mod in apps_modules:
+                    for var_name, var_value in vars(mod).items():
+                        if var_name == vars_pattern:
+                            print (f"{vars_pattern} {var_value}")
+                            return var_value
+                sys.exit (f'stop! can not find app with {vars_pattern}')
+
 
             Z.post_to = get_post_uri(handler)
+
+            Z.red_url, Z.red_chan  = get_red_vars( Z.post_to.keys() )
 
             Z.log = None
 
@@ -508,7 +531,7 @@ def tornadoMig():
                     r.status_code != 200 and log_info( f"httpx.AsyncClient: {post_url} {r.status_code}")
 
             # ----------------------------------------------------------------
-            r_mgr = socketio.AsyncRedisManager( "redis://", channel="channel_tornadoMig", write_only=False)
+            r_mgr = socketio.AsyncRedisManager( Z.red_url, channel=Z.red_chan, write_only=False)
 
             sio = socketio.AsyncServer(
                 async_mode="tornado",
@@ -745,6 +768,11 @@ def tornadoMig():
 # https://stackoverflow.com/questions/17148732/how-to-iterate-through-dictionary-passed-from-python-tornado-handler-to-tornado
 # https://www.georgeho.org/tornado-websockets/
 # https://stackoverflow.com/questions/52596096/flask-socketio-redis-subscribe
+# https://github.com/posita/txsocketio   twisted!!!!
+# https://github.com/twtrubiks/chat-room/blob/master/app.py
+# https://github.com/BimaAdi/fastapi-with-python-socketio-example/blob/main/routes/ws_no_prefix.py
+# https://github.com/Marksuuuu/Chat-App-Python-Socketio-Flask/blob/main/main.py
+
 
 # mk_cert_pem_key_pem.sh
 """
@@ -771,3 +799,4 @@ openssl \
  -nodes \
  -subj "/C=RU/ST=Saint Petersburg/O=SPB/OU=AliBsk/CN=localhost/emailAddress=ab96343@gmail.com"
 """
+

@@ -15,7 +15,7 @@ def index():
     #unm = hash(  request.url ) & sys.maxsize 
     #unm = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     #unm = str( random.choice(foo) )
-    foo = ['userFFF', 'userGGG', 'userHHH', ]
+    foo = ['userAAA', 'userBBB', 'userCCC', ]
     unm = secrets.choice(foo)
     message = T("Hello {first_name}".format(**user) if user else "Hello")
     actions = {"allowed_actions": auth.param.allowed_actions}
