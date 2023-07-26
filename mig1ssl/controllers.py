@@ -14,11 +14,13 @@ def index():
     user = auth.get_user()
     #unm = hash(  request.url ) & sys.maxsize 
     #unm = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-    #unm = str( random.choice(foo) )
-    foo = ['userAAA', 'userBBB', 'userCCC', ]
+
+    foo= ['userAAA','userBBB','userCCC']
     unm = secrets.choice(foo)
+
     message = T("Hello {first_name}".format(**user) if user else "Hello")
     actions = {"allowed_actions": auth.param.allowed_actions}
-    response.headers["X-Username"] = unm 
-    return dict(message=message, actions=actions, response=response, unm= unm, l_menu=l_menu)
+    response.headers["X-Username"] = unm #'miguel' #hash(request.url) 
+    ctrl= URL('index', scheme = True)
+    return dict(message=message, actions=actions, ctrl=ctrl, response=response, unm= unm, l_menu=l_menu)
 

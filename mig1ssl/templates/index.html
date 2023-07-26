@@ -2,9 +2,11 @@
 
 [[ block page_head ]]
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2PYF773PwAGewLSGezkXwAAAABJRU5ErkJggg=="/>
-    <script src="https://cdn.socket.io/4.7.0/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
     <title>Mig demo</title>
 [[ end ]]
+
+[[=ctrl ]]
 
 <div class="section">
   <div class="vars">
@@ -31,6 +33,7 @@ const id_my_response = document.getElementById("id_my_response")
 const id_from_do_cmd = document.getElementById("id_from_do_cmd")
 
 
+//const sio = io(url = "https://localhost:8000",{
 const sio = io({
   transportOptions: {
     polling: {
@@ -40,6 +43,9 @@ const sio = io({
     }
   }
 });
+
+
+console.log(sio)
 
 sio.on('connect', () => {
   console.log('connected');

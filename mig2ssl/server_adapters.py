@@ -32,6 +32,7 @@ def check_level(level):
     return  level if level in ( logging.CRITICAL, logging.ERROR, logging.WARN, logging.INFO,
             logging.DEBUG, logging.NOTSET,) else logging.WARN
 
+
 def logging_conf(level, log_file="server-py4web.log" ):
     log_to = dict()
     # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
@@ -42,7 +43,7 @@ def logging_conf(level, log_file="server-py4web.log" ):
         print (f"PY4WEB_LOGS={log_dir}, open {path_log_file}")
 
     logging.basicConfig(
-        format="%(threadName)s | %(message)s",
+        format="%(threadName)s | %(message)s | (%(filename)s:%(lineno)d)",
         encoding="utf-8",
         level=check_level( level ) ,
         **log_to,
@@ -282,7 +283,7 @@ def wsgirefThreadingServer():
                 self.log = logging.getLogger("WSGIRef")
                 self.log.addHandler(logging.StreamHandler())
 
-            main_self = self  # used in innner classes to access options and logger
+            run_self = self  # used in innner classes to access options and logger
 
             class PoolMixIn(ThreadingMixIn):
                 def process_request(self, request, client_address):
@@ -327,16 +328,16 @@ def wsgirefThreadingServer():
                     # ./py4web.py run apps -s wsgirefThreadingServer --watch=off --port=8443 --ssl_cert=cert.pem --ssl_key=key.pem
                     # openssl s_client -showcerts -connect 127.0.0.1:8443
 
-                    certfile = main_self.options.get("certfile", None)
+                    certfile = run_self.options.get("certfile", None)
 
                     if certfile:
                         self.server.socket = Is_Https(
                             socket=self.server.socket,
                             certfile=certfile,
-                            keyfile=main_self.options.get("keyfile", None),
+                            keyfile=run_self.options.get("keyfile", None),
                             host=self.listen,
                             port=self.port,
-                            logger=main_self.log,
+                            logger=run_self.log,
                         )
 
                     self.server.serve_forever()
@@ -346,19 +347,19 @@ def wsgirefThreadingServer():
                     return self.client_address[0]
 
                 def log_request(*args, **kw):
-                    if not main_self.quiet:
+                    if not run_self.quiet:
                         return WSGIRequestHandler.log_request(*args, **kw)
 
                 def log_message(self, format, *args):
-                    if not main_self.quiet:  # and ( not args[1] in ['200', '304']) :
+                    if not run_self.quiet:  # and ( not args[1] in ['200', '304']) :
                         msg = "%s - - [%s] %s" % (
                             self.client_address[0],
                             self.log_date_time_string(),
                             format % args,
                         )
-                        main_self.log.info(msg)
+                        run_self.log.info(msg)
 
-            handler_cls = self.options.get("handler_class", LogHandler)
+            handler_cls = LogHandler #self.options.get("handler_class", LogHandler)
             server_cls = Server
 
             if ":" in self.host:  # Fix wsgiref for IPv6 addresses.
@@ -496,7 +497,7 @@ def tornadoMig():
         def log_info(self, data):
             self.log and self.log.info(data)
 
-        async def post_event( self, sid, event_name='unk', data=None,):
+        async def post_event( self, sid, event_name='unk', data=None, bcast = True):
 
             sid_data, app_nm, post_url= None, None, None
             
@@ -512,6 +513,7 @@ def tornadoMig():
                     "event_name": event_name,
                     "username": sid_data["username"],
                     "data": data,
+                    "bcast": bcast,
                     "room": sid_data["room"],
                     "to": app_nm,
                     "cmd": "cmd",
@@ -554,7 +556,8 @@ def tornadoMig():
                     if not sid in s_app.sids_connected: break
 
                     await sio.emit( "my_response", {"data": f"periodic_task 7-sec-counter {count} to {sid}  "},)
-                    await s_app.post_event( sid, e_name, data={"cmd": "cmd", "cmd_args": "cmd_args", "sid": sid, "count": count } )
+                    await s_app.post_event( sid, e_name, data={"cmd": "cmd", "cmd_args": "cmd_args", 
+                                            "sid": sid, "count": count }, bcast = True )
                     await sio.sleep(7)
 
             async def simple_task(sid):
@@ -562,7 +565,7 @@ def tornadoMig():
                 await sio.sleep(5)
                 result = await sio.call("mult", {"numbers": [3, 4]}, to=sid)
                 s_app.log_info(f"result from js-mult: {result}")
-                await s_app.post_event(sid, e_name, )
+                await s_app.post_event(sid, e_name,  bcast = False)
 
             @sio.event
             async def close_room(sid, message):
@@ -622,7 +625,8 @@ def tornadoMig():
                     ZZ.b_count += 1
                     await sio.emit("room_count", ZZ.b_count, to="b")
 
-                s_app.sids_connected[sid] = { "sid": sid, "app_nm": app_nm, "func": func_nm, "username": username, "room": myroom}
+                s_app.sids_connected[sid] = { "sid": sid, "app_nm": app_nm, "func": func_nm, 
+                                              "username": username, "room": myroom, }
 
                 await sio.emit("client_count", f"{ZZ.client_count} {set(s_app.sids_connected.keys())}")
 
@@ -696,3 +700,8 @@ def tornadoMig():
 
 # https://github.com/kasullian/ChatIO/blob/main/server.py
 # https://stackoverflow.com/questions/60266397/using-multiple-asyncio-queues-effectively
+# https://github.com/benfred/py-spy
+# https://www.roguelynn.com/words/asyncio-debugging/
+# https://martinheinz.dev/blog/101
+# https://github.com/PyHAT-stack/awesome-python-htmx
+
