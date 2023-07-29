@@ -12,15 +12,11 @@ from .ctrlpost import *
 def index():
     # curl -k -I  https://192.168.1.161:9000/mig1ssl/index
     user = auth.get_user()
-    #unm = hash(  request.url ) & sys.maxsize 
-    #unm = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-
-    foo= ['userFFF','userGGG','userHHH']
+    #foo = ['userAAA', 'userBBB', 'userCCC', ]
+    foo = ['userXXX', 'userYYY', 'userZZZ', ]
     unm = secrets.choice(foo)
-
     message = T("Hello {first_name}".format(**user) if user else "Hello")
     actions = {"allowed_actions": auth.param.allowed_actions}
-    response.headers["X-Username"] = unm #'miguel' #hash(request.url) 
-    ctrl= URL('index', scheme = True)
-    return dict(message=message, actions=actions, ctrl=ctrl, response=response, unm= unm, l_menu=l_menu)
+    response.headers["X-Username"] = unm 
+    return dict(message=message, actions=actions, response=response, unm= unm, l_menu=l_menu)
 

@@ -32,7 +32,6 @@ def check_level(level):
     return  level if level in ( logging.CRITICAL, logging.ERROR, logging.WARN, logging.INFO,
             logging.DEBUG, logging.NOTSET,) else logging.WARN
 
-
 def logging_conf(level, log_file="server-py4web.log" ):
     log_to = dict()
     # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
@@ -42,13 +41,15 @@ def logging_conf(level, log_file="server-py4web.log" ):
         log_to = { "filename": path_log_file, "filemode": "w", } 
         print (f"PY4WEB_LOGS={log_dir}, open {path_log_file}")
 
+    f_s="%(message)s"
+    f_l="%(asctime)s | %(threadName)s | %(message)s | (%(filename)s:%(lineno)d)"
+
     logging.basicConfig(
-        format="%(threadName)s | %(message)s | (%(filename)s:%(lineno)d)",
+        format=f_l,
         encoding="utf-8",
         level=check_level( level ) ,
         **log_to,
     )
-
 
 def get_workers(opts, default=10):
     return opts["workers"] if "workers" in opts else default
@@ -283,7 +284,7 @@ def wsgirefThreadingServer():
                 self.log = logging.getLogger("WSGIRef")
                 self.log.addHandler(logging.StreamHandler())
 
-            run_self = self  # used in innner classes to access options and logger
+            self_run = self  # used in innner classes to access options and logger
 
             class PoolMixIn(ThreadingMixIn):
                 def process_request(self, request, client_address):
@@ -328,16 +329,16 @@ def wsgirefThreadingServer():
                     # ./py4web.py run apps -s wsgirefThreadingServer --watch=off --port=8443 --ssl_cert=cert.pem --ssl_key=key.pem
                     # openssl s_client -showcerts -connect 127.0.0.1:8443
 
-                    certfile = run_self.options.get("certfile", None)
+                    certfile = self_run.options.get("certfile", None)
 
                     if certfile:
                         self.server.socket = Is_Https(
                             socket=self.server.socket,
                             certfile=certfile,
-                            keyfile=run_self.options.get("keyfile", None),
+                            keyfile=self_run.options.get("keyfile", None),
                             host=self.listen,
                             port=self.port,
-                            logger=run_self.log,
+                            logger=self_run.log,
                         )
 
                     self.server.serve_forever()
@@ -347,19 +348,19 @@ def wsgirefThreadingServer():
                     return self.client_address[0]
 
                 def log_request(*args, **kw):
-                    if not run_self.quiet:
+                    if not self_run.quiet:
                         return WSGIRequestHandler.log_request(*args, **kw)
 
                 def log_message(self, format, *args):
-                    if not run_self.quiet:  # and ( not args[1] in ['200', '304']) :
+                    if not self_run.quiet:  # and ( not args[1] in ['200', '304']) :
                         msg = "%s - - [%s] %s" % (
                             self.client_address[0],
                             self.log_date_time_string(),
                             format % args,
                         )
-                        run_self.log.info(msg)
+                        self_run.log.info(msg)
 
-            handler_cls = LogHandler #self.options.get("handler_class", LogHandler)
+            #handler_cls =  self.options.get("handler_class", LogHandler)
             server_cls = Server
 
             if ":" in self.host:  # Fix wsgiref for IPv6 addresses.
@@ -368,7 +369,7 @@ def wsgirefThreadingServer():
                     class server_cls(server_cls):
                         address_family = socket.AF_INET6
 
-            srv = make_server(self.host, self.port, app, server_cls, handler_cls)
+            srv = make_server(self.host, self.port, app, server_cls, LogHandler )
             srv.serve_forever()
 
     return WSGIRefThreadingServer
@@ -424,28 +425,43 @@ def Pyruvate():
 # --------------------------------------- Mig --------------------------------
 # alias mig3="cd $p4w_path && ./py4web.py  run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
 
-# version 0.0.3
+# version 0.0.4
 
 def tornadoMig():
     #  curl -k "http://127.0.0.1:8000/socket.io/?EIO=4&transport=polling"
 
-    import socketio, sys, os, httpx
+    import socketio, httpx
 
     class SioInit:
         def __init__(self, P, handl, debug = True):
-            self.P = P   # is's main self
+            self.P = P
             self.log = P.log
             self.handl = handl
-            self.debug = not debug
+            self.debug = debug
             self.sids_connected = dict()
             self.sio = None
             self.post_to = None
             self.red_param = None, None
 
+        def cprint(self, mess="mess", color="green"):
+            c_fmt = "--- {}"
+            if sys.stdout.isatty() == True:
+                c = {
+                  "red": "\033[91m {}\033[00m",
+                  "green": "\033[92m {}\033[00m",
+                  "yellow": "\033[93m {}\033[00m",
+                  "cyan": "\033[96m {}\033[00m",
+                  "gray": "\033[97m {}\033[00m",
+                  "purple": "\033[95m {}\033[00m",
+                 }
+            c_fmt = c.get(color, c_fmt)
+            print(c_fmt.format(mess))
+            return mess            
+
         def get_uri_tbl(self, post_pattern = "siopost123"):
             # post_pattern must exist in apps-controllers
-            post_scheme = "https" if self.P.options.get("certfile", None) else "http"
-            post_prefix = f"{post_scheme}://{self.P.host}:{self.P.port}/"
+            scheme = "https" if self.P.options.get("certfile", None) and self.P.options.get("keyfile", None) else "http"
+            post_prefix = f"{scheme}://{self.P.host}:{self.P.port}/"
         
             maybe =  { x.split("/")[0]: x.split("/")[1] for x in self.handl.routes.keys() if post_pattern in x }
             post_to = { k: post_prefix + k + '/' + v  for k,v in maybe.items() }
@@ -491,13 +507,26 @@ def tornadoMig():
         def get_handl(self):
             return socketio.get_tornado_handler(self.sio) 
 
-        def out_dbg(self, data):
-            self.debug and print(data)
+        def out_dbg(self, data, color='yellow'):
+            self.debug and self.cprint(data, color)
 
         def log_info(self, data):
             self.log and self.log.info(data)
 
-        async def post_event( self, sid, event_name='unk', data=None, bcast = True):
+        async def db_run(self, sid, e_name ,  data={'from':'db_run'}, bcast=False,  ):    
+            await self.post_event( sid, e_name, data, bcast, )
+            #self.log and self.log.info(data)
+
+        async def ctrl_emit(self, sid, e_name ,  data={'from':'ctrl_emit'}, bcast=False , ):    
+            await self.post_event( sid, e_name, data, bcast, )
+            #self.log and self.log.info(data)
+
+        async def ctrl_call_mult(self, sid, e_name ,  data={'from':'ctrl_call_mult'}, bcast=False , ):    
+            r = await self.post_event( sid, e_name, data, bcast, )
+            return r
+            #self.log and self.log.info(data)
+
+        async def post_event( self, sid, event_name='unk', data=None, bcast = False, ):
 
             sid_data, app_nm, post_url= None, None, None
             
@@ -509,22 +538,27 @@ def tornadoMig():
                 self.log_info(f"post_event bad sid={sid}")
                 return f"sid {sid} not found in sids_connected!"
 
+
             json_data = {
+                    "sid": sid,
                     "event_name": event_name,
                     "username": sid_data["username"],
                     "data": data,
-                    "bcast": bcast,
                     "room": sid_data["room"],
-                    "to": app_nm,
+                    "app_nm": app_nm,
                     "cmd": "cmd",
                     "cmd_args": "cmd_args",
             }
+
 
             headers = dict() # { "content-type": "application/json", }
 
             async with httpx.AsyncClient( verify=False) as p4w:
                 r = await p4w.post( post_url, json=json_data, headers=headers,)
                 r.status_code != 200 and self.log_info( f"httpx.AsyncClient: {post_url} {r.status_code}")
+                return r
+                #return r.text
+                #self.out_dbg(f"+++++++++++++++++ {r.text}" )
 
     # ------------------------------------------------------------------------------
     import tornado, asyncio, uvloop, random
@@ -540,7 +574,7 @@ def tornadoMig():
                 ZZ.log = logging.getLogger("tornadoMig")
                 ZZ.log.addHandler(logging.StreamHandler())
             
-            s_app = SioInit(ZZ, handler, debug=ZZ.quiet)
+            s_app = SioInit(ZZ, handler, )
             sio = s_app.get_sio
 
             ZZ.client_count = 0
@@ -548,6 +582,7 @@ def tornadoMig():
             ZZ.b_count = 0
 
             async def periodic_task(sid):
+                #return False
                 e_name = sys._getframe().f_code.co_name
                 count = 0
                 while True:
@@ -555,17 +590,30 @@ def tornadoMig():
 
                     if not sid in s_app.sids_connected: break
 
-                    await sio.emit( "my_response", {"data": f"periodic_task 7-sec-counter {count} to {sid}  "},)
-                    await s_app.post_event( sid, e_name, data={"cmd": "cmd", "cmd_args": "cmd_args", 
-                                            "sid": sid, "count": count }, bcast = True )
+                    await sio.emit( "my_response", {"data": f"periodic_task 7-sec-counter-to-all {count} to {sid}  "},)
+                    
+                    await s_app.ctrl_emit( sid, 'ctrl_emit', 
+                             data={ 'orig_e': e_name, 'event_to': 'some_event', 'sid_to': None, 'bcast':False  } , 
+                              )
+                    await s_app.post_event( sid, e_name, data={"cmd": "cmd", 
+                              "cmd_args": "cmd_args", "sid": sid, "count": count } )
+                    
+                    await s_app.db_run( sid, 'db_run', data={ 'orig_e': e_name, 'event_to': 'some_event', 
+                        'cmd': 'PUT', 'table': 'log_table','id': None,  'log_msg': 'hello, dear', 'red_emit': False,
+                        'username': 'unk','sid_to': None, 'bcast':False  }  )
+                    
                     await sio.sleep(7)
 
             async def simple_task(sid):
                 e_name = sys._getframe().f_code.co_name
+                am = random.randint(1,9)
+                bm = random.randint(1,9)
                 await sio.sleep(5)
-                result = await sio.call("mult", {"numbers": [3, 4]}, to=sid)
+                result = await sio.call("mult", {"numbers": [am, bm]}, to=sid)
                 s_app.log_info(f"result from js-mult: {result}")
-                await s_app.post_event(sid, e_name,  bcast = False)
+                #res = await s_app.post_event(sid, e_name, data={'xxx':'111', 'yyy':'222'} )
+                res = await s_app.ctrl_call_mult( sid, 'ctrl_call_mult', data={  "numbers": [am, bm]},  )
+                s_app.out_dbg(f"+++++++++++++++++ {res.text}" )
 
             @sio.event
             async def close_room(sid, message):
@@ -601,12 +649,15 @@ def tornadoMig():
                 username = environ.get("HTTP_X_USERNAME")
                 s_app.log_info(f"HTTP_X_USERNAME: {username} {app_nm}")
                 if not username:
+                    # raise ConnectionRefusedError('authentication failed')
                     return False
                 async with sio.session(sid) as session:
                     session["username"] = username
                     session["sid"] = sid
                     #session["qu"] = asyncio.Queue()
                 await sio.emit("user_joined", f"{username} sid: {sid}")
+                await s_app.db_run( sid, 'db_run', data={ 'orig_e': e_name, 'event_to': 'some_event', 
+                            'username': username,'sid_to': None, 'bcast':False  }  )
 
                 # end auth etc
 
@@ -625,8 +676,7 @@ def tornadoMig():
                     ZZ.b_count += 1
                     await sio.emit("room_count", ZZ.b_count, to="b")
 
-                s_app.sids_connected[sid] = { "sid": sid, "app_nm": app_nm, "func": func_nm, 
-                                              "username": username, "room": myroom, }
+                s_app.sids_connected[sid] = { "sid": sid, "app_nm": app_nm, "func": func_nm, "username": username, "room": myroom}
 
                 await sio.emit("client_count", f"{ZZ.client_count} {set(s_app.sids_connected.keys())}")
 
@@ -659,7 +709,18 @@ def tornadoMig():
 
                 async with sio.session(sid) as session:
                     await sio.emit("user_left", session["username"])
+            
+            @sio.event
+            async def sum(sid, data):
+                #self.log and self.log.info(data)
+                result = data['numbers'][0] + data['numbers'][1]
+                return {'result': result}
 
+
+            @sio.on('*')
+            async def catch_all(event, sid, data):
+                    s_app.out_dbg(f'----------------------- catch_all: {event} {data}')
+                    # https://python-socketio.readthedocs.io/en/latest/server.html#defining-event-handlers
 
             #@sio.event
             #async def connect(sid, environ):
@@ -700,8 +761,9 @@ def tornadoMig():
 
 # https://github.com/kasullian/ChatIO/blob/main/server.py
 # https://stackoverflow.com/questions/60266397/using-multiple-asyncio-queues-effectively
-# https://github.com/benfred/py-spy
-# https://www.roguelynn.com/words/asyncio-debugging/
-# https://martinheinz.dev/blog/101
-# https://github.com/PyHAT-stack/awesome-python-htmx
+# https://stackoverflow.com/questions/58408980/python-socket-io-emit-call-from-function
+# https://stackoverflow.com/questions/71338054/python-send-data-every-10-seconds-via-socket-io
+# sio.get_sid(namespace='/my-namespace')
+# sio.get_sid() https://stackoverflow.com/questions/66160701/how-to-synchronize-socket-sid-on-server-and-client
+
 

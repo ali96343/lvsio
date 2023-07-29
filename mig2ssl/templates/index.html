@@ -2,10 +2,9 @@
 
 [[ block page_head ]]
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2PYF773PwAGewLSGezkXwAAAABJRU5ErkJggg=="/>
-    <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.0/socket.io.min.js"></script>
     <title>Mig demo</title>
 [[ end ]]
-[[=ctrl ]]
 
 <div class="section">
   <div class="vars">
@@ -17,6 +16,7 @@
       <p id="id_room_count">5</p>
       <p id="id_my_response">6</p>
       <p id="id_from_do_cmd">7</p>
+      <p id="id_from_ctrl_call_mult">8</p>
   </div>
 </div>
 
@@ -30,6 +30,7 @@ const id_connected = document.getElementById("id_connected")
 const id_room_count = document.getElementById("id_room_count")
 const id_my_response = document.getElementById("id_my_response")
 const id_from_do_cmd = document.getElementById("id_from_do_cmd")
+const id_from_ctrl_call_mult = document.getElementById("id_from_ctrl_call_mult")
 
 
 const sio = io({
@@ -96,4 +97,8 @@ sio.on('from_do_cmd', (data) => {
   console.log( 'from_do_cmd ' + data );
 });
 
+sio.on('from_ctrl_call_mult', (data) => {
+  id_from_ctrl_call_mult.innerHTML = 'from_ctrl_call_mult ' + data 
+  console.log( 'from_ctrl_call_mult ' + data );
+});
 </script>
