@@ -2,7 +2,7 @@
 
 ---------------------------------------------
 
-mig1ssl, mig2ssl
+mig1ssl, mig2ssl, tornadoMig
 
 based on https://github.com/miguelgrinberg/quick-socketio-tutorial/tree/part9
 
@@ -11,9 +11,7 @@ cp mig1ssl/server_adapters.py to py4web/server_adapters.py
 
 ./py4web.py  run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000
 
-mig1ssl, mig2ssl has controllers "siopost123-random-name" 
-
-test for async post_event ( with random_uri ) to controller from tornadoMig
+test for async run_controller from tornadoMig
 
 ---------------------------------------------
 

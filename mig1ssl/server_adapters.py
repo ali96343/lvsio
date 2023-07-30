@@ -41,11 +41,11 @@ def logging_conf(level, log_file="server-py4web.log" ):
         log_to = { "filename": path_log_file, "filemode": "w", } 
         print (f"PY4WEB_LOGS={log_dir}, open {path_log_file}")
 
-    f_s="%(message)s"
-    f_l="%(asctime)s | %(threadName)s | %(message)s | (%(filename)s:%(lineno)d)"
+    _short="%(message)s"
+    _long="%(asctime)s | %(threadName)s | %(message)s | (%(filename)s:%(lineno)d)"
 
     logging.basicConfig(
-        format=f_l,
+        format=_short,
         encoding="utf-8",
         level=check_level( level ) ,
         **log_to,
@@ -53,7 +53,6 @@ def logging_conf(level, log_file="server-py4web.log" ):
 
 def get_workers(opts, default=10):
     return opts["workers"] if "workers" in opts else default
-
 
 # ---------------------------------------------------------------------
 
@@ -425,25 +424,26 @@ def Pyruvate():
 # --------------------------------------- Mig --------------------------------
 # alias mig3="cd $p4w_path && ./py4web.py  run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
 
-# version 0.0.4
+# version 0.0.5
 
 def tornadoMig():
     #  curl -k "http://127.0.0.1:8000/socket.io/?EIO=4&transport=polling"
 
     import socketio, httpx
 
-    class SioInit:
-        def __init__(self, P, handl, debug = True):
-            self.P = P
-            self.log = P.log
-            self.handl = handl
-            self.debug = debug
-            self.sids_connected = dict()
-            self.sio = None
-            self.post_to = None
-            self.red_param = None, None
+    class sio_apps_init:
+        # Z == self, mypep ;)
+        def __init__(Z, P, handl, debug = True):
+            Z.P = P
+            Z.log = P.log
+            Z.handl = handl
+            Z.debug = debug
+            Z.sids_connected = dict()
+            Z.sio = None
+            Z.post_to = None
+            Z.red_param = None, None
 
-        def cprint(self, mess="mess", color="green"):
+        def cprint(Z, mess="mess", color="green"):
             c_fmt = "--- {}"
             if sys.stdout.isatty() == True:
                 c = {
@@ -458,41 +458,41 @@ def tornadoMig():
             print(c_fmt.format(mess))
             return mess            
 
-        def get_uri_tbl(self, post_pattern = "siopost123"):
+        def get_post_tbl(Z, post_pattern = "siopost123"):
             # post_pattern must exist in apps-controllers
-            scheme = "https" if self.P.options.get("certfile", None) and self.P.options.get("keyfile", None) else "http"
-            post_prefix = f"{scheme}://{self.P.host}:{self.P.port}/"
+            scheme = "https" if Z.P.options.get("certfile", None) and Z.P.options.get("keyfile", None) else "http"
+            post_prefix = f"{scheme}://{Z.P.host}:{Z.P.port}/"
         
-            maybe =  { x.split("/")[0]: x.split("/")[1] for x in self.handl.routes.keys() if post_pattern in x }
+            maybe =  { x.split("/")[0]: x.split("/")[1] for x in Z.handl.routes.keys() if post_pattern in x }
             post_to = { k: post_prefix + k + '/' + v  for k,v in maybe.items() }
         
             if post_to:
-                self.out_dbg (f"{post_to}")
+                Z.out_dbg (f"{post_to}")
                 return post_to
         
             sys.exit (f'stop! can not find app with controller {post_pattern}')
 
         
-        def get_red_vars(self, vars_pattern="SIO_RED_PARAM"):
+        def get_red_vars(Z, vars_pattern="SIO_RED_PARAM"):
             # vars_pattern must exist in apps-controllers
             apps_modules = [sys.modules[name] for name in set( sys.modules ) if any (
-                             [ e in name for e in self.post_to.keys() ] )]
+                             [ e in name for e in Z.post_to.keys() ] )]
         
             for mod in apps_modules:
                 for var_name, var_value in vars(mod).items():
                     if var_name == vars_pattern:
-                        self.out_dbg (f"{vars_pattern} {var_value}")
+                        Z.out_dbg (f"{vars_pattern} {var_value}")
                         return var_value
             sys.exit (f'stop! can not find app with {vars_pattern}')
 
         @property
-        def get_sio(self):
-            self.post_to = self.get_uri_tbl()
-            self.red_param = self.get_red_vars()
-            #self.sio = socketio.AsyncServer(async_mode="tornado")
-            r_mgr = socketio.AsyncRedisManager( self.red_param[0], channel=self.red_param[1], write_only=False)
+        def get_sio(Z):
+            Z.post_to = Z.get_post_tbl()
+            Z.red_param = Z.get_red_vars()
+            #Z.sio = socketio.AsyncServer(async_mode="tornado")
+            r_mgr = socketio.AsyncRedisManager( Z.red_param[0], channel=Z.red_param[1], write_only=False)
 
-            self.sio = socketio.AsyncServer(
+            Z.sio = socketio.AsyncServer(
                 async_mode="tornado",
                 client_manager=r_mgr,
                 cors_allowed_origins="*",
@@ -501,64 +501,45 @@ def tornadoMig():
                 # engineio_logger=True,
             )
 
-            return self.sio 
+            return Z.sio 
 
         @property
-        def get_handl(self):
-            return socketio.get_tornado_handler(self.sio) 
+        def get_handl(Z):
+            return socketio.get_tornado_handler(Z.sio) 
 
-        def out_dbg(self, data, color='yellow'):
-            self.debug and self.cprint(data, color)
+        def out_dbg(Z, data, color='yellow'):
+            Z.debug and Z.cprint(data, color)
 
-        def log_info(self, data):
-            self.log and self.log.info(data)
+        def log_info(Z, data):
+            Z.log and Z.log.info(data)
 
-        async def db_run(self, sid, e_name ,  data={'from':'db_run'}, bcast=False,  ):    
-            await self.post_event( sid, e_name, data, bcast, )
-            #self.log and self.log.info(data)
+        async def db_run(Z, sid, e_name ,  data={'from':'db_run'},  ):    
+            await Z.run_controller( sid, e_name, data, )
+            #Z.log and Z.log.info(data)
 
-        async def ctrl_emit(self, sid, e_name ,  data={'from':'ctrl_emit'}, bcast=False , ):    
-            await self.post_event( sid, e_name, data, bcast, )
-            #self.log and self.log.info(data)
+        async def ctrl_emit(Z, sid, e_name ,  data={'from':'ctrl_emit'}, ):    
+            await Z.run_controller( sid, e_name, data, )
 
-        async def ctrl_call_mult(self, sid, e_name ,  data={'from':'ctrl_call_mult'}, bcast=False , ):    
-            r = await self.post_event( sid, e_name, data, bcast, )
+        async def ctrl_call_mult(Z, sid, e_name ,  data={'from':'ctrl_call_mult'}, ):    
+            r = await Z.run_controller( sid, e_name, data, )
             return r
-            #self.log and self.log.info(data)
 
-        async def post_event( self, sid, event_name='unk', data=None, bcast = False, ):
+        async def run_controller( Z, sid, event_name='unk', data=None, ):
 
-            sid_data, app_nm, post_url= None, None, None
-            
             try:
-                sid_data = self.sids_connected[sid]
-                app_nm = sid_data["app_nm"]
-                post_url = self.post_to[app_nm]
+                sid_data = Z.sids_connected[sid]
+                sid_data['event_name'] = event_name 
+                sid_data['data'] = data
+                post_url = Z.post_to[ sid_data["app_nm"]  ]
             except KeyError:
-                self.log_info(f"post_event bad sid={sid}")
+                Z.log_info(f"run_controller bad sid={sid}")
                 return f"sid {sid} not found in sids_connected!"
 
-
-            json_data = {
-                    "sid": sid,
-                    "event_name": event_name,
-                    "username": sid_data["username"],
-                    "data": data,
-                    "room": sid_data["room"],
-                    "app_nm": app_nm,
-                    "cmd": "cmd",
-                    "cmd_args": "cmd_args",
-            }
-
-
-            headers = dict() # { "content-type": "application/json", }
-
             async with httpx.AsyncClient( verify=False) as p4w:
-                r = await p4w.post( post_url, json=json_data, headers=headers,)
-                r.status_code != 200 and self.log_info( f"httpx.AsyncClient: {post_url} {r.status_code}")
+                r = await p4w.post( post_url, json=sid_data, )
+                r.status_code != 200 and Z.log_info( f"httpx.AsyncClient: {post_url} {r.status_code}")
                 return r
-                #return r.text
-                #self.out_dbg(f"+++++++++++++++++ {r.text}" )
+                #Z.out_dbg(f"+++++++++++++++++ {r.text}" )
 
     # ------------------------------------------------------------------------------
     import tornado, asyncio, uvloop, random
@@ -574,28 +555,33 @@ def tornadoMig():
                 ZZ.log = logging.getLogger("tornadoMig")
                 ZZ.log.addHandler(logging.StreamHandler())
             
-            s_app = SioInit(ZZ, handler, )
+            s_app = sio_apps_init(ZZ, handler, )
             sio = s_app.get_sio
 
             ZZ.client_count = 0
             ZZ.a_count = 0
             ZZ.b_count = 0
 
-            async def periodic_task(sid):
+            async def period_task(sid):
                 #return False
                 e_name = sys._getframe().f_code.co_name
                 count = 0
                 while True:
+                    if not sid in s_app.sids_connected: 
+                        break
+
                     count += 1
 
-                    if not sid in s_app.sids_connected: break
-
-                    await sio.emit( "my_response", {"data": f"periodic_task 7-sec-counter-to-all {count} to {sid}  "},)
+                    await sio.emit( "my_response", {"data": f"period_task 7-sec-counter-to-all {count} to {sid}  "},)
                     
                     await s_app.ctrl_emit( sid, 'ctrl_emit', 
                              data={ 'orig_e': e_name, 'event_to': 'some_event', 'sid_to': None, 'bcast':False  } , 
                               )
-                    await s_app.post_event( sid, e_name, data={"cmd": "cmd", 
+
+                    await s_app.ctrl_emit( sid, 'XXX_cmd', data={"cmd": "cmd",  
+                              "cmd_args": "cmd_args", "sid": sid, "count": count } )
+
+                    await s_app.run_controller( sid, e_name, data={"cmd": "cmd", 
                               "cmd_args": "cmd_args", "sid": sid, "count": count } )
                     
                     await s_app.db_run( sid, 'db_run', data={ 'orig_e': e_name, 'event_to': 'some_event', 
@@ -611,7 +597,6 @@ def tornadoMig():
                 await sio.sleep(5)
                 result = await sio.call("mult", {"numbers": [am, bm]}, to=sid)
                 s_app.log_info(f"result from js-mult: {result}")
-                #res = await s_app.post_event(sid, e_name, data={'xxx':'111', 'yyy':'222'} )
                 res = await s_app.ctrl_call_mult( sid, 'ctrl_call_mult', data={  "numbers": [am, bm]},  )
                 s_app.out_dbg(f"+++++++++++++++++ {res.text}" )
 
@@ -653,7 +638,6 @@ def tornadoMig():
                     return False
                 async with sio.session(sid) as session:
                     session["username"] = username
-                    session["sid"] = sid
                     #session["qu"] = asyncio.Queue()
                 await sio.emit("user_joined", f"{username} sid: {sid}")
                 await s_app.db_run( sid, 'db_run', data={ 'orig_e': e_name, 'event_to': 'some_event', 
@@ -676,14 +660,15 @@ def tornadoMig():
                     ZZ.b_count += 1
                     await sio.emit("room_count", ZZ.b_count, to="b")
 
-                s_app.sids_connected[sid] = { "sid": sid, "app_nm": app_nm, "func": func_nm, "username": username, "room": myroom}
+                s_app.sids_connected[sid] = { "sid": sid, "app_nm": app_nm, 
+                        "func": func_nm, "username": username, "room": myroom}
 
                 await sio.emit("client_count", f"{ZZ.client_count} {set(s_app.sids_connected.keys())}")
 
                 sio.start_background_task(simple_task, sid)
-                sio.start_background_task(periodic_task, sid)
+                sio.start_background_task(period_task, sid)
 
-                await s_app.post_event(sid, e_name, )
+                await s_app.run_controller(sid, e_name, )
 
             @sio.event
             async def disconnect_request(sid):
@@ -694,8 +679,10 @@ def tornadoMig():
             async def disconnect(sid):
                 e_name = sys._getframe().f_code.co_name
 
-                if sid in s_app.sids_connected: 
-                    del s_app.sids_connected[sid]
+                if not sid in s_app.sids_connected: 
+                    return
+
+                del s_app.sids_connected[sid]
 
                 ZZ.client_count -= 1
                 s_app.log_info(f"{sid} disconnected")
@@ -712,23 +699,17 @@ def tornadoMig():
             
             @sio.event
             async def sum(sid, data):
-                #self.log and self.log.info(data)
+                e_name = sys._getframe().f_code.co_name
+                #Z.log and Z.log.info(data)
                 result = data['numbers'][0] + data['numbers'][1]
-                return {'result': result}
-
+                return {'result': result, 'event_name': e_name}
 
             @sio.on('*')
             async def catch_all(event, sid, data):
-                    s_app.out_dbg(f'----------------------- catch_all: {event} {data}')
-                    # https://python-socketio.readthedocs.io/en/latest/server.html#defining-event-handlers
+                e_name = sys._getframe().f_code.co_name
+                s_app.out_dbg(f'----------------------- {e_name}: {event} {data}')
+                # https://python-socketio.readthedocs.io/en/latest/server.html#defining-event-handlers
 
-            #@sio.event
-            #async def connect(sid, environ):
-            #    s_app.out_dbg(f"sio: connect {sid} {environ}")
-        
-            #@sio.event
-            #async def disconnect(sid):
-            #    s_app.out_dbg(f"sio: disconnect {sid}")
         
             async def main():
                 container = tornado.wsgi.WSGIContainer(handler)
