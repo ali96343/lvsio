@@ -2,7 +2,7 @@
 
 ---------------------------------------------
 
-mig1ssl, mig2ssl, tornadoMig
+mig1ssl, mig2ssl, tornadoMig, pydal
 
 based on https://github.com/miguelgrinberg/quick-socketio-tutorial/tree/part9
 
