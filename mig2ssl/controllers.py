@@ -7,6 +7,7 @@ from .left_menu import l_menu
 
 from .ctrlpost import *
 from .dbadm import *
+from .sioadm import *
 
 @action("index")
 @action.uses("index.html", auth, T)

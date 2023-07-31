@@ -1,0 +1,53 @@
+/home/hh/py4web-w/py4web/apps/mig1ssl/server_adapters.py
+    strlen=38
+     -580:    await s_app.ctrl_emit( sid, 'XXX_cmd', data={"cmd": "cmd",  
+     +580:    await s_app.ctrl_emit( sid, 'xxx_cmd', data={"cmd": "cmd",  
+
+/home/hh/py4web-w/py4web/apps/mig1ssl/templates/index.html
+    strlen=29
+     -15:    <p id="id_from_XXX_cmd">7</p>
+     +15:    <p id="id_from_xxx_cmd">7</p>
+
+/home/hh/py4web-w/py4web/apps/mig1ssl/templates/index.html
+    strlen=29
+     -31:    const id_from_XXX_cmd = document.getElementById("id_from_XXX_cmd")
+     +31:    const id_from_xxx_cmd = document.getElementById("id_from_xxx_cmd")
+
+/home/hh/py4web-w/py4web/apps/mig1ssl/templates/index.html
+    strlen=29
+     -95:    sio.on('from_XXX_cmd', (data) => {
+     +95:    sio.on('from_xxx_cmd', (data) => {
+
+/home/hh/py4web-w/py4web/apps/mig1ssl/templates/index.html
+    strlen=29
+     -96:    id_from_XXX_cmd.innerHTML = 'from_XXX_cmd ' + data 
+     +96:    id_from_xxx_cmd.innerHTML = 'from_xxx_cmd ' + data 
+
+/home/hh/py4web-w/py4web/apps/mig1ssl/templates/index.html
+    strlen=29
+     -97:    console.log( 'from_XXX_cmd ' + data );
+     +97:    console.log( 'from_xxx_cmd ' + data );
+
+/home/hh/py4web-w/py4web/apps/mig1ssl/ctrlpost/__init__.py
+    strlen=33
+     -41:    def XXX_cmd(**kwargs):
+     +41:    def xxx_cmd(**kwargs):
+
+/home/hh/py4web-w/py4web/apps/mig1ssl/ctrlpost/__init__.py
+    strlen=33
+     -49:    r_mgr.emit("from_XXX_cmd", json_data, broadcast=True, include_self=False, room=kwargs['sid'])
+     +49:    r_mgr.emit("from_xxx_cmd", json_data, broadcast=True, include_self=False, room=kwargs['sid'])
+
+/home/hh/py4web-w/py4web/apps/mig1ssl/ctrlpost/__init__.py
+    strlen=33
+     -90:    name_run = {'ctrl_emit': ctrl_emit, 'db_run': db_run, 'ctrl_call_mult':ctrl_call_mult, 'XXX_cmd': XXX_cmd }
+     +90:    name_run = {'ctrl_emit': ctrl_emit, 'db_run': db_run, 'ctrl_call_mult':ctrl_call_mult, 'xxx_cmd': xxx_cmd }
+
+  ---------------------------- work_dir: /home/hh/py4web-w/py4web/apps/mig1ssl --------------
+
+ find: XXX_cmd
+ replace: xxx_cmd
+
+ extensions_tuple: ('.md', '.un', '.js', '.jsx', '.py', '.html', '.css', '.ts', '.tsx', '.sh', '.vue', '.scss', '.json')
+ view_only: False
+ found_in_files: 9

@@ -13,6 +13,5 @@ def cprint(mess="mess", color="green"):
             "purple": "\033[95m {}\033[00m",
         }
         c_fmt = c.get(color, c_fmt)
-    print(c_fmt.format(mess))
-    return mess
+    print(c_fmt.format(str(mess)))
 

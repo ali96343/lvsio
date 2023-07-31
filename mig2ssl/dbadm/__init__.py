@@ -5,20 +5,24 @@ from py4web.utils.factories import Inject
 from pydal.tools.tags import Tags
 
 
+from .atab_utils import sql2table 
+from .tlist_utils import *
+
+
 from ..left_menu import l_menu
 
-@action("mi1")
-def mi1():
-    return "its mi1" 
+@action("mi1_db")
+def mi1_db():
+    return "its mi1_db" 
 
 
-@action("mi2")
-def mi2():
-    return "its mi2" 
+@action("mi2_db")
+def mi2_db():
+    return "its mi2_db" 
 
-@action("mi3")
-def mi3():
-    return "its mi3" 
+@action("mi3_db")
+def mi3_db():
+    return "its mi3_db" 
 
 #@action("mi4")
 #@action.uses("mi4.html", auth, T)

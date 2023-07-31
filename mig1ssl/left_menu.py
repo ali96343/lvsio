@@ -24,7 +24,7 @@ l_menu = [
         ],
     ),
     ( "Db", "#", [
-            route_item("mi1_db"),
+            route_item("tlist"),
             route_item("mi2_db"),
             route_item("mi3_db"),
         ],

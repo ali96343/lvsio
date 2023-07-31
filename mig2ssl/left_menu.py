@@ -18,15 +18,15 @@ l_menu = [
     ("i", URL(_url), []),
 
     ( "Sio", "#", [
-            route_item("index"),
-            route_item("index"),
-            route_item("index"),
+            route_item("mi1_sio"),
+            route_item("mi2_sio"),
+            route_item("mi3_sio"),
         ],
     ),
     ( "Db", "#", [
-            route_item("mi1"),
-            route_item("mi2"),
-            route_item("mi3"),
+            route_item("tlist"),
+            route_item("mi2_db"),
+            route_item("mi3_db"),
         ],
     ),
 ]

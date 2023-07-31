@@ -13,7 +13,7 @@
       <p id="id_client_count">2</p>
       <p id="id_room_count">5</p>
       <p id="id_my_response">6</p>
-      <p id="id_from_XXX_cmd">7</p>
+      <p id="id_from_xxx_cmd">7</p>
       <p id="id_from_ctrl_call_mult">8</p>
       <p id="id_result">3</p>
       <p id="id_connected">4</p>
@@ -29,7 +29,7 @@ const id_result = document.getElementById("id_result")
 const id_connected = document.getElementById("id_connected")
 const id_room_count = document.getElementById("id_room_count")
 const id_my_response = document.getElementById("id_my_response")
-const id_from_XXX_cmd = document.getElementById("id_from_XXX_cmd")
+const id_from_xxx_cmd = document.getElementById("id_from_xxx_cmd")
 const id_from_ctrl_call_mult = document.getElementById("id_from_ctrl_call_mult")
 
 
@@ -93,9 +93,9 @@ sio.on('user_left', (username) => {
   console.log('User: ' + username + ' has left.');
 });
 
-sio.on('from_XXX_cmd', (data) => {
-  id_from_XXX_cmd.innerHTML = 'from_XXX_cmd ' + data 
-  console.log( 'from_XXX_cmd ' + data );
+sio.on('from_xxx_cmd', (data) => {
+  id_from_xxx_cmd.innerHTML = 'from_xxx_cmd ' + data 
+  console.log( 'from_xxx_cmd ' + data );
 });
 
 sio.on('from_ctrl_call_mult', (data) => {
