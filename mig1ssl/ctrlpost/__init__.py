@@ -103,6 +103,8 @@ def db_run(**kwargs):
         #tblrow = gettbl(xid )
         if tblrow:
             cprint (f"{xid} {tblrow.as_list()}")
+            #return tblrow.as_dict()
+            return tblrow.as_list()
         cprint("its GET")
     elif cmd == "UPDATE":
         updatetbl = db[ kwargs['table'] ]
@@ -137,7 +139,7 @@ name_run = {
 @action( "siopost123" + str(secrets.token_hex(SECRET_LEN)), method=[ "POST", ],)
 def post_dispatcher():
     c_name = sys._getframe().f_code.co_name
-    cprint("----------------- " + c_name)
+    cprint(f"-----------------  {c_name}")
 
     try:
         json_data = json.loads(request.body.read())
@@ -161,7 +163,7 @@ def post_dispatcher():
             return f"{c_name}: emty data-dict"
 
     except (KeyError, Exception) as ex:
-        print(f"ex! {c_name}:", ex)
+        cprint(f"ex! {c_name}:  {ex}")
         cprint(sys.exc_info(), "red")
         cprint("lineno: " + str(sys._getframe().f_lineno), "red")
         return f"{c_name}: bad"

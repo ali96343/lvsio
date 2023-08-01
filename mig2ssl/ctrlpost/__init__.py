@@ -44,9 +44,7 @@ def catch_cmd(e_nm, *args, **kwargs):
         {"count": kwargs["count"], "sid": kwargs["sid"], "username": kwargs["username"]}
     )
     # Each client is allocated a room automatically when it connects. Use the sid as the name of the room
-    r_mgr.emit(
-        "from_do_cmd", json_data, broadcast=True, include_self=False, room=kwargs["sid"]
-    )
+    r_mgr.emit( "from_do_cmd", json_data, broadcast=True, include_self=False, room=kwargs["sid"])
 
 
 def xxx_cmd(**kwargs):
@@ -55,17 +53,9 @@ def xxx_cmd(**kwargs):
 
     _ = [print(f"{k} = {v}") for k, v in kwargs.items()]
 
-    json_data = json.dumps(
-        {"count": kwargs["count"], "sid": kwargs["sid"], "username": kwargs["username"]}
-    )
+    json_data = json.dumps( {"count": kwargs["count"], "sid": kwargs["sid"], "username": kwargs["username"]})
     # Each client is allocated a room automatically when it connects. Use the sid as the name of the room
-    r_mgr.emit(
-        "from_xxx_cmd",
-        json_data,
-        broadcast=True,
-        include_self=False,
-        room=kwargs["sid"],
-    )
+    r_mgr.emit( "from_xxx_cmd", json_data, broadcast=True, include_self=False, room=kwargs["sid"],)
 
 
 def ctrl_emit(**kwargs):
@@ -112,10 +102,10 @@ def db_run(**kwargs):
         tblrow =  db( gettbl.id  == xid  ).select() 
         #tblrow = gettbl(xid )
         if tblrow:
-            cprint (f"{xid} {tblrow}")
-        cprint("its GET !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
-        return f"{tblrow.as_list()}"
-        #return tblrow.as_dict()
+            cprint (f"{xid} {tblrow.as_list()}")
+            #return tblrow.as_dict()
+            return tblrow.as_list()
+        cprint("its GET")
     elif cmd == "UPDATE":
         updatetbl = db[ kwargs['table'] ]
         xid = int( kwargs['id'] )
@@ -146,15 +136,10 @@ name_run = {
 }
 
 
-@action(
-    "siopost123" + str(secrets.token_hex(SECRET_LEN)),
-    method=[
-        "POST",
-    ],
-)
+@action( "siopost123" + str(secrets.token_hex(SECRET_LEN)), method=[ "POST", ],)
 def post_dispatcher():
     c_name = sys._getframe().f_code.co_name
-    cprint("----------------- " + c_name)
+    cprint(f"-----------------  {c_name}")
 
     try:
         json_data = json.loads(request.body.read())
@@ -164,14 +149,12 @@ def post_dispatcher():
         if data:
             event_name = json_data["event_name"]
             data["sid"] = json_data["sid"]
-            for e in [
-                "sid",
-                "username",
-                "room",
-            ]:
+            for e in [ "sid", "username", "room", ]:
                 data[e] = json_data[e]
             if event_name in name_run:
                 ret = name_run[event_name](**data)
+                # if emit_to in data:
+                # r_mgr.emit(   result   )
                 return ret if ret else f"{c_name}: ok"
             else:
                 return catch_cmd(event_name, **data)
@@ -180,7 +163,7 @@ def post_dispatcher():
             return f"{c_name}: emty data-dict"
 
     except (KeyError, Exception) as ex:
-        print(f"ex! {c_name}:", ex)
+        cprint(f"ex! {c_name}:  {ex}")
         cprint(sys.exc_info(), "red")
         cprint("lineno: " + str(sys._getframe().f_lineno), "red")
         return f"{c_name}: bad"

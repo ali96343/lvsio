@@ -1,6 +1,6 @@
 import sys
 
-def cprint(mess="mess", color="green"):
+def cprint(mess="mess", color="green", dbg=True):
     # https://www.geeksforgeeks.org/print-colors-python-terminal/
     c_fmt = "--- {}"
     if sys.stdout.isatty() == True:
@@ -13,5 +13,5 @@ def cprint(mess="mess", color="green"):
             "purple": "\033[95m {}\033[00m",
         }
         c_fmt = c.get(color, c_fmt)
-    print(c_fmt.format(str(mess)))
+    dbg and print(c_fmt.format(str(mess)))
 

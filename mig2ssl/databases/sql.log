@@ -1,0 +1,47 @@
+timestamp: 2023-08-01T08:53:34.722866
+CREATE TABLE "auth_user"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "username" CHAR(512) UNIQUE,
+    "email" CHAR(512) UNIQUE,
+    "password" CHAR(512),
+    "first_name" CHAR(512),
+    "last_name" CHAR(512),
+    "sso_id" CHAR(512),
+    "action_token" CHAR(512),
+    "last_password_change" TIMESTAMP,
+    "past_passwords_hash" TEXT
+);
+success!
+timestamp: 2023-08-01T08:53:34.734528
+CREATE TABLE "auth_user_tag_groups"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "tagpath" CHAR(512),
+    "record_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE ON UPDATE CASCADE  
+);
+success!
+timestamp: 2023-08-01T08:53:34.755839
+CREATE TABLE "test_table"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "f0" CHAR(512),
+    "f1" CHAR(512),
+    "f2" CHAR(512)
+);
+success!
+timestamp: 2023-08-01T08:53:34.789959
+CREATE TABLE "sio_user_log"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "username" CHAR(512),
+    "inout" CHAR(512),
+    "orig_e" CHAR(512),
+    "room" CHAR(512),
+    "time" TIMESTAMP
+);
+success!
+timestamp: 2023-08-01T08:53:34.798239
+CREATE TABLE "sio_user_data"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "username" TEXT,
+    "counter" TEXT,
+    "orig_e" CHAR(512)
+);
+success!

@@ -503,21 +503,21 @@ def Pyruvate():
 def tornadoMig():
     #  curl -k "http://127.0.0.1:8000/socket.io/?EIO=4&transport=polling"
 
-    import socketio, httpx
+    import socketio, httpx, json
 
-    class sio_apps_init:
+    class sio_multi:
         # Z == self, mypep ;)
-        def __init__(Z, P, handl, debug=True):
+        def __init__(Z, P, handl, dbg=True):
             Z.P = P
             Z.log = P.log
             Z.handl = handl
-            Z.debug = debug
+            Z.dbg = dbg
             Z.sids_connected = dict()
             Z.sio = None
             Z.post_to = None
             Z.red_param = None, None
 
-        def cprint(Z, mess="mess", color="green"):
+        def cprint(Z, mess="mess", color="green", dbg=True):
             c_fmt = "--- {}"
             if sys.stdout.isatty() == True:
                 c = {
@@ -529,7 +529,7 @@ def tornadoMig():
                     "purple": "\033[95m {}\033[00m",
                 }
             c_fmt = c.get(color, c_fmt)
-            print(c_fmt.format(str(mess)))
+            dbg and print(c_fmt.format(str(mess)))
 
         def get_post_tbl(Z, post_pattern="siopost123"):
             # post_pattern must exist in apps-controllers
@@ -594,21 +594,19 @@ def tornadoMig():
             return socketio.get_tornado_handler(Z.sio)
 
         def out_dbg(Z, data, color="yellow"):
-            Z.debug and Z.cprint(data, color)
+            Z.dbg and Z.cprint(data, color)
 
         def log_info(Z, data):
             Z.log and Z.log.info(data)
 
         async def db_run( Z, sid, e_name, data={"from": "db_run"},):
-            await Z.run_controller( sid, e_name, data,)
-            # Z.log and Z.log.info(data)
+            return await Z.run_controller( sid, e_name, data,)
 
         async def ctrl_emit( Z, sid, e_name, data={"from": "ctrl_emit"},):
-            await Z.run_controller( sid, e_name, data,)
+            return await Z.run_controller( sid, e_name, data,)
 
         async def ctrl_call_mult( Z, sid, e_name, data={"from": "ctrl_call_mult"},):
-            r = await Z.run_controller( sid, e_name, data,)
-            return r
+            return await Z.run_controller( sid, e_name, data,)
 
         async def run_controller( Z, sid, event_name="unk", data=None,):
             try:
@@ -623,7 +621,7 @@ def tornadoMig():
             async with httpx.AsyncClient(verify=False) as p4w:
                 r = await p4w.post( post_url, json=sid_data,)
                 r.status_code != 200 and Z.log_info( f"run_controller: {post_url} {r.status_code}")
-                return r
+                return r.text
 
     # ------------------------------------------------------------------------------
     import tornado, asyncio, uvloop, random
@@ -638,7 +636,7 @@ def tornadoMig():
                 ZZ.log = logging.getLogger("tornadoMig")
                 ZZ.log.addHandler(logging.StreamHandler())
 
-            s_app = sio_apps_init( ZZ, handler,)
+            s_app = sio_multi( ZZ, handler,)
             sio = s_app.get_sio
 
             ZZ.client_count = 0
@@ -663,12 +661,7 @@ def tornadoMig():
 
                     await s_app.run_controller( sid, e_name, data={"sid": sid, "count": count})
 
-                    #await s_app.db_run( sid, "db_run", data={ "orig_e": e_name, 
-                    #        "cmd": "PUT",
-                    #        "table": "log_table", "id": int(0), "log_msg": "hello, dear",
-                    #        "red_emit": False, "bcast": False, },)
-
-                    s_app.cprint( f"================= s_app.sids_connected: {len(s_app.sids_connected)}", "cyan",)
+                    #s_app.cprint( f"================= s_app.sids_connected: {len(s_app.sids_connected)}", "cyan",)
                     await sio.sleep(7)
 
             async def simple_task(sid):
@@ -678,8 +671,8 @@ def tornadoMig():
                 await sio.sleep(5)
                 result = await sio.call("mult", {"numbers": [am, bm]}, to=sid)
                 s_app.log_info(f"result from js-mult: {result}")
-                res = await s_app.ctrl_call_mult( sid, "ctrl_call_mult", data={"numbers": [am, bm]},)
-                s_app.out_dbg(f"+++++++++++++++++ {res.text}")
+                r = await s_app.ctrl_call_mult( sid, "ctrl_call_mult", data={"numbers": [am, bm]},)
+                s_app.out_dbg(f"+++++++++++++++++ {r}")
 
             @sio.event
             async def close_room(sid, message):
@@ -763,13 +756,31 @@ def tornadoMig():
                 if not sid in s_app.sids_connected:
                     return
 
+                ar = random.randint(1, 9)
+                br = random.randint(1, 9)
+
                 await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_user_log", 
                     "inout": "out", "orig_e": e_name, },)
+
+                #await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_user_data", 
+                #    "counter": ['hello', 'world', ar, {'counter': br}], "orig_e": e_name, },)
+
+                #await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_user_data", 
+                #    "counter":  {'counter': br}, "orig_e": e_name, },)
+
+                await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_user_data", 
+                    "counter": br, "orig_e": e_name, },)
 
                 #await s_app.db_run( sid, "db_run", data={ "cmd": "UPDATE", "table": "sio_user_log", 
                 #    "id": 12, "inout": "----", "orig_e": '+++++', },)
 
-                #await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_user_log", "id": 36 } )
+                #r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_user_log", "id": 1 } )
+                #s_app.cprint (f"{r}", 'cyan')
+
+                r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_user_data", "id": 1 } )
+                #s_app.cprint (type(r))
+                #s_app.cprint (f"{r}!!!!!", 'cyan')
+                s_app.cprint (json.loads(r)[0])
 
                 #await s_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_user_log", "id": 7 } )
 

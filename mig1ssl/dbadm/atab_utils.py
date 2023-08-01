@@ -5,6 +5,8 @@ from py4web.core import Template
 from py4web import URL
 import pydal
 
+from .. left_menu import l_menu
+
 
 def sql2table(
     tbl,
@@ -214,7 +216,7 @@ def mytab_grid():
         pagi = True,
     )
 
-    return dict(message="test sql2table", mytab=mytab)
+    return dict(message="test sql2table", mytab=mytab, l_menu=l_menu)
 
 @action("csv_func", method=["GET", "POST"])
 def csv_func():
@@ -250,197 +252,197 @@ def some4_func():
     return f"some4_func: {args}"
 
 #-------------------------------------------------------------------------------------------------------------
-
-class Sqltable(object):
-
-    def __init__(
-        self,
-        tbl,
-        db,
-        tbl_query = None,
-        order_by = None,
-        rows_on_page=13,
-        caller="index",
-        csv=False,
-        pagi=False,
-        links=[],
-        hlinks=[],
-        fld_links={},
-        fld_skip=[0,],
-        fld_length = 15,
-        page_d={},
-        show_thead= True,
-    ):
-        self.tbl = tbl
-        self.db = db,
-        self.tbl_query = tbl_query
-        self.order_by = order_by
-        self.rows_on_page =rows_on_page
-        self.caller= caller
-        self.csv=csv
-        self.pagi=pagi
-        self.links=links
-        self.hlinks=hlinks
-        self.fld_links= fld_links
-        self.fld_skip= fld_skip
-        self.fld_length = fld_length
-        self.page_d= page_d
-        self.show_thead= show_thead 
-
-    def Ssql2table(
-        tbl,
-        db,
-        tbl_query = None,
-        order_by = None,
-        rows_on_page=13,
-        caller="index",
-        csv=False,
-        pagi=False,
-        links=[],
-        hlinks=[],
-        fld_links={},
-        fld_skip=[0,],
-        fld_length = 15,
-        page_d={},
-        show_thead= True,
-    ):
-        def stop_button():
-             return A( '!', _title='stop',  _role = 'button', _style="background-color:lightgray;color:black;" )
-    
-    
-        if not tbl in db.tables:
-            return f"unknown tbl: {tbl}"
-    
-        if tbl_query is None:
-           tbl_query = db[tbl].id > 0
-    
-        if tbl_query  and not isinstance( tbl_query, pydal.objects.Query  ):
-            return f"bad tbl_query! tbl: {tbl}"
-    
-        if order_by is None:
-           order_by = ~db[tbl].id
-    
-        try:
-            pg = int(page_d.get("page", 1))
-        except ( ValueError, TypeError) : 
-            pg = 1
-    
-    
-        table_items = len(db( tbl_query ).select())
-        if rows_on_page > table_items:
-            rows_on_page = table_items
-    
-        if table_items == 0:
-            show_thead = False
-    
-        max_pages, rem = divmod( table_items, rows_on_page  ) if table_items else (0,0)
-        if rem: 
-            max_pages += 1
-    
-        limitby= ( (pg - 1) * rows_on_page, pg * rows_on_page ) 
-        if not pagi:
-           rows_on_page = table_items
-           limitby = ( 0, table_items )
-    
-        rows = db( tbl_query  ).select(orderby= order_by, limitby= limitby   )
-    
-        ij_start = -len(links)
-        ff = [f for f in db[tbl].fields]
-        hh = [db[tbl][f].label for f in ff]
-    
-        def h_func(x, jj):
-            if jj < 0:
-                if len(hlinks) >= -jj:
-                    return hlinks[len(hlinks) + jj]
-                return "act"
-            if jj in fld_skip:
-                return ''
-    
-            if not x is None and isinstance(x, str) and len(x) > fld_length :
-                 x=x[:fld_length] + '...'
-    
-            return f"{x}"
-    
-        def r_func(x, ii, r, t, f_nm):
-            if ii < 0:
-                if len(links) >= -ii:
-                    return links[len(links) + ii](t, r.id)
-                return "act"
-            if ii in fld_skip:
-                return ''
-            if ii in fld_links:
-                return fld_links[ii](t, x, r.id)
-            if f_nm in fld_links:
-                return fld_links[f_nm](t, x, r.id)
-    
-            if not x is None and isinstance(x, str) and len(x) > fld_length :
-                 x=x[:fld_length] + '...'
-                
-            return f"{x}"
-    
-        return DIV(
-            SPAN("table_name: ", ),
-            SPAN(f"{tbl}", _style="color:red"),
-            SPAN(f"; {table_items} rows, {rows_on_page} rows_on_page"),
-            DIV( # <div>
-    
-                SPAN(
-                    A(
-                        "prev",
-                        _role="button",
-                        _href=URL(caller, vars=dict(page=pg - 1 if pg > 1 else pg),  ),
-                    ) if pg > 1 else stop_button() ,
-                    A(
-                        "next",
-                        _role="button",
-                        _href=URL(caller, vars=dict(page=pg + 1 if pg < max_pages else pg), ),
-                    ) if pg < max_pages else stop_button(),
-    
-                )
-                if pagi
-                else "",
-    
-                SPAN(
-                    A(
-                        "csv",
-                        _role="button",
-                        _title="table to 1 csv file",
-                        _href=URL("csv_func", vars=dict(t_=tbl, c="a"),),
-                    ),
-                    A(
-                        "xls",
-                        _role="button",
-                        _title="table to xls file",
-                        _href=URL("some_func", vars=dict(t_=tbl, c="b"), ),
-                    ),
-                )
-                if csv
-                else "",
-            ),  # </div>
-    
-            TABLE(
-                THEAD(TR(*[TD(H6(h_func(hh[j], j))) for j in range(ij_start, len(hh))])) if show_thead else "",
-                TBODY( *[ TR( *[ TD(r_func(row[ff[i]], i, row, tbl, ff[i])) for i in range(ij_start, len(ff)) ])
-                        for row in rows ]
-                ),
-            ),
-        )
-
-    def helper(self,):
-      pass
-
-    @property
-    def custom(self):
-        return self.helper()["controls"]
-
-    @property
-    def structure(self):
-        return self.helper()["form"]
-
-    def xml(self):
-        return self.structure.xml()
-
-    def __str__(self):
-        return self.xml()
-
-
+#
+#class Sqltable(object):
+#
+#    def __init__(
+#        self,
+#        tbl,
+#        db,
+#        tbl_query = None,
+#        order_by = None,
+#        rows_on_page=13,
+#        caller="index",
+#        csv=False,
+#        pagi=False,
+#        links=[],
+#        hlinks=[],
+#        fld_links={},
+#        fld_skip=[0,],
+#        fld_length = 15,
+#        page_d={},
+#        show_thead= True,
+#    ):
+#        self.tbl = tbl
+#        self.db = db,
+#        self.tbl_query = tbl_query
+#        self.order_by = order_by
+#        self.rows_on_page =rows_on_page
+#        self.caller= caller
+#        self.csv=csv
+#        self.pagi=pagi
+#        self.links=links
+#        self.hlinks=hlinks
+#        self.fld_links= fld_links
+#        self.fld_skip= fld_skip
+#        self.fld_length = fld_length
+#        self.page_d= page_d
+#        self.show_thead= show_thead 
+#
+#    def Ssql2table(
+#        tbl,
+#        db,
+#        tbl_query = None,
+#        order_by = None,
+#        rows_on_page=13,
+#        caller="index",
+#        csv=False,
+#        pagi=False,
+#        links=[],
+#        hlinks=[],
+#        fld_links={},
+#        fld_skip=[0,],
+#        fld_length = 15,
+#        page_d={},
+#        show_thead= True,
+#    ):
+#        def stop_button():
+#             return A( '!', _title='stop',  _role = 'button', _style="background-color:lightgray;color:black;" )
+#    
+#    
+#        if not tbl in db.tables:
+#            return f"unknown tbl: {tbl}"
+#    
+#        if tbl_query is None:
+#           tbl_query = db[tbl].id > 0
+#    
+#        if tbl_query  and not isinstance( tbl_query, pydal.objects.Query  ):
+#            return f"bad tbl_query! tbl: {tbl}"
+#    
+#        if order_by is None:
+#           order_by = ~db[tbl].id
+#    
+#        try:
+#            pg = int(page_d.get("page", 1))
+#        except ( ValueError, TypeError) : 
+#            pg = 1
+#    
+#    
+#        table_items = len(db( tbl_query ).select())
+#        if rows_on_page > table_items:
+#            rows_on_page = table_items
+#    
+#        if table_items == 0:
+#            show_thead = False
+#    
+#        max_pages, rem = divmod( table_items, rows_on_page  ) if table_items else (0,0)
+#        if rem: 
+#            max_pages += 1
+#    
+#        limitby= ( (pg - 1) * rows_on_page, pg * rows_on_page ) 
+#        if not pagi:
+#           rows_on_page = table_items
+#           limitby = ( 0, table_items )
+#    
+#        rows = db( tbl_query  ).select(orderby= order_by, limitby= limitby   )
+#    
+#        ij_start = -len(links)
+#        ff = [f for f in db[tbl].fields]
+#        hh = [db[tbl][f].label for f in ff]
+#    
+#        def h_func(x, jj):
+#            if jj < 0:
+#                if len(hlinks) >= -jj:
+#                    return hlinks[len(hlinks) + jj]
+#                return "act"
+#            if jj in fld_skip:
+#                return ''
+#    
+#            if not x is None and isinstance(x, str) and len(x) > fld_length :
+#                 x=x[:fld_length] + '...'
+#    
+#            return f"{x}"
+#    
+#        def r_func(x, ii, r, t, f_nm):
+#            if ii < 0:
+#                if len(links) >= -ii:
+#                    return links[len(links) + ii](t, r.id)
+#                return "act"
+#            if ii in fld_skip:
+#                return ''
+#            if ii in fld_links:
+#                return fld_links[ii](t, x, r.id)
+#            if f_nm in fld_links:
+#                return fld_links[f_nm](t, x, r.id)
+#    
+#            if not x is None and isinstance(x, str) and len(x) > fld_length :
+#                 x=x[:fld_length] + '...'
+#                
+#            return f"{x}"
+#    
+#        return DIV(
+#            SPAN("table_name: ", ),
+#            SPAN(f"{tbl}", _style="color:red"),
+#            SPAN(f"; {table_items} rows, {rows_on_page} rows_on_page"),
+#            DIV( # <div>
+#    
+#                SPAN(
+#                    A(
+#                        "prev",
+#                        _role="button",
+#                        _href=URL(caller, vars=dict(page=pg - 1 if pg > 1 else pg),  ),
+#                    ) if pg > 1 else stop_button() ,
+#                    A(
+#                        "next",
+#                        _role="button",
+#                        _href=URL(caller, vars=dict(page=pg + 1 if pg < max_pages else pg), ),
+#                    ) if pg < max_pages else stop_button(),
+#    
+#                )
+#                if pagi
+#                else "",
+#    
+#                SPAN(
+#                    A(
+#                        "csv",
+#                        _role="button",
+#                        _title="table to 1 csv file",
+#                        _href=URL("csv_func", vars=dict(t_=tbl, c="a"),),
+#                    ),
+#                    A(
+#                        "xls",
+#                        _role="button",
+#                        _title="table to xls file",
+#                        _href=URL("some_func", vars=dict(t_=tbl, c="b"), ),
+#                    ),
+#                )
+#                if csv
+#                else "",
+#            ),  # </div>
+#    
+#            TABLE(
+#                THEAD(TR(*[TD(H6(h_func(hh[j], j))) for j in range(ij_start, len(hh))])) if show_thead else "",
+#                TBODY( *[ TR( *[ TD(r_func(row[ff[i]], i, row, tbl, ff[i])) for i in range(ij_start, len(ff)) ])
+#                        for row in rows ]
+#                ),
+#            ),
+#        )
+#
+#    def helper(self,):
+#      pass
+#
+#    @property
+#    def custom(self):
+#        return self.helper()["controls"]
+#
+#    @property
+#    def structure(self):
+#        return self.helper()["form"]
+#
+#    def xml(self):
+#        return self.structure.xml()
+#
+#    def __str__(self):
+#        return self.xml()
+#
+#

@@ -9,7 +9,7 @@ import pydal
 
 from .atab_utils import sql2table
 
-#from .common import flash
+from .. left_menu import l_menu
 
 DATE_FORMAT = "%d.%m.%y %H:%M:%S"
 
@@ -54,7 +54,7 @@ def tlist():
                    TBODY(*[TR(*[TD(Matrix[y][x]) for x in range(1+ len(cmd))]) for y in range (len(ts))]),
                    ),
            )
-    return dict(message='tables:', xview=xview) 
+    return dict(message='tables:', xview=xview, l_menu=l_menu) 
 
 
 
@@ -177,6 +177,6 @@ def p4w_sql_table(path=None, id=None):
         return f"bad table: {tbl}, path: {path}"
     form = Form(db[tbl], id, deletable=False, formstyle=FormStyleDefault)
     mytab= sql2table( tbl,db , fld_skip=[] )
-    return dict(message=SPAN( tbl, _style="color:red"  ), form=form, mytab=mytab,)
+    return dict(message=SPAN( tbl, _style="color:red"  ), form=form, mytab=mytab, l_menu=l_menu)
 
 

@@ -14,11 +14,11 @@ from .sioadm import *
 def index():
     # curl -k -I  https://192.168.1.161:9000/mig1ssl/index
     user = auth.get_user()
-    #foo = ['userAAA', 'userBBB', 'userCCC', ]
-    foo = ['userXXX', 'userYYY', 'userZZZ', ]
-    unm = secrets.choice(foo)
+    #sio_users = ['userAAA', 'userBBB', 'userCCC', 'userDDD' ]
+    sio_users = ['userWWW','userXXX', 'userYYY', 'userZZZ', ]
+    unm = secrets.choice(sio_users)
     message = T("Hello {first_name}".format(**user) if user else "Hello")
     actions = {"allowed_actions": auth.param.allowed_actions}
     response.headers["X-Username"] = unm 
-    return dict(message=message, actions=actions, response=response, unm= unm, l_menu=l_menu)
+    return dict(message=message, actions=actions, unm= unm, l_menu=l_menu)
 
