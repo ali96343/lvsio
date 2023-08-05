@@ -1,0 +1,53 @@
+[[extend 'layout.html']]
+
+[[ block page_head ]]
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2PYF773PwAGewLSGezkXwAAAABJRU5ErkJggg=="/>
+<script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+<title>Counter</title>
+
+
+<style>
+
+body{
+    background: #F8F8F8;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+main{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#counter-board{
+    font-size: 30px;
+}
+
+
+
+</style>
+
+
+<script>
+let button = document.getElementById('button');
+let inc = document.getElementById('inc');
+let dec = document.getElementById('dec');
+let c = 0; 
+	count.innerText = c;
+
+count.innerText = `The button was clicked ${c} times!`;
+button.addEventListener('click', () => {
+c++;
+count.innerText = `The button was clicked ${c} times!`;
+})
+
+</script>
+
+[[end ]]
+
+<h3 id="count"></h3>
+<button id="inc">+</button>
+<button id="dec">-</button>
+
+

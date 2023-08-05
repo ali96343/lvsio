@@ -58,7 +58,7 @@ if not db(db.test_table).count():
 #    )
 #db.commit()
 
-db.define_table( 'sio_user_log',
+db.define_table( 'sio_log',
     Field('username',  ),
     Field('inout',),
     Field("orig_e",),
@@ -81,18 +81,18 @@ db.commit()
 #row = db.user_data[aid]
 
 #print (row.data)
-db.define_table( 'sio_user_data',
+db.define_table( 'sio_data',
     Field('username', 'text', requires=IS_NOT_EMPTY(),  ),
     Field('counter', 'json', requires=IS_NOT_EMPTY(),  ),
     Field("orig_e",),
     )
 db.commit()
 
-db.sio_user_data.counter.filter_in = lambda obj: json.dumps(obj)
-db.sio_user_data.counter.filter_out = lambda txt: json.loads(txt)
+db.sio_data.counter.filter_in = lambda obj: json.dumps(obj)
+db.sio_data.counter.filter_out = lambda txt: json.loads(txt)
 
 #mycounter = ['hello', 'world', 1, {'counter': 3}]
-#aid = db.sio_user_data.insert(username='myobjusername', counter=mycounter)
-#row = db.sio_user_data[aid]
+#aid = db.sio_data.insert(username='myobjusername', counter=mycounter)
+#row = db.sio_data[aid]
 #print (row.data)
 

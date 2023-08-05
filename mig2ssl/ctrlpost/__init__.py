@@ -89,7 +89,6 @@ def db_run(**kwargs):
 
     cmd = kwargs["cmd"]
     if cmd == "PUT":
-        cprint("its PUT")
         puttbl = db[ kwargs['table'] ]
         aid = puttbl.insert(**puttbl._filter_fields(kwargs) )
         if aid:
@@ -124,7 +123,7 @@ def db_run(**kwargs):
             cprint (f"{xid} deleted")
         cprint("its DEL")
     else:
-        cprint(f"db_run bad cmd: {cmd}")
+        cprint(f"db_run: bad {cmd}",'red')
     return None
 
 
@@ -151,15 +150,15 @@ def post_dispatcher():
             data["sid"] = json_data["sid"]
             for e in [ "sid", "username", "room", ]:
                 data[e] = json_data[e]
-            if event_name in name_run:
+
+            try:    
                 ret = name_run[event_name](**data)
-                # if emit_to in data:
-                # r_mgr.emit(   result   )
-                return ret if ret else f"{c_name}: ok"
-            else:
-                return catch_cmd(event_name, **data)
+            except KeyError:    
+                ret = catch_cmd(event_name, **data)
+            return ret if ret else f"{c_name}: ok"
+
         else:
-            cprint(c_name + ": data-dict is None", "red")
+            cprint( f"{c_name}: emty data-dict", 'red' )
             return f"{c_name}: emty data-dict"
 
     except (KeyError, Exception) as ex:

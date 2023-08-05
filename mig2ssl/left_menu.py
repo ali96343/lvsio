@@ -18,7 +18,7 @@ l_menu = [
     ("i", URL(_url), []),
 
     ( "Sio", "#", [
-            route_item("mi1_sio"),
+            route_item("js_count"),
             route_item("mi2_sio"),
             route_item("mi3_sio"),
         ],

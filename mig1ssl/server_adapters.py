@@ -47,8 +47,16 @@ def check_level(level):
 
 def logging_conf(level, log_file="server-py4web.log"):
     log_to = dict()
-    # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
     log_dir = os.environ.get("PY4WEB_LOGS", None)
+    # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
+
+    # https://stackoverflow.com/questions/71623608/python-logging-from-multiple-packages
+    # https://stackoverflow.com/questions/42936810/python-logging-module-set-formatter-dynamically
+    # https://stackoverflow.com/questions/1741972/how-to-use-different-formatters-with-the-same-logging-handler-in-python
+    # https://stackoverflow.com/questions/67975119/python-logging-use-same-handlers-for-multiple-loggers-on-different-files
+    # https://stackoverflow.com/questions/15096090/python-separate-processes-logging-to-same-file
+    # https://docs.python.org/2/howto/logging-cookbook.html#sending-and-receiving-logging-events-across-a-network
+
     if log_dir:
         path_log_file = os.path.join(log_dir, log_file)
         log_to = {
@@ -57,20 +65,18 @@ def logging_conf(level, log_file="server-py4web.log"):
         }
         print(f"PY4WEB_LOGS={log_dir}, open {path_log_file}")
 
-    _short = "%(threadName)s | %(message)s"
-    _long = "%(asctime)s | %(threadName)s | %(message)s | (%(filename)s:%(lineno)d)"
+    _short = "%(message)s > %(threadName)s"
+    _long = "%(message)s > %(threadName)s > %(levelname)s > (%(filename)s:%(lineno)d)"
 
     logging.basicConfig(
-        format=_short,
+        format=_long,
         encoding="utf-8",
         level=check_level(level),
         **log_to,
     )
 
-
 def get_workers(opts, default=10):
     return opts["workers"] if "workers" in opts else default
-
 
 # ---------------------------------------------------------------------
 
@@ -95,7 +101,7 @@ def gevent():
             logger = "default"  # not None - from gevent doc
 
             if not self.quiet:
-                logger = logging.getLogger("gevent")
+                logger = logging.getLogger("PY4WEB:gevent")
                 log_dir = os.environ.get("PY4WEB_LOGS", None)
                 fh = (
                     logging.FileHandler()
@@ -169,7 +175,7 @@ def geventWebSocketServer():
                 logging_conf(
                     self.options["logging_level"],
                 )
-                logger = logging.getLogger("gevent-ws")
+                logger = logging.getLogger("PY4WEB:gevent-ws")
                 logger.addHandler(logging.StreamHandler())
 
             certfile = self.options.get("certfile", None)
@@ -329,7 +335,7 @@ def wsgirefThreadingServer():
                 logging_conf(
                     self.options["logging_level"],
                 )
-                self.log = logging.getLogger("WSGIRef")
+                logger = logging.getLogger("PY4WEB:wsgiref")
                 self.log.addHandler(logging.StreamHandler())
 
             self_run = self  # used in innner classes to access options and logger
@@ -440,6 +446,7 @@ def rocketServer():
                     self.options["logging_level"],
                 )
                 log = logging.getLogger("Rocket")
+                logger = logging.getLogger("PY4WEB:Rocket")
                 log.addHandler(logging.StreamHandler())
 
             interface = (
@@ -482,7 +489,7 @@ def Pyruvate():
                 logging_conf(
                     self.options["logging_level"],
                 )
-                log = logging.getLogger("Pyruvate")
+                log = logging.getLogger("PY4WEB:Pyruvate")
                 log.addHandler(logging.StreamHandler())
 
             pyruvate.serve(
@@ -505,7 +512,7 @@ def tornadoMig():
 
     import socketio, httpx, json
 
-    class sio_multi:
+    class multi_sio:
         # Z == self, mypep ;)
         def __init__(Z, P, handl, dbg=True):
             Z.P = P
@@ -600,27 +607,27 @@ def tornadoMig():
             Z.log and Z.log.info(data)
 
         async def db_run( Z, sid, e_name, data={"from": "db_run"},):
-            return await Z.run_controller( sid, e_name, data,)
+            return await Z.post_dispatcher( sid, e_name, data,)
 
         async def ctrl_emit( Z, sid, e_name, data={"from": "ctrl_emit"},):
-            return await Z.run_controller( sid, e_name, data,)
+            return await Z.post_dispatcher( sid, e_name, data,)
 
         async def ctrl_call_mult( Z, sid, e_name, data={"from": "ctrl_call_mult"},):
-            return await Z.run_controller( sid, e_name, data,)
+            return await Z.post_dispatcher( sid, e_name, data,)
 
-        async def run_controller( Z, sid, event_name="unk", data=None,):
+        async def post_dispatcher( Z, sid, event_name="unk", data=None,):
             try:
                 sid_data = Z.sids_connected[sid]
                 sid_data["event_name"] = event_name
                 sid_data["data"] = data
                 post_url = Z.post_to[sid_data["app_nm"]]
             except KeyError:
-                Z.log_info(f"run_controller: bad sid={sid}")
+                Z.log_info(f"post_dispatcher: bad sid={sid}")
                 return f"sid {sid} not found in sids_connected!"
 
             async with httpx.AsyncClient(verify=False) as p4w:
                 r = await p4w.post( post_url, json=sid_data,)
-                r.status_code != 200 and Z.log_info( f"run_controller: {post_url} {r.status_code}")
+                r.status_code != 200 and Z.log_info( f"post_dispatcher: {post_url} {r.status_code}")
                 return r.text
 
     # ------------------------------------------------------------------------------
@@ -633,10 +640,10 @@ def tornadoMig():
             ZZ.log = None
             if not ZZ.quiet:
                 logging_conf( ZZ.options["logging_level"],)
-                ZZ.log = logging.getLogger("tornadoMig")
+                ZZ.log = logging.getLogger("PY4WEB:mig")
                 ZZ.log.addHandler(logging.StreamHandler())
 
-            s_app = sio_multi( ZZ, handler,)
+            s_app = multi_sio( ZZ, handler,)
             sio = s_app.get_sio
 
             ZZ.client_count = 0
@@ -659,7 +666,7 @@ def tornadoMig():
 
                     await s_app.ctrl_emit( sid, "xxx_cmd", data={"sid": sid, "count": count})
 
-                    await s_app.run_controller( sid, e_name, data={"sid": sid, "count": count})
+                    await s_app.post_dispatcher( sid, e_name, data={"sid": sid, "count": count})
 
                     #s_app.cprint( f"================= s_app.sids_connected: {len(s_app.sids_connected)}", "cyan",)
                     await sio.sleep(7)
@@ -734,7 +741,7 @@ def tornadoMig():
                     "room": myroom,
                 }
 
-                await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_user_log", 
+                await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
                     "inout": "in", "orig_e": e_name, },)
 
                 await sio.emit( "client_count", f"{ZZ.client_count} {set(s_app.sids_connected.keys())}",)
@@ -742,7 +749,7 @@ def tornadoMig():
                 sio.start_background_task(simple_task, sid)
                 sio.start_background_task(period_task, sid)
 
-                await s_app.run_controller( sid, e_name,)
+                await s_app.post_dispatcher( sid, e_name,)
 
             @sio.event
             async def disconnect_request(sid):
@@ -759,30 +766,30 @@ def tornadoMig():
                 ar = random.randint(1, 9)
                 br = random.randint(1, 9)
 
-                await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_user_log", 
+                await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
                     "inout": "out", "orig_e": e_name, },)
 
-                #await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_user_data", 
+                #await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
                 #    "counter": ['hello', 'world', ar, {'counter': br}], "orig_e": e_name, },)
 
-                #await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_user_data", 
+                #await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
                 #    "counter":  {'counter': br}, "orig_e": e_name, },)
 
-                await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_user_data", 
+                await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
                     "counter": br, "orig_e": e_name, },)
 
-                #await s_app.db_run( sid, "db_run", data={ "cmd": "UPDATE", "table": "sio_user_log", 
+                #await s_app.db_run( sid, "db_run", data={ "cmd": "UPDATE", "table": "sio_log", 
                 #    "id": 12, "inout": "----", "orig_e": '+++++', },)
 
-                #r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_user_log", "id": 1 } )
+                #r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_log", "id": 1 } )
                 #s_app.cprint (f"{r}", 'cyan')
 
-                r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_user_data", "id": 1 } )
+                r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_data", "id": 1 } )
                 #s_app.cprint (type(r))
                 #s_app.cprint (f"{r}!!!!!", 'cyan')
                 s_app.cprint (json.loads(r)[0])
 
-                #await s_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_user_log", "id": 7 } )
+                #await s_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_log", "id": 7 } )
 
                 del s_app.sids_connected[sid]
 
@@ -848,3 +855,22 @@ def tornadoMig():
 # https://stackoverflow.com/questions/71338054/python-send-data-every-10-seconds-via-socket-io
 # sio.get_sid(namespace='/my-namespace')
 # sio.get_sid() https://stackoverflow.com/questions/66160701/how-to-synchronize-socket-sid-on-server-and-client
+
+# how to write to server-py4web.log from controllers.py
+#import logging
+#
+#srv_log=None
+#def get_srv_logger(pat="PY4WEB:"):
+#    global srv_log
+#    if srv_log is None:
+#        h= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
+#        srv_log = logging.getLogger(h[0])
+#        return srv_log
+#    return srv_log
+#
+#@action("index")
+#def index():
+#    s_log = get_srv_logger()
+#    s_log.warn('00000000000000000000000000000000000000000000000000000')
+#    s_log.info('11111111111111111111111111111111111111111111111111111')
+#
