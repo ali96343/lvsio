@@ -15,3 +15,20 @@ def cprint(mess="mess", color="green", dbg=True):
         c_fmt = c.get(color, c_fmt)
     dbg and print(c_fmt.format(str(mess)))
 
+
+import logging
+from .common import logger
+
+__srv_log=None
+
+def salog(pat="SA:"):
+    global __srv_log
+    if __srv_log: # and isinstance( __srv_log, logging.Logger ):
+       return __srv_log
+    hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
+    if len(hs) == 0:
+        return logger
+    __srv_log = logging.getLogger(hs[0])
+    return __srv_log
+
+

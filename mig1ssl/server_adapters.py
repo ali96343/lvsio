@@ -66,10 +66,14 @@ def logging_conf(level, log_file="server-py4web.log"):
         print(f"PY4WEB_LOGS={log_dir}, open {path_log_file}")
 
     _short = "%(message)s > %(threadName)s"
-    _long = "%(message)s > %(threadName)s > %(levelname)s > (%(filename)s:%(lineno)d)"
+    _long = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d > %(funcName)s > %(levelname)s > %(filename)s:%(lineno)d"
+
+    _date = '%Y-%m-%d %H:%M:%S'
+    _time = '%H:%M:%S'
 
     logging.basicConfig(
         format=_long,
+        datefmt=_time,
         encoding="utf-8",
         level=check_level(level),
         **log_to,
@@ -101,7 +105,7 @@ def gevent():
             logger = "default"  # not None - from gevent doc
 
             if not self.quiet:
-                logger = logging.getLogger("PY4WEB:gevent")
+                logger = logging.getLogger("SA:gevent")
                 log_dir = os.environ.get("PY4WEB_LOGS", None)
                 fh = (
                     logging.FileHandler()
@@ -175,7 +179,7 @@ def geventWebSocketServer():
                 logging_conf(
                     self.options["logging_level"],
                 )
-                logger = logging.getLogger("PY4WEB:gevent-ws")
+                logger = logging.getLogger("SA:gevent-ws")
                 logger.addHandler(logging.StreamHandler())
 
             certfile = self.options.get("certfile", None)
@@ -335,7 +339,7 @@ def wsgirefThreadingServer():
                 logging_conf(
                     self.options["logging_level"],
                 )
-                logger = logging.getLogger("PY4WEB:wsgiref")
+                logger = logging.getLogger("SA:wsgiref")
                 self.log.addHandler(logging.StreamHandler())
 
             self_run = self  # used in innner classes to access options and logger
@@ -445,8 +449,7 @@ def rocketServer():
                 logging_conf(
                     self.options["logging_level"],
                 )
-                log = logging.getLogger("Rocket")
-                logger = logging.getLogger("PY4WEB:Rocket")
+                logger = logging.getLogger("SA:Rocket")
                 log.addHandler(logging.StreamHandler())
 
             interface = (
@@ -489,7 +492,7 @@ def Pyruvate():
                 logging_conf(
                     self.options["logging_level"],
                 )
-                log = logging.getLogger("PY4WEB:Pyruvate")
+                log = logging.getLogger("SA:Pyruvate")
                 log.addHandler(logging.StreamHandler())
 
             pyruvate.serve(
@@ -504,7 +507,7 @@ def Pyruvate():
 # --------------------------------------- Mig --------------------------------
 # alias mig3="cd $p4w_path && ./py4web.py  run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
 
-# version 0.0.6
+# version 0.0.9
 
 
 def tornadoMig():
@@ -640,7 +643,7 @@ def tornadoMig():
             ZZ.log = None
             if not ZZ.quiet:
                 logging_conf( ZZ.options["logging_level"],)
-                ZZ.log = logging.getLogger("PY4WEB:mig")
+                ZZ.log = logging.getLogger("SA:mig")
                 ZZ.log.addHandler(logging.StreamHandler())
 
             s_app = multi_sio( ZZ, handler,)
@@ -857,20 +860,32 @@ def tornadoMig():
 # sio.get_sid() https://stackoverflow.com/questions/66160701/how-to-synchronize-socket-sid-on-server-and-client
 
 # how to write to server-py4web.log from controllers.py
-#import logging
 #
-#srv_log=None
-#def get_srv_logger(pat="PY4WEB:"):
-#    global srv_log
-#    if srv_log is None:
-#        h= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
-#        srv_log = logging.getLogger(h[0])
-#        return srv_log
-#    return srv_log
+
+#import logging
+#from .common import logger
+#
+#__srv_log=None
+#
+#def salog(pat="SA:"):   # SA - server_adapters
+#    global __srv_log
+#    if __srv_log: # and isinstance( __srv_log, logging.Logger ):
+#       return __srv_log
+#    hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
+#    if len(hs) == 0:
+#        return logger
+#    __srv_log = logging.getLogger(hs[0])
+#    return __srv_log
+#
+#controllers.py
+#salog().info('2'* 30)
+#salog().warn('3'* 30)
 #
 #@action("index")
+#@action.uses("index.html", auth, T, )
 #def index():
-#    s_log = get_srv_logger()
-#    s_log.warn('00000000000000000000000000000000000000000000000000000')
-#    s_log.info('11111111111111111111111111111111111111111111111111111')
+#    # curl -k -I  https://192.168.1.161:9000/mig1ssl/index
+#
+#    salog().warn('0'* 30)
+#    salog().info('1'* 30)
 #
