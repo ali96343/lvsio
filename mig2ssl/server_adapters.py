@@ -182,7 +182,6 @@ def geventWebSocketServer():
                     self.options["logging_level"],
                 )
                 logger = logging.getLogger("SA:gevent-ws")
-                #logger.addHandler(logging.StreamHandler())
 
             certfile = self.options.get("certfile", None)
 
@@ -344,11 +343,7 @@ def wsgirefThreadingServer():
                     self.options["logging_level"],
                 )
                 self.log = logging.getLogger("SA:wsgiref")
-                if not LOG_DIR:
-                    ZZ.log.addHandler(logging.StreamHandler())
-                    ZZ.log.propagate = False
-                else:
-                    ZZ.log.propagate = True
+                self.log.propagate = True
 
             self_run = self  # used in innner classes to access options and logger
 
@@ -458,7 +453,8 @@ def rocketServer():
                     self.options["logging_level"],
                 )
                 logger = logging.getLogger("SA:Rocket")
-                #log.addHandler(logging.StreamHandler())
+                logger.propagate = True
+
 
             interface = (
                 (
@@ -515,7 +511,7 @@ def Pyruvate():
 # --------------------------------------- Mig --------------------------------
 # alias mig="cd $p4w_path && ./py4web.py run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
 
-# version 0.0.17
+# version 0.0.18
 
 
 def tornadoMig():
@@ -681,11 +677,12 @@ def tornadoMig():
             if not ZZ.quiet:
                 logging_conf( ZZ.options["logging_level"],)
                 ZZ.log = logging.getLogger("SA:mig")
-                if not LOG_DIR:
-                    ZZ.log.addHandler(logging.StreamHandler())
-                    ZZ.log.propagate = False
-                else:
-                    ZZ.log.propagate = True
+                ZZ.log.propagate = True
+                #if not LOG_DIR:
+                #    ZZ.log.addHandler(logging.StreamHandler())
+                #    ZZ.log.propagate = False
+                #else:
+                #    ZZ.log.propagate = True
 
             s_app = MultiSio( handler, host = ZZ.host, port = ZZ.port, certfile=ZZ.certfile, keyfile=ZZ.keyfile,log= ZZ.log)
             sio = s_app.get_sio
@@ -927,6 +924,7 @@ def tornadoMig():
 import sys
 import logging
 from .common import logger
+from .settings import APP_NAME
 
 __srv_log=None
 
