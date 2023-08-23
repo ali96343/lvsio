@@ -335,7 +335,6 @@ def wsgirefThreadingServer():
     class WSGIRefThreadingServer(ServerAdapter):
         def run(self, app):
 
-            global LOG_DIR
             self.log = None
 
             if not self.quiet:
@@ -455,7 +454,6 @@ def rocketServer():
                 logger = logging.getLogger("SA:Rocket")
                 logger.propagate = True
 
-
             interface = (
                 (
                     self.host,
@@ -497,7 +495,7 @@ def Pyruvate():
                     self.options["logging_level"],
                 )
                 log = logging.getLogger("SA:Pyruvate")
-                #log.addHandler(logging.StreamHandler())
+                log.propagate = True
 
             pyruvate.serve(
                 handler,
@@ -511,7 +509,7 @@ def Pyruvate():
 # --------------------------------------- Mig --------------------------------
 # alias mig="cd $p4w_path && ./py4web.py run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
 
-# version 0.0.18
+# version 0.0.19
 
 
 def tornadoMig():
@@ -673,16 +671,10 @@ def tornadoMig():
 
         def run(ZZ, handler):
             ZZ.log = None
-            global LOG_DIR
             if not ZZ.quiet:
                 logging_conf( ZZ.options["logging_level"],)
                 ZZ.log = logging.getLogger("SA:mig")
                 ZZ.log.propagate = True
-                #if not LOG_DIR:
-                #    ZZ.log.addHandler(logging.StreamHandler())
-                #    ZZ.log.propagate = False
-                #else:
-                #    ZZ.log.propagate = True
 
             s_app = MultiSio( handler, host = ZZ.host, port = ZZ.port, certfile=ZZ.certfile, keyfile=ZZ.keyfile,log= ZZ.log)
             sio = s_app.get_sio
