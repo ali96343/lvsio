@@ -9,6 +9,8 @@ import sys, os, random, json, uuid, string
 import socketio
 import secrets
 
+from ..ahelp import log_info 
+
 
 SECRET_LEN = int(6)  # 32 for real app
 SIO_RED_PARAM = "redis://", "channel_tornadoMig"
@@ -33,10 +35,11 @@ def update_dict(d, **kwargs):
 
 def catch_cmd(e_nm, *args, **kwargs):
     c_name = sys._getframe().f_code.co_name
-    cprint("----------------- " + c_name)
+    cprint(f"----------------- {c_name}")
 
-    _ = [print(a) for a in args]
-    _ = [print(f"{k} = {v}") for k, v in kwargs.items()]
+    _ = [cprint(a) for a in args]
+    _ = [cprint(f"{k} = {v}") for k, v in kwargs.items()]
+
 
     return None
 
@@ -49,9 +52,9 @@ def catch_cmd(e_nm, *args, **kwargs):
 
 def xxx_cmd(**kwargs):
     c_name = sys._getframe().f_code.co_name
-    cprint("----------------- " + c_name)
+    cprint(f"----------------- {c_name}")
 
-    _ = [print(f"{k} = {v}") for k, v in kwargs.items()]
+    _ = [cprint(f"{k} = {v}") for k, v in kwargs.items()]
 
     json_data = json.dumps( {"count": kwargs["count"], "sid": kwargs["sid"], "username": kwargs["username"]})
     # Each client is allocated a room automatically when it connects. Use the sid as the name of the room
@@ -60,16 +63,16 @@ def xxx_cmd(**kwargs):
 
 def ctrl_emit(**kwargs):
     c_name = sys._getframe().f_code.co_name
-    cprint("----------------- " + c_name)
-    _ = [print(f"{k} = {v}") for k, v in kwargs.items()]
+    cprint(f"----------------- {c_name}")
+    _ = [cprint(f"{k} = {v}") for k, v in kwargs.items()]
     return None
 
 
 def ctrl_call_mult(**kwargs):
     c_name = sys._getframe().f_code.co_name
-    cprint("----------------- " + c_name)
+    cprint(f"----------------- {c_name}")
 
-    _ = [print(f"{k} = {v}") for k, v in kwargs.items()]
+    _ = [cprint(f"{k} = {v}") for k, v in kwargs.items()]
     res = kwargs["numbers"][0] * kwargs["numbers"][1]
 
     json_data = json.dumps(
@@ -86,6 +89,8 @@ def db_run(**kwargs):
     cprint(f"----------------- {c_name}")
 
     _ = [cprint(f"{k} = {v}", 'yellow') for k, v in kwargs.items()]
+
+    log_info(f'salog: {c_name}')
 
     cmd = kwargs["cmd"]
     if cmd == "PUT":
@@ -138,7 +143,7 @@ name_run = {
 @action( "siopost123" + str(secrets.token_hex(SECRET_LEN)), method=[ "POST", ],)
 def post_dispatcher():
     c_name = sys._getframe().f_code.co_name
-    cprint(f"-----------------  {c_name}")
+    cprint(f"----------------- {c_name}")
 
     try:
         json_data = json.loads(request.body.read())

@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+#  https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js
+
+import fileinput, sys, os, re
+
+if len(sys.argv) == 1:
+    sys.exit('need input file, ex: spa-300.html.orig')
+
+in_file = sys.argv[1]
+out_file, file_extension = os.path.splitext(in_file)
+
+if file_extension != '.orig':
+    sys.exit(f'where orig extension ? {in_file}')
+
+
+
+x=re.findall(r'\d+', in_file)[0]
+
+
+d = {
+    '<html>':'<html language="en">',
+    '<head>': '<head>\n  <meta charset="UTF-8">',
+    'content="text/html;':'content="text/html; charset=UTF-8">',
+    'content="IE=edge"/>' : 'content="IE=edge">',    
+    'content="IE=edge" />': 'content="IE=edge">',    
+    'charset=ISO-8859-1">':'',
+    "ISO-8859-1":"UTF-8",
+    "socket.io/": "",
+    "socket.io.js" : "socket.io.min.js",
+    "src=\"": f"src='[[ =URL( \"static/tte-spa-{x}/",
+    "href=\"": f"href='[[ =URL( \"static/tte-spa-{x}/",
+    '.css"': ".css\" ) ]]'",
+    '.js"': ".js\" ) ]]'",
+}
+
+res = []
+
+for e in fileinput.input(files=(in_file)):
+    for k, v in d.items():
+        e = e.replace(k, v, 1)
+    res.append(e)
+
+
+print(res)
+
+with open(out_file, "w") as f:
+    f.write("".join(e for e in res))
+
+print (f'{in_file}')
+print (f'{out_file}')
+print (f'its x = {x}')

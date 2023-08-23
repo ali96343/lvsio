@@ -18,6 +18,8 @@ __all__ = [
 
 # ---------------------- utils -----------------------------------------------
 
+LOG_DIR = os.environ.get("PY4WEB_LOGS", None)
+# export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
 
 def check_level(level):
     # lib/python3.7/logging/__init__.py
@@ -46,9 +48,8 @@ def check_level(level):
 
 
 def logging_conf(level, log_file="server-py4web.log"):
+    global LOG_DIR
     log_to = dict()
-    log_dir = os.environ.get("PY4WEB_LOGS", None)
-    # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
 
     # https://stackoverflow.com/questions/71623608/python-logging-from-multiple-packages
     # https://stackoverflow.com/questions/42936810/python-logging-module-set-formatter-dynamically
@@ -57,22 +58,22 @@ def logging_conf(level, log_file="server-py4web.log"):
     # https://stackoverflow.com/questions/15096090/python-separate-processes-logging-to-same-file
     # https://docs.python.org/2/howto/logging-cookbook.html#sending-and-receiving-logging-events-across-a-network
 
-    if log_dir:
-        path_log_file = os.path.join(log_dir, log_file)
+    if LOG_DIR:
+        path_log_file = os.path.join(LOG_DIR, log_file)
         log_to = {
             "filename": path_log_file,
             "filemode": "w",
         }
-        print(f"PY4WEB_LOGS={log_dir}, open {path_log_file}")
+        print(f"PY4WEB_LOGS={LOG_DIR}, open {path_log_file}")
 
-    _short = "%(message)s > %(threadName)s"
-    _long = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d > %(funcName)s > %(levelname)s > %(filename)s:%(lineno)d"
+    _short = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d"
+    #_long = _short + " > %(funcName)s > %(filename)s:%(lineno)d > %(levelname)s"
 
-    _date = '%Y-%m-%d %H:%M:%S'
     _time = '%H:%M:%S'
+    #_date_time = '%Y-%m-%d %H:%M:%S'
 
     logging.basicConfig(
-        format=_long,
+        format=_short,
         datefmt=_time,
         encoding="utf-8",
         level=check_level(level),
@@ -80,8 +81,10 @@ def logging_conf(level, log_file="server-py4web.log"):
     )
 
 def get_workers(opts, default=10):
-    return opts["workers"] if "workers" in opts else default
-
+    try:
+        return opts["workers"] if opts["workers"] else default
+    except KeyError:
+        return default
 # ---------------------------------------------------------------------
 
 
@@ -102,21 +105,20 @@ def gevent():
 
     class GeventServer(ServerAdapter):
         def run(self, handler):
+            global LOG_DIR
             logger = "default"  # not None - from gevent doc
 
             if not self.quiet:
                 logger = logging.getLogger("SA:gevent")
-                log_dir = os.environ.get("PY4WEB_LOGS", None)
                 fh = (
                     logging.FileHandler()
-                    if not log_dir
+                    if not LOG_DIR
                     else (
-                        logging.FileHandler(os.path.join(log_dir, "server-py4web.log"))
+                        logging.FileHandler(os.path.join(LOG_DIR, "server-py4web.log"))
                     )
                 )
                 logger.setLevel(check_level(self.options["logging_level"]))
                 logger.addHandler(fh)
-                logger.addHandler(logging.StreamHandler())
 
             certfile = self.options.get("certfile", None)
 
@@ -180,7 +182,7 @@ def geventWebSocketServer():
                     self.options["logging_level"],
                 )
                 logger = logging.getLogger("SA:gevent-ws")
-                logger.addHandler(logging.StreamHandler())
+                #logger.addHandler(logging.StreamHandler())
 
             certfile = self.options.get("certfile", None)
 
@@ -333,14 +335,20 @@ def wsgirefThreadingServer():
 
     class WSGIRefThreadingServer(ServerAdapter):
         def run(self, app):
+
+            global LOG_DIR
             self.log = None
 
             if not self.quiet:
                 logging_conf(
                     self.options["logging_level"],
                 )
-                logger = logging.getLogger("SA:wsgiref")
-                self.log.addHandler(logging.StreamHandler())
+                self.log = logging.getLogger("SA:wsgiref")
+                if not LOG_DIR:
+                    ZZ.log.addHandler(logging.StreamHandler())
+                    ZZ.log.propagate = False
+                else:
+                    ZZ.log.propagate = True
 
             self_run = self  # used in innner classes to access options and logger
 
@@ -450,7 +458,7 @@ def rocketServer():
                     self.options["logging_level"],
                 )
                 logger = logging.getLogger("SA:Rocket")
-                log.addHandler(logging.StreamHandler())
+                #log.addHandler(logging.StreamHandler())
 
             interface = (
                 (
@@ -493,7 +501,7 @@ def Pyruvate():
                     self.options["logging_level"],
                 )
                 log = logging.getLogger("SA:Pyruvate")
-                log.addHandler(logging.StreamHandler())
+                #log.addHandler(logging.StreamHandler())
 
             pyruvate.serve(
                 handler,
@@ -505,29 +513,41 @@ def Pyruvate():
 
 
 # --------------------------------------- Mig --------------------------------
-# alias mig3="cd $p4w_path && ./py4web.py  run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
+# alias mig="cd $p4w_path && ./py4web.py run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
 
-# version 0.0.9
+# version 0.0.17
 
 
 def tornadoMig():
     #  curl -k "http://127.0.0.1:8000/socket.io/?EIO=4&transport=polling"
 
     import socketio, httpx, json
+    import tornado.web
 
-    class multi_sio:
+
+    # https://stackoverflow.com/questions/8812715/using-a-simple-python-generator-as-a-co-routine-in-a-tornado-async-handler
+    # https://gist.github.com/mivade/d474e0540036d873047f
+
+    class Favi(tornado.web.RequestHandler):
+        def get(self):
+            self.write(";)")
+
+    class MultiSio:
         # Z == self, mypep ;)
-        def __init__(Z, P, handl, dbg=True):
-            Z.P = P
-            Z.log = P.log
+        def __init__(Z, handl, host='127.0.0.1', port='8000', certfile=None, keyfile=None, log=None, dbg=True):
             Z.handl = handl
+            Z.host = host
+            Z.port = port
+            Z.certfile = certfile
+            Z.keyfile = keyfile
+            Z.log = log
             Z.dbg = dbg
             Z.sids_connected = dict()
             Z.sio = None
             Z.post_to = None
             Z.red_param = None, None
 
-        def cprint(Z, mess="mess", color="green", dbg=True):
+        def cprint(Z, mess="mess", color="green", dbg=True, to_file =True):
             c_fmt = "--- {}"
             if sys.stdout.isatty() == True:
                 c = {
@@ -539,17 +559,16 @@ def tornadoMig():
                     "purple": "\033[95m {}\033[00m",
                 }
             c_fmt = c.get(color, c_fmt)
-            dbg and print(c_fmt.format(str(mess)))
+            if to_file == False:
+                dbg and print(c_fmt.format(str(mess)))
+            else:    
+                dbg and Z.log_info(str(mess))
 
         def get_post_tbl(Z, post_pattern="siopost123"):
             # post_pattern must exist in apps-controllers
-            scheme = (
-                "https"
-                if Z.P.options.get("certfile", None)
-                and Z.P.options.get("keyfile", None)
-                else "http"
-            )
-            post_prefix = f"{scheme}://{Z.P.host}:{Z.P.port}/"
+            scheme = "https" if Z.certfile and Z.keyfile else "http"
+            
+            post_prefix = f"{scheme}://{Z.host}:{Z.port}/"
 
             maybe = {
                 x.split("/")[0]: x.split("/")[1]
@@ -564,7 +583,7 @@ def tornadoMig():
 
             sys.exit(f"stop! can not find app with controller {post_pattern}")
 
-        def get_red_vars(Z, vars_pattern="SIO_RED_PARAM"):
+        def get_red_param(Z, vars_pattern="SIO_RED_PARAM"):
             # vars_pattern must exist in apps-controllers
             apps_modules = [
                 sys.modules[name]
@@ -582,7 +601,7 @@ def tornadoMig():
         @property
         def get_sio(Z):
             Z.post_to = Z.get_post_tbl()
-            Z.red_param = Z.get_red_vars()
+            Z.red_param = Z.get_red_param()
             # Z.sio = socketio.AsyncServer(async_mode="tornado")
             r_mgr = socketio.AsyncRedisManager(
                 Z.red_param[0], channel=Z.red_param[1], write_only=False
@@ -603,8 +622,11 @@ def tornadoMig():
         def get_handl(Z):
             return socketio.get_tornado_handler(Z.sio)
 
-        def out_dbg(Z, data, color="yellow"):
-            Z.dbg and Z.cprint(data, color)
+        def out_dbg(Z, data, color="yellow", to_file=True):
+            if to_file == False:
+                Z.dbg and Z.cprint(data, color)
+            else:    
+                Z.log_info(f"log_info: {data}")
 
         def log_info(Z, data):
             Z.log and Z.log.info(data)
@@ -618,6 +640,8 @@ def tornadoMig():
         async def ctrl_call_mult( Z, sid, e_name, data={"from": "ctrl_call_mult"},):
             return await Z.post_dispatcher( sid, e_name, data,)
 
+
+        # https://blog.jonlu.ca/posts/async-python-http
         async def post_dispatcher( Z, sid, event_name="unk", data=None,):
             try:
                 sid_data = Z.sids_connected[sid]
@@ -633,28 +657,50 @@ def tornadoMig():
                 r.status_code != 200 and Z.log_info( f"post_dispatcher: {post_url} {r.status_code}")
                 return r.text
 
+            # https://www.tornadoweb.org/en/stable/guide/coroutines.html        
+
     # ------------------------------------------------------------------------------
     import tornado, asyncio, uvloop, random
 
     class TornadoMig(ServerAdapter):
         import tornado.wsgi, tornado.web, tornado.httpserver
 
-        def run(ZZ, handler):
-            ZZ.log = None
-            if not ZZ.quiet:
-                logging_conf( ZZ.options["logging_level"],)
-                ZZ.log = logging.getLogger("SA:mig")
-                ZZ.log.addHandler(logging.StreamHandler())
+        def __init__(ZZ, *ar, **kw):
+            super().__init__(*ar, **kw) 
 
-            s_app = multi_sio( ZZ, handler,)
-            sio = s_app.get_sio
+            ZZ.certfile =  ZZ.options.get("certfile", None) 
+            ZZ.keyfile =  ZZ.options.get("keyfile", None) 
 
             ZZ.client_count = 0
             ZZ.a_count = 0
             ZZ.b_count = 0
 
+        def run(ZZ, handler):
+            ZZ.log = None
+            global LOG_DIR
+            if not ZZ.quiet:
+                logging_conf( ZZ.options["logging_level"],)
+                ZZ.log = logging.getLogger("SA:mig")
+                if not LOG_DIR:
+                    ZZ.log.addHandler(logging.StreamHandler())
+                    ZZ.log.propagate = False
+                else:
+                    ZZ.log.propagate = True
+
+            s_app = MultiSio( handler, host = ZZ.host, port = ZZ.port, certfile=ZZ.certfile, keyfile=ZZ.keyfile,log= ZZ.log)
+            sio = s_app.get_sio
+
             async def period_task(sid):
-                # return False
+                e_name = sys._getframe().f_code.co_name
+                count = 0
+                while True:
+                    if not sid in s_app.sids_connected:
+                        break
+                    count += 1
+                    await sio.emit( "my_response", { "data": f"period_task 7-sec-counter-to-all {count} to {sid}  " },)
+                    await sio.sleep(7)
+
+            async def debug_task(sid):
                 e_name = sys._getframe().f_code.co_name
                 count = 0
                 while True:
@@ -662,26 +708,30 @@ def tornadoMig():
                         break
 
                     count += 1
-
-                    await sio.emit( "my_response", { "data": f"period_task 7-sec-counter-to-all {count} to {sid}  " },)
-
                     await s_app.ctrl_emit( sid, "ctrl_emit", data={"orig_e": e_name, "bcast": False},)
-
                     await s_app.ctrl_emit( sid, "xxx_cmd", data={"sid": sid, "count": count})
-
                     await s_app.post_dispatcher( sid, e_name, data={"sid": sid, "count": count})
+                    s_app.out_dbg( f"================= s_app.sids_connected: {len(s_app.sids_connected)}", "cyan",)
+                    await sio.sleep(10)
 
-                    #s_app.cprint( f"================= s_app.sids_connected: {len(s_app.sids_connected)}", "cyan",)
-                    await sio.sleep(7)
 
             async def simple_task(sid):
                 e_name = sys._getframe().f_code.co_name
                 am = random.randint(1, 9)
                 bm = random.randint(1, 9)
                 await sio.sleep(5)
-                result = await sio.call("mult", {"numbers": [am, bm]}, to=sid)
-                s_app.log_info(f"result from js-mult: {result}")
-                r = await s_app.ctrl_call_mult( sid, "ctrl_call_mult", data={"numbers": [am, bm]},)
+
+                try:
+                    result = await sio.call("mult", {"numbers": [am, bm]}, to=sid)
+                    s_app.log_info(f"result from js-mult: {result}")
+                except socketio.exceptions.TimeoutError: #asyncio.TimeoutError:
+                    s_app.out_dbg(f"------------------ timeout error on js-mult {e_name}")
+
+                try:
+                    r = await s_app.ctrl_call_mult( sid, "ctrl_call_mult", data={"numbers": [am, bm]},)
+                except socketio.exceptions.TimeoutError: #asyncio.TimeoutError:
+                    s_app.log_info(f"timeout error on {e_name} ctrl_call_mult")
+
                 s_app.out_dbg(f"+++++++++++++++++ {r}")
 
             @sio.event
@@ -694,7 +744,7 @@ def tornadoMig():
             async def connect( sid, environ,):
                 e_name = sys._getframe().f_code.co_name
 
-                url, func_nm, app_nm = None, None, None
+                url, ctrl_nm, app_nm = None, None, None
 
                 try:
                     url = environ["HTTP_REFERER"]
@@ -709,7 +759,7 @@ def tornadoMig():
                     s_app.log_info(f"bad app_nm: {app_nm}")
                     return False
 
-                func_nm = url_items[4] if len(url_items) >= 5 else None
+                ctrl_nm = url_items[4] if len(url_items) >= 5 else None
 
                 username = environ.get("HTTP_X_USERNAME")
                 s_app.log_info(f"HTTP_X_USERNAME: {username} {app_nm}")
@@ -738,8 +788,10 @@ def tornadoMig():
                     ZZ.b_count += 1
                     await sio.emit("room_count", ZZ.b_count, to="b")
 
-                s_app.sids_connected[sid] = { "sid": sid, "app_nm": app_nm,
-                    "func": func_nm,
+                s_app.sids_connected[sid] = { 
+                    "sid": sid, 
+                    "app_nm": app_nm,
+                    "ctrl_nm": ctrl_nm,
                     "username": username,
                     "room": myroom,
                 }
@@ -751,6 +803,7 @@ def tornadoMig():
 
                 sio.start_background_task(simple_task, sid)
                 sio.start_background_task(period_task, sid)
+                sio.start_background_task(debug_task, sid)
 
                 await s_app.post_dispatcher( sid, e_name,)
 
@@ -790,7 +843,7 @@ def tornadoMig():
                 r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_data", "id": 1 } )
                 #s_app.cprint (type(r))
                 #s_app.cprint (f"{r}!!!!!", 'cyan')
-                s_app.cprint (json.loads(r)[0])
+                s_app.out_dbg (json.loads(r)[0])
 
                 #await s_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_log", "id": 7 } )
 
@@ -827,15 +880,18 @@ def tornadoMig():
 
                 app = tornado.web.Application(
                     [
+                        #(r'/favicon.ico', tornado.web.StaticFileHandler, {"path": ""}),
+                        (r"/favicon.ico", Favi),
                         (r"/socket.io/", s_app.get_handl),
                         (r".*", tornado.web.FallbackHandler, dict(fallback=container)),
                     ],
                 )
 
-                ssl_ctx, certfile, keyfile = ( None, ZZ.options.get("certfile", None), ZZ.options.get("keyfile", None),)
-                if certfile and keyfile:
+                ssl_ctx = None
+
+                if ZZ.certfile and ZZ.keyfile:
                     ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                    ssl_ctx.load_cert_chain(certfile, keyfile)
+                    ssl_ctx.load_cert_chain(ZZ.certfile, ZZ.keyfile)
 
                 server = tornado.httpserver.HTTPServer(app, ssl_options=ssl_ctx)
 
@@ -859,33 +915,47 @@ def tornadoMig():
 # sio.get_sid(namespace='/my-namespace')
 # sio.get_sid() https://stackoverflow.com/questions/66160701/how-to-synchronize-socket-sid-on-server-and-client
 
+# https://meejah.ca/blog/python3-twisted-and-asyncio
+# https://github.com/meejah/txtorcon/blob/master/examples/web_onion_service_aiohttp.py
+
+"""
 # how to write to server-py4web.log from controllers.py
 #
+# controllers.py
 
-#import logging
-#from .common import logger
-#
-#__srv_log=None
-#
-#def salog(pat="SA:"):   # SA - server_adapters
-#    global __srv_log
-#    if __srv_log: # and isinstance( __srv_log, logging.Logger ):
-#       return __srv_log
-#    hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
-#    if len(hs) == 0:
-#        return logger
-#    __srv_log = logging.getLogger(hs[0])
-#    return __srv_log
-#
-#controllers.py
-#salog().info('2'* 30)
-#salog().warn('3'* 30)
-#
-#@action("index")
-#@action.uses("index.html", auth, T, )
-#def index():
-#    # curl -k -I  https://192.168.1.161:9000/mig1ssl/index
-#
-#    salog().warn('0'* 30)
-#    salog().info('1'* 30)
-#
+
+import sys
+import logging
+from .common import logger
+
+__srv_log=None
+
+def log_info(mess, dbg=True, ):
+    def salog(pat='SA:'):
+        global __srv_log
+        if __srv_log: # and isinstance( __srv_log, logging.Logger ):
+           return __srv_log
+        hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
+        if len(hs) == 0:
+            return logger
+        __srv_log = logging.getLogger(hs[0])
+        return __srv_log
+    #print ('!!!!!!!!!!!!!!!!!!!!!!!!!!! ',salog().handlers)
+
+        #    while logger.hasHandlers():
+        #        logger.removeHandler(logger.handlers[0])
+    dbg and salog().info(str(mess))
+
+log_warn=log_info
+log_debug=log_info
+
+
+@action('index')
+@action.uses('index.html', auth, T, )
+def index():
+    # curl -k -I  https://192.168.1.161:9000/mig1ssl/index
+
+    log_warn('1'* 30 + ' ' +APP_NAME)
+    log_info('7'* 30 + ' ' +APP_NAME)
+
+"""

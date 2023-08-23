@@ -17,10 +17,14 @@ def route_item(route_nm):
 l_menu = [
     ("i", URL(_url), []),
 
-    ( "Sio", "#", [
-            route_item("js_count"),
-            route_item("mi2_sio"),
-            route_item("mi3_sio"),
+    ( "Spa", "#", [
+            route_item("spa-7531"),
+            route_item("spa-67"),
+            route_item("spa-55"),
+            route_item("spa-45"),
+            route_item("spa-364"),
+            route_item("spa-324"),
+            route_item("spa-300"),
         ],
     ),
     ( "Db", "#", [

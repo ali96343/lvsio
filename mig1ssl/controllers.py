@@ -11,11 +11,12 @@ from .ctrlpost import *
 from .dbadm import *
 from .sadm import *
 
-from .ahelp import salog
+from .ahelp import log_info, log_warn, log_debug
+from .settings import APP_NAME
 
 
-salog().info('2'* 30)
-salog().warn('3'* 30)
+log_info('1'* 30)
+log_warn('2'* 30)
 
 @action("index")
 @action.uses("index.html", auth, T, )
@@ -23,8 +24,9 @@ def index():
     # curl -k -I  https://192.168.1.161:9000/mig1ssl/index
     user = auth.get_user()
 
-    salog().warn('0'* 30)
-    salog().info('1'* 30)
+    log_info('0'* 30 + ' ' +APP_NAME)
+    log_warn('1'* 30 + ' ' +APP_NAME)
+    log_info('7'* 30 + ' ' +APP_NAME)
 
     sio_users = ['userAAA', 'userBBB', 'userCCC', 'userDDD' ]
     #sio_users = ['userWWW','userXXX', 'userYYY', 'userZZZ', ]
