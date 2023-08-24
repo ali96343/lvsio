@@ -64,6 +64,9 @@ def logging_conf(level, log_file="server-py4web.log"):
             "filename": path_log_file,
             "filemode": "w",
         }
+        if sys.version_info >= (3, 9):
+            log_to["encoding"] = "utf-8"
+
         print(f"PY4WEB_LOGS={LOG_DIR}, open {path_log_file}")
 
     _short = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d"
@@ -119,6 +122,7 @@ def gevent():
                 )
                 logger.setLevel(check_level(self.options["logging_level"]))
                 logger.addHandler(fh)
+                logger.propagate = True
 
             certfile = self.options.get("certfile", None)
 
@@ -182,6 +186,7 @@ def geventWebSocketServer():
                     self.options["logging_level"],
                 )
                 logger = logging.getLogger("SA:gevent-ws")
+                logger.propagate = True
 
             certfile = self.options.get("certfile", None)
 
@@ -509,7 +514,7 @@ def Pyruvate():
 # --------------------------------------- Mig --------------------------------
 # alias mig="cd $p4w_path && ./py4web.py run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
 
-# version 0.0.19
+# version 0.0.20
 
 
 def tornadoMig():
