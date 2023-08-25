@@ -18,8 +18,9 @@ __all__ = [
 
 # ---------------------- utils -----------------------------------------------
 
-LOG_DIR = os.environ.get("PY4WEB_LOGS", None)
 # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
+LOG_DIR = os.environ.get("PY4WEB_LOGS", None)
+LOG_FILE = os.path.join (LOG_DIR, 'server-py4web.log') if LOG_DIR else None
 
 def check_level(level):
     # lib/python3.7/logging/__init__.py
@@ -46,39 +47,30 @@ def check_level(level):
         else logging.WARN
     )
 
+# https://stackoverflow.com/questions/35048921/format-log-messages-as-a-tree
 
-def logging_conf(level, log_file="server-py4web.log"):
-    global LOG_DIR
+def logging_conf(level):
+
+    global LOG_FILE
     log_to = dict()
 
-    # https://stackoverflow.com/questions/71623608/python-logging-from-multiple-packages
-    # https://stackoverflow.com/questions/42936810/python-logging-module-set-formatter-dynamically
-    # https://stackoverflow.com/questions/1741972/how-to-use-different-formatters-with-the-same-logging-handler-in-python
-    # https://stackoverflow.com/questions/67975119/python-logging-use-same-handlers-for-multiple-loggers-on-different-files
-    # https://stackoverflow.com/questions/15096090/python-separate-processes-logging-to-same-file
-    # https://docs.python.org/2/howto/logging-cookbook.html#sending-and-receiving-logging-events-across-a-network
+    if LOG_FILE:
 
-    if LOG_DIR:
-        path_log_file = os.path.join(LOG_DIR, log_file)
-        log_to = {
-            "filename": path_log_file,
-            "filemode": "w",
-        }
+        log_to["filename" ] = LOG_FILE
+        log_to["filemode" ] = "w"
         if sys.version_info >= (3, 9):
             log_to["encoding"] = "utf-8"
 
-        print(f"PY4WEB_LOGS={LOG_DIR}, open {path_log_file}")
+        print(f"PY4WEB_LOGS={LOG_DIR}, open {LOG_FILE}")
 
     _short = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d"
     #_long = _short + " > %(funcName)s > %(filename)s:%(lineno)d > %(levelname)s"
 
     _time = '%H:%M:%S'
     #_date_time = '%Y-%m-%d %H:%M:%S'
-
     logging.basicConfig(
         format=_short,
         datefmt=_time,
-        encoding="utf-8",
         level=check_level(level),
         **log_to,
     )
@@ -108,17 +100,15 @@ def gevent():
 
     class GeventServer(ServerAdapter):
         def run(self, handler):
-            global LOG_DIR
+            global LOG_FILE
             logger = "default"  # not None - from gevent doc
 
             if not self.quiet:
                 logger = logging.getLogger("SA:gevent")
                 fh = (
                     logging.FileHandler()
-                    if not LOG_DIR
-                    else (
-                        logging.FileHandler(os.path.join(LOG_DIR, "server-py4web.log"))
-                    )
+                    if not LOG_FILE
+                    else logging.FileHandler(LOG_FILE)
                 )
                 logger.setLevel(check_level(self.options["logging_level"]))
                 logger.addHandler(fh)
@@ -514,7 +504,7 @@ def Pyruvate():
 # --------------------------------------- Mig --------------------------------
 # alias mig="cd $p4w_path && ./py4web.py run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
 
-# version 0.0.20
+# version 0.0.21
 
 
 def tornadoMig():
@@ -944,6 +934,7 @@ def log_info(mess, dbg=True, ):
 log_warn=log_info
 log_debug=log_info
 
+log_warn('0'* 30 + ' ' +APP_NAME)
 
 @action('index')
 @action.uses('index.html', auth, T, )
@@ -954,3 +945,4 @@ def index():
     log_info('7'* 30 + ' ' +APP_NAME)
 
 """
+

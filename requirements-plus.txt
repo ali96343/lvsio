@@ -9,3 +9,5 @@ uvloop
 black
 redis[hiredis]
 celery
+logging_tree
+
