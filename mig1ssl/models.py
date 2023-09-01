@@ -63,6 +63,8 @@ db.define_table( 'sio_log',
     Field('inout',),
     Field("orig_e",),
     Field("room",),
+    Field("app_nm",),
+    Field("ctrl_nm",),
     Field('time', 'datetime', editable=False, default = datetime.datetime.now(), requires = IS_DATETIME( )),
     )
 db.commit()

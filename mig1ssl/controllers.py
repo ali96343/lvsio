@@ -24,9 +24,8 @@ def index():
     # curl -k -I  https://192.168.1.161:9000/mig1ssl/index
     user = auth.get_user()
 
-    log_info('0'* 30 + ' ' +APP_NAME)
-    log_warn('1'* 30 + ' ' +APP_NAME)
-    log_info('7'* 30 + ' ' +APP_NAME)
+    log_warn('7'* 30 + ' ' +APP_NAME)
+    log_info('9'* 30 + ' ' +APP_NAME)
 
     sio_users = ['userAAA', 'userBBB', 'userCCC', 'userDDD' ]
     #sio_users = ['userWWW','userXXX', 'userYYY', 'userZZZ', ]

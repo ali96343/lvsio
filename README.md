@@ -2,16 +2,18 @@
 
 ---------------------------------------------
 
-mig1ssl, mig2ssl, tornadoMig
+mig1ssl, mig2ssl, torMig, aioMig
 
 based on https://github.com/miguelgrinberg/quick-socketio-tutorial/tree/part9
 
 cp mig1ssl/server_adapters.py to py4web/server_adapters.py
 
 
-./py4web.py  run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000
+./py4web.py  run apps -s torMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000
 
-test for async run_controller from tornadoMig
+./py4web.py  run apps -s torMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000
+
+test for async run_controller from torMig, aioMig
 
 ---------------------------------------------
 

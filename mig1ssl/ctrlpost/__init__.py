@@ -13,7 +13,7 @@ from ..ahelp import log_info
 
 
 SECRET_LEN = int(6)  # 32 for real app
-SIO_RED_PARAM = "redis://", "channel_tornadoMig"
+SIO_RED_PARAM = "redis://", "sio_channel_p4w"
 
 #  write_only=True,  - one way channel
 r_mgr = socketio.RedisManager(

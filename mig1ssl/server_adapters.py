@@ -19,8 +19,8 @@ __all__ = [
 # ---------------------- utils -----------------------------------------------
 
 # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
-LOG_DIR = os.environ.get("PY4WEB_LOGS", None)
-LOG_FILE = os.path.join (LOG_DIR, 'server-py4web.log') if LOG_DIR else None
+_LOG_DIR = os.environ.get("PY4WEB_LOGS", None)
+_LOG_FILE = os.path.join (_LOG_DIR, 'server-py4web.log') if _LOG_DIR else None
 
 def check_level(level):
     # lib/python3.7/logging/__init__.py
@@ -51,23 +51,24 @@ def check_level(level):
 
 def logging_conf(level):
 
-    global LOG_FILE
+    global _LOG_FILE
     log_to = dict()
 
-    if LOG_FILE:
+    if _LOG_FILE:
 
-        log_to["filename" ] = LOG_FILE
+        log_to["filename" ] = _LOG_FILE
         log_to["filemode" ] = "w"
         if sys.version_info >= (3, 9):
             log_to["encoding"] = "utf-8"
 
-        print(f"PY4WEB_LOGS={LOG_DIR}, open {LOG_FILE}")
+        print(f"PY4WEB_LOGS={_LOG_DIR}, open {_LOG_FILE}")
 
     _short = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d"
     #_long = _short + " > %(funcName)s > %(filename)s:%(lineno)d > %(levelname)s"
 
     _time = '%H:%M:%S'
     #_date_time = '%Y-%m-%d %H:%M:%S'
+
     logging.basicConfig(
         format=_short,
         datefmt=_time,
@@ -100,15 +101,15 @@ def gevent():
 
     class GeventServer(ServerAdapter):
         def run(self, handler):
-            global LOG_FILE
+            global _LOG_FILE
             logger = "default"  # not None - from gevent doc
 
             if not self.quiet:
                 logger = logging.getLogger("SA:gevent")
                 fh = (
                     logging.FileHandler()
-                    if not LOG_FILE
-                    else logging.FileHandler(LOG_FILE)
+                    if not _LOG_FILE
+                    else logging.FileHandler(_LOG_FILE)
                 )
                 logger.setLevel(check_level(self.options["logging_level"]))
                 logger.addHandler(fh)
@@ -419,7 +420,6 @@ def wsgirefThreadingServer():
                         )
                         self_run.log.info(msg)
 
-            # handler_cls =  self.options.get("handler_class", LogHandler)
             server_cls = Server
 
             if ":" in self.host:  # Fix wsgiref for IPv6 addresses.
@@ -504,7 +504,7 @@ def Pyruvate():
 # --------------------------------------- Mig --------------------------------
 # alias mig="cd $p4w_path && ./py4web.py run apps -s tornadoMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
 
-# version 0.0.21
+# version 0.0.25
 
 
 def tornadoMig():
@@ -647,6 +647,9 @@ def tornadoMig():
                 return r.text
 
             # https://www.tornadoweb.org/en/stable/guide/coroutines.html        
+    class SE:
+        def __init__():
+            pass
 
     # ------------------------------------------------------------------------------
     import tornado, asyncio, uvloop, random
@@ -822,11 +825,11 @@ def tornadoMig():
                 #    "id": 12, "inout": "----", "orig_e": '+++++', },)
 
                 #r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_log", "id": 1 } )
-                #s_app.cprint (f"{r}", 'cyan')
+                #s_app.out_dbg (f"{r}", 'cyan')
 
                 r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_data", "id": 1 } )
-                #s_app.cprint (type(r))
-                #s_app.cprint (f"{r}!!!!!", 'cyan')
+                #s_app.out_dbg (type(r))
+                #s_app.out_dbg (f"{r}!!!!!", 'cyan')
                 s_app.out_dbg (json.loads(r)[0])
 
                 #await s_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_log", "id": 7 } )
@@ -891,6 +894,13 @@ def tornadoMig():
 
     return TornadoMig
 
+# https://stackoverflow.com/questions/63528951/how-to-make-a-logging-handler-log-to-flask-socketio
+# https://medium.com/the-research-nest/how-to-log-data-in-real-time-on-a-web-page-using-flask-socketio-in-python-fb55f9dad100
+# https://github.com/donskytech/python-flask-socketio
+# https://github.com/ryanbekabe/Python_Socket.io
+# https://github.com/lareii/flask-socketio-chat
+# http://blog.dataroadtech.com/asynchronous-task-execution-with-flask-celery-and-socketio/
+
 
 # https://github.com/kasullian/ChatIO/blob/main/server.py
 # https://stackoverflow.com/questions/60266397/using-multiple-asyncio-queues-effectively
@@ -912,7 +922,30 @@ import sys
 import logging
 from .common import logger
 from .settings import APP_NAME
+from threading import Lock
 
+print (logger.level)
+
+def set_color(org_string, level=None):
+    color_levels = {
+        10: "\033[36m{}\033[0m",       # DEBUG
+        20: "\033[32m{}\033[0m",       # INFO
+        30: "\033[33m{}\033[0m",       # WARNING
+        40: "\033[31m{}\033[0m",       # ERROR
+        50: "\033[7;31;31m{}\033[0m"   # FATAL/CRITICAL/EXCEPTION
+    }
+    if level is None:
+        return color_levels[20].format(str(org_string))
+    else:
+        return color_levels[int(level)].formatstr((org_string))
+
+logger.info(set_color("test"))
+logger.debug(set_color("test", level=10))
+logger.warning(set_color("test", level=30))
+logger.error(set_color("test", level=40))
+logger.fatal(set_color("test", level=50))
+
+sa_lock = Lock() 
 __srv_log=None
 
 def log_info(mess, dbg=True, ):
@@ -923,12 +956,14 @@ def log_info(mess, dbg=True, ):
         hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
         if len(hs) == 0:
             return logger
-        __srv_log = logging.getLogger(hs[0])
-        return __srv_log
-    #print ('!!!!!!!!!!!!!!!!!!!!!!!!!!! ',salog().handlers)
 
-        #    while logger.hasHandlers():
-        #        logger.removeHandler(logger.handlers[0])
+        # with sa_lock:
+        sa_lock.acquire()    
+        __srv_log = logging.getLogger(hs[0])
+        sa_lock.release()    
+
+        return __srv_log
+
     dbg and salog().info(str(mess))
 
 log_warn=log_info
