@@ -2,7 +2,7 @@ import logging, ssl, sys, os
 
 from ombott.server_adapters import ServerAdapter
 
-# sa_version 0.0.30
+# sa_version 0.0.31 ab96343@gmail.com
 
 try:
     from .utils.wsservers import *
@@ -20,12 +20,22 @@ __all__ = [
     "aioMig",
 ] + wsservers_list
 
+
+# ---------------------- note -----------------------------------------------
+# https://www.bitecode.dev/p/asyncio-twisted-tornado-gevent-walk
+# https://testdriven.io/guides/flask-deep-dive/
+# https://realpython.com/python-click/
+# https://github.com/miguelgrinberg/microdot
+
 # ---------------------- utils -----------------------------------------------
 
 # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
 def get_log_file():
     LOG_DIR = os.environ.get("PY4WEB_LOGS", None)
-    return os.path.join (LOG_DIR, 'server-py4web.log') if LOG_DIR else None
+    LOG_FILE =  os.path.join (LOG_DIR, 'server-py4web.log') if LOG_DIR else None
+    if LOG_FILE:
+        print(f"log_file: {LOG_FILE}")
+    return LOG_FILE    
 
 def check_level(level):
     # lib/python3.7/logging/__init__.py
@@ -65,7 +75,7 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
             log_to["filename" ] = LOG_FILE
             log_to["filemode" ] = "w"
             log_to["encoding"] = "utf-8"
-        else:
+        else: # sys.version_info < (3, 9)
             h = logging.FileHandler( 
                   LOG_FILE, 
                   mode = "w",
@@ -73,10 +83,9 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
                   )
             log_to.update( {"handlers": [h]} )   
 
-        print(f"log_file: {LOG_FILE}")
 
     short_msg = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d"
-    #long = short_msg + " > %(funcName)s > %(filename)s:%(lineno)d > %(levelname)s"
+    #long_msg = short_msg + " > %(funcName)s > %(filename)s:%(lineno)d > %(levelname)s"
 
     time_msg = '%H:%M:%S'
     #date_time_msg = '%Y-%m-%d %H:%M:%S'
@@ -94,6 +103,7 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
     log.info( f'info start logger {logger_name}' )
     log.warn( f'warn start logger {logger_name}' )
     log.debug( f'debug start logger {logger_name}' )
+
     return log
 
 
@@ -106,7 +116,7 @@ def get_workers(opts, default=10):
 
 
 def gevent():
-    # gevent version 22.10.2
+    # gevent version 23.7.0
 
     from gevent import pywsgi, local  # pip install gevent
     import threading
@@ -121,20 +131,22 @@ def gevent():
     # ./py4web.py run apps -s gevent --watch=off --host=192.168.1.161 --port=8443 --ssl_cert=server.pem -L 0
 
     class GeventServer(ServerAdapter):
-        def run(self, handler):
+        def run(self, app):
             LOG_FILE = get_log_file()
-            logger = "default"  # not None - from gevent doc
+            logger = "default"  
 
             if not self.quiet:
-                logger = logging.getLogger("gevent")
+                logger = logging.getLogger("SA:gevent")
                 fh = (
                     logging.FileHandler()
                     if not LOG_FILE
-                    else logging.FileHandler(LOG_FILE)
+                    else logging.FileHandler(LOG_FILE, mode='w')
                 )
                 logger.setLevel(check_level(self.options["logging_level"]))
                 logger.addHandler(fh)
+                #logger.addHandler(logging.StreamHandler())
                 logger.propagate = True
+                logerr.info('start SA:gevent')
 
             certfile = self.options.get("certfile", None)
 
@@ -154,7 +166,7 @@ def gevent():
 
             server = pywsgi.WSGIServer(
                 (self.host, self.port),
-                handler,
+                app,
                 log=logger,
                 error_log=logger,
                 **ssl_args,
@@ -190,8 +202,8 @@ def geventWebSocketServer():
     # openssl s_client -showcerts -connect $HOST
 
     class GeventWebSocketServer(ServerAdapter):
-        def run(self, handler):
-            logger = "default"  # not None !! from gevent doc
+        def run(self, app):
+            logger = "default"  
 
             if not self.quiet:
                 logger = logging_conf(
@@ -211,7 +223,7 @@ def geventWebSocketServer():
 
             server = pywsgi.WSGIServer(
                 (self.host, self.port),
-                handler,
+                app,
                 handler_class=WebSocketHandler,
                 log=logger,
                 error_log=logger,
@@ -499,7 +511,7 @@ def Pyruvate():
     import pyruvate  # pip install pyruvate
 
     class srvPyruvate(ServerAdapter):
-        def run(self, handler):
+        def run(self, app):
             if not self.quiet:
                 log = logging_conf(
                     self.options["logging_level"], "Pyruwate",
@@ -508,7 +520,7 @@ def Pyruvate():
                 #log.propagate = True
 
             pyruvate.serve(
-                handler,
+                app,
                 f"{self.host}:{self.port}",
                 get_workers(self.options, default=10),
             )
@@ -518,8 +530,6 @@ def Pyruvate():
 
 # --------------------------------------- Mig --------------------------------
 # alias mig="cd $p4w_path && ./py4web.py run apps -s torMig --ssl_cert=cert.pem --ssl_key=key.pem -H 192.168.1.161 -P 9000 -L 20"
-
-
 
 #  curl -k "http://127.0.0.1:8000/socket.io/?EIO=4&transport=polling"
 #  curl -k "https://192.168.1.161:9000/socket.io/?EIO=4&transport=polling"
@@ -659,9 +669,9 @@ class MultiSio:
 
 def torMig():
     # ------------------------------------------------------------------------------
-    import tornado,tornado.web, uvloop
+    import tornado, tornado.web, uvloop
 
-    class Favi(tornado.web.RequestHandler):
+    class Favicon_ico(tornado.web.RequestHandler):
         def get(self):
             self.write(";)")
 
@@ -879,7 +889,7 @@ def torMig():
                 app = tornado.web.Application(
                     [
                         #(r'/favicon.ico', tornado.web.StaticFileHandler, {"path": ""}),
-                        (r"/favicon.ico", Favi),
+                        (r"/favicon.ico", Favicon_ico),
                         (r"/socket.io/", s_app.get_handl),
                         (r".*", tornado.web.FallbackHandler, dict(fallback=wsgi_apps)),
                     ],
@@ -987,7 +997,13 @@ def aioMig():
 
                 s_app.out_dbg(f"+++++++++++++++++ {r}")
 
+            # https://github.com/miguelgrinberg/python-socketio/issues/142
+            # https://github.com/miguelgrinberg/python-socketio/issues/461
+            # https://github.com/miguelgrinberg/python-socketio/issues/1101
             class SioNsp(socketio.AsyncNamespace,):
+                def __init__(self, *ar, **kw):
+                     super().__init__(*ar, )
+
                 #@sio.event
                 async def on_close_room(self, sid, message):
                     e_name = sys._getframe().f_code.co_name
@@ -1131,8 +1147,7 @@ def aioMig():
 
 
            # ---------------------------------------------------------
-
-            sio.register_namespace(SioNsp('/'))
+            sio.register_namespace(SioNsp('/', xxx='111111111'))
 
             wsgi_apps = WSGIHandler(app)
             aio_app = web.Application()
@@ -1209,23 +1224,23 @@ logger.warning(set_color("test", level=30))
 logger.error(set_color("test", level=40))
 logger.fatal(set_color("test", level=50))
 
-sa_lock = Lock() 
-__srv_log=None
+_sa_lock = Lock() 
+_srv_log=None
 
 def log_info(mess, dbg=True, ):
     def salog(pat='SA:'):
-        global __srv_log
-        if __srv_log: # and isinstance( __srv_log, logging.Logger ):
-           return __srv_log
+        global _srv_log, _sa_lock
+        if _srv_log and isinstance( _srv_log, logging.Logger ):
+           return _srv_log
         hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
         if len(hs) == 0:
             return logger
 
-        sa_lock.acquire()    
-        __srv_log = logging.getLogger(hs[0])
-        sa_lock.release()    
+        _sa_lock.acquire()    
+        _srv_log = logging.getLogger(hs[0])
+        _sa_lock.release()    
 
-        return __srv_log
+        return _srv_log
 
     dbg and salog().info(str(mess))
 
