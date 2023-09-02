@@ -4,6 +4,8 @@
 
 mig1ssl, mig2ssl, torMig, aioMig
 
+test-salog
+
 based on https://github.com/miguelgrinberg/quick-socketio-tutorial/tree/part9
 
 cp mig1ssl/server_adapters.py to py4web/server_adapters.py
