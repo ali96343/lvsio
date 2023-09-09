@@ -2,7 +2,7 @@ import logging, ssl, sys, os
 
 from ombott.server_adapters import ServerAdapter
 
-# sa_version 0.0.31 ab96343@gmail.com
+# sa_version 0.0.35 ab96343@gmail.com
 
 try:
     from .utils.wsservers import *
@@ -26,16 +26,20 @@ __all__ = [
 # https://testdriven.io/guides/flask-deep-dive/
 # https://realpython.com/python-click/
 # https://github.com/miguelgrinberg/microdot
+# https://github.com/Hardtack/Flask-aiohttp/blob/master/flask_aiohttp/helper.py
+# https://github.com/Hardtack/Flask-aiohttp
+# https://stackoverflow.com/questions/42009202/how-to-call-a-async-function-contained-in-a-class
+
 
 # ---------------------- utils -----------------------------------------------
 
 # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
 def get_log_file():
-    LOG_DIR = os.environ.get("PY4WEB_LOGS", None)
-    LOG_FILE =  os.path.join (LOG_DIR, 'server-py4web.log') if LOG_DIR else None
-    if LOG_FILE:
-        print(f"log_file: {LOG_FILE}")
-    return LOG_FILE    
+    log_dir = os.environ.get("PY4WEB_LOGS", None)
+    log_file =  os.path.join (log_dir, 'server-py4web.log') if log_dir else None
+    if log_file:
+        print(f"log_file: {log_file}")
+    return log_file    
 
 def check_level(level):
     # lib/python3.7/logging/__init__.py
@@ -66,23 +70,22 @@ def check_level(level):
 
 def logging_conf(level=logging.WARN, logger_name=__name__):
 
-    LOG_FILE = get_log_file()
+    log_file = get_log_file()
     log_to = dict()
 
-    if LOG_FILE:
+    if log_file:
 
         if sys.version_info >= (3, 9):
-            log_to["filename" ] = LOG_FILE
+            log_to["filename" ] = log_file
             log_to["filemode" ] = "w"
             log_to["encoding"] = "utf-8"
-        else: # sys.version_info < (3, 9)
+        else: 
             h = logging.FileHandler( 
-                  LOG_FILE, 
+                  log_file, 
                   mode = "w",
                   encoding = "utf-8"
                   )
             log_to.update( {"handlers": [h]} )   
-
 
     short_msg = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d"
     #long_msg = short_msg + " > %(funcName)s > %(filename)s:%(lineno)d > %(levelname)s"
@@ -96,6 +99,9 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
         level=check_level(level),
         **log_to,
     )
+
+    if logger_name is None:
+        return None
 
     logger_name = "SA:" + logger_name
     log = logging.getLogger(logger_name)
@@ -131,16 +137,16 @@ def gevent():
     # ./py4web.py run apps -s gevent --watch=off --host=192.168.1.161 --port=8443 --ssl_cert=server.pem -L 0
 
     class GeventServer(ServerAdapter):
-        def run(self, app):
-            LOG_FILE = get_log_file()
+        def run(self, py4web_apps):
+            log_file = get_log_file()
             logger = "default"  
 
             if not self.quiet:
                 logger = logging.getLogger("SA:gevent")
                 fh = (
                     logging.FileHandler()
-                    if not LOG_FILE
-                    else logging.FileHandler(LOG_FILE, mode='w')
+                    if not log_file
+                    else logging.FileHandler(log_file, mode='w')
                 )
                 logger.setLevel(check_level(self.options["logging_level"]))
                 logger.addHandler(fh)
@@ -166,7 +172,7 @@ def gevent():
 
             server = pywsgi.WSGIServer(
                 (self.host, self.port),
-                app,
+                py4web_apps,
                 log=logger,
                 error_log=logger,
                 **ssl_args,
@@ -202,7 +208,7 @@ def geventWebSocketServer():
     # openssl s_client -showcerts -connect $HOST
 
     class GeventWebSocketServer(ServerAdapter):
-        def run(self, app):
+        def run(self, py4web_apps):
             logger = "default"  
 
             if not self.quiet:
@@ -223,7 +229,7 @@ def geventWebSocketServer():
 
             server = pywsgi.WSGIServer(
                 (self.host, self.port),
-                app,
+                py4web_apps,
                 handler_class=WebSocketHandler,
                 log=logger,
                 error_log=logger,
@@ -360,7 +366,7 @@ def wsgirefThreadingServer():
     # end redirector http -> https ----------------------
 
     class WSGIRefThreadingServer(ServerAdapter):
-        def run(self, app):
+        def run(self, py4web_apps):
 
             self.log = None
 
@@ -457,7 +463,7 @@ def wsgirefThreadingServer():
                     class server_cls(server_cls):
                         address_family = socket.AF_INET6
 
-            srv = make_server(self.host, self.port, app, server_cls, LogHandler)
+            srv = make_server(self.host, self.port, py4web_apps, server_cls, LogHandler)
             srv.serve_forever()
 
     return WSGIRefThreadingServer
@@ -470,7 +476,7 @@ def rocketServer():
         from .rocket3 import Rocket3 as Rocket
 
     class RocketServer(ServerAdapter):
-        def run(self, app):
+        def run(self, py4web_apps):
             if not self.quiet:
                 logger = logging_conf(
                     self.options["logging_level"], "Rocket",
@@ -490,7 +496,7 @@ def rocketServer():
                 else (self.host, self.port)
             )
 
-            server = Rocket(interface, "wsgi", dict(wsgi_app=app))
+            server = Rocket(interface, "wsgi", dict(wsgi_app=py4web_apps))
             server.start()
 
     return RocketServer
@@ -511,16 +517,14 @@ def Pyruvate():
     import pyruvate  # pip install pyruvate
 
     class srvPyruvate(ServerAdapter):
-        def run(self, app):
+        def run(self, py4web_apps):
             if not self.quiet:
                 log = logging_conf(
                     self.options["logging_level"], "Pyruwate",
                 )
-                #log = logging.getLogger("Pyruvate")
-                #log.propagate = True
 
             pyruvate.serve(
-                app,
+                py4web_apps,
                 f"{self.host}:{self.port}",
                 get_workers(self.options, default=10),
             )
@@ -688,14 +692,14 @@ def torMig():
             ZZ.a_count = 0
             ZZ.b_count = 0
 
-        def run(ZZ, app):
+        def run(ZZ, py4web_apps):
             ZZ.log = None
             if not ZZ.quiet:
                 logging_conf( ZZ.options["logging_level"],)
                 ZZ.log = logging.getLogger("mig")
                 ZZ.log.propagate = True
 
-            s_app = MultiSio( handler, host = ZZ.host, port = ZZ.port, certfile=ZZ.certfile, keyfile=ZZ.keyfile,log= ZZ.log)
+            s_app = MultiSio( py4web_apps, host = ZZ.host, port = ZZ.port, certfile=ZZ.certfile, keyfile=ZZ.keyfile,log= ZZ.log)
             sio = s_app.get_sio
 
             async def period_task(sid):
@@ -884,14 +888,14 @@ def torMig():
                 # https://python-socketio.readthedocs.io/en/latest/server.html#defining-event-handlers
 
             async def main():
-                wsgi_apps = tornado.wsgi.WSGIContainer(app)
+                wsgi_box = tornado.wsgi.WSGIContainer(py4web_apps)
 
                 app = tornado.web.Application(
                     [
                         #(r'/favicon.ico', tornado.web.StaticFileHandler, {"path": ""}),
                         (r"/favicon.ico", Favicon_ico),
                         (r"/socket.io/", s_app.get_handl),
-                        (r".*", tornado.web.FallbackHandler, dict(fallback=wsgi_apps)),
+                        (r".*", tornado.web.FallbackHandler, dict(fallback=wsgi_box)),
                     ],
                 )
 
@@ -921,256 +925,255 @@ def torMig():
 # pip install aiohttp
 # pip install aiohttp_wsgi
 
+
+
+# ---------------------------------------------------------
+# https://github.com/miguelgrinberg/python-socketio/issues/142
+# https://github.com/miguelgrinberg/python-socketio/issues/461
+# https://github.com/miguelgrinberg/python-socketio/issues/1101
+class MigNsp(socketio.AsyncNamespace,):
+    def __init__(self, *ar, **kw):
+         super().__init__(*ar, )
+         self.s_app=kw['k_app']
+         self.s_sio=kw['k_sio']
+
+         self.client_count = 0
+         self.a_count = 0
+         self.b_count = 0
+
+
+    async def debug_task(self, sid):
+        e_name = sys._getframe().f_code.co_name
+        count = 0
+        while True:
+            if not sid in self.s_app.sids_connected:
+                break
+    
+            count += 1
+            await self.s_app.ctrl_emit( sid, "ctrl_emit", data={"orig_e": e_name, "bcast": False},)
+            await self.s_app.ctrl_emit( sid, "xxx_cmd", data={"sid": sid, "count": count})
+            await self.s_app.post_dispatcher( sid, e_name, data={"sid": sid, "count": count})
+            self.s_app.out_dbg( f"================= s_app.sids_connected: {len(self.s_app.sids_connected)}", "cyan",)
+            await self.s_sio.sleep(10)
+
+    async def period_task(self, sid):
+        e_name = sys._getframe().f_code.co_name
+        count = 0
+        while True:
+            if not sid in self.s_app.sids_connected:
+                break
+            count += 1
+            await self.s_sio.emit( "my_response", { "data": f"period_task 7-sec-counter-to-all {count} to {sid}  " },)
+            await self.s_sio.sleep(7)
+    
+    async def simple_task(self, sid):
+        e_name = sys._getframe().f_code.co_name
+        am = random.randint(1, 9)
+        bm = random.randint(1, 9)
+        await self.s_sio.sleep(5)
+    
+        try:
+            result = await self.s_sio.call("mult", {"numbers": [am, bm]}, to=sid)
+            self.s_app.log_info(f"result from js-mult: {result}")
+        except socketio.exceptions.TimeoutError:
+            self.s_app.out_dbg(f"------------------ timeout error on js-mult {e_name}")
+    
+        try:
+            r = await self.s_app.ctrl_call_mult( sid, "ctrl_call_mult", data={"numbers": [am, bm]},)
+        except socketio.exceptions.TimeoutError:
+            self.s_app.log_info(f"timeout error on {e_name} ctrl_call_mult")
+    
+        self.s_app.out_dbg(f"+++++++++++++++++ {r}")
+       
+    
+    async def on_close_room(self, sid, message):
+        e_name = sys._getframe().f_code.co_name
+        await self.s_sio.emit( "my_response", {"data": "Room " + message["room"] + " is closing."}, room=message["room"],)
+        await self.s_sio.close_room(message["room"])
+    
+    async def on_connect(self, sid, environ,):
+        e_name = sys._getframe().f_code.co_name
+    
+        url, ctrl_nm, app_nm = None, None, None
+    
+        try:
+            url = environ["HTTP_REFERER"]
+        except KeyError:
+            url = environ["HTTP_ORIGIN"]
+            self.s_app.log_info(f"bad url {url}")
+            return False
+    
+        url_items = url.rsplit("/")
+        app_nm = url_items[3] if len(url_items) >= 4 else None
+        if not app_nm in self.s_app.post_to:  # Z.p4w_apps_names:
+            self.s_app.log_info(f"bad app_nm: {app_nm}")
+            return False
+    
+        ctrl_nm = url_items[4] if len(url_items) >= 5 else None
+    
+        username = environ.get("HTTP_X_USERNAME")
+        self.s_app.log_info(f"HTTP_X_USERNAME: {username} {app_nm}")
+        if not username:
+            # raise ConnectionRefusedError('authentication failed')
+            return False
+        async with self.s_sio.session(sid) as session:
+            session["username"] = username
+            # session["qu"] = asyncio.Queue()
+        await self.s_sio.emit("user_joined", f"{username} sid: {sid}")
+    
+        # end auth etc
+    
+        self.client_count += 1
+        self.s_app.log_info(f"{sid} connected")
+    
+        myroom = None
+        if random.random() > 0.5:
+            self.s_sio.enter_room(sid, "a")
+            myroom = "a"
+            self.a_count += 1
+            await self.s_sio.emit("room_count", self.a_count, to="a")
+        else:
+            self.s_sio.enter_room(sid, "b")
+            myroom = "b"
+            self.b_count += 1
+            await self.s_sio.emit("room_count", self.b_count, to="b")
+    
+        self.s_app.sids_connected[sid] = { 
+            "sid": sid, 
+            "app_nm": app_nm,
+            "ctrl_nm": ctrl_nm,
+            "username": username,
+            "room": myroom,
+        }
+    
+        await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
+            "inout": "in", "orig_e": e_name, "app_nm": app_nm, "ctrl_nm": ctrl_nm},)
+    
+        await self.s_sio.emit( "client_count", f"{self.client_count} {set(self.s_app.sids_connected.keys())}",)
+    
+        self.s_sio.start_background_task(self.simple_task, sid)
+        self.s_sio.start_background_task(self.period_task, sid)
+        self.s_sio.start_background_task(self.debug_task, sid)
+    
+        await self.s_app.post_dispatcher( sid, e_name,)
+    
+    async def on_disconnect_request(self, sid):
+        e_name = sys._getframe().f_code.co_name
+        await self.s_sio.disconnect(sid)
+    
+    async def on_disconnect(self, sid):
+        e_name = sys._getframe().f_code.co_name
+    
+        if not sid in self.s_app.sids_connected:
+            return
+    
+        ar = random.randint(1, 9)
+        br = random.randint(1, 9)
+    
+        await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
+            "inout": "out", "orig_e": e_name, },)
+    
+        #await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
+        #    "counter": ['hello', 'world', ar, {'counter': br}], "orig_e": e_name, },)
+    
+        #await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
+        #    "counter":  {'counter': br}, "orig_e": e_name, },)
+    
+        await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
+            "counter": br, "orig_e": e_name, },)
+    
+        #await self.s_app.db_run( sid, "db_run", data={ "cmd": "UPDATE", "table": "sio_log", 
+        #    "id": 12, "inout": "----", "orig_e": '+++++', },)
+    
+        #r = await self.s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_log", "id": 1 } )
+        #self.s_app.out_dbg (f"{r}", 'cyan')
+    
+        r = await self.s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_data", "id": 1 } )
+        #self.s_app.out_dbg (type(r))
+        #self.s_app.out_dbg (f"{r}!!!!!", 'cyan')
+        self.s_app.out_dbg (json.loads(r)[0])
+    
+        #await self.s_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_log", "id": 7 } )
+    
+        del self.s_app.sids_connected[sid]
+    
+        self.client_count -= 1
+        self.s_app.log_info(f"{sid} disconnected")
+        await self.s_sio.emit("client_count", self.client_count)
+        if "a" in self.s_sio.rooms(sid):
+            self.a_count -= 1
+            await self.s_sio.emit("room_count", self.a_count, to="a")
+        else:
+            self.b_count -= 1
+            await self.s_sio.emit("room_count", self.b_count, to="b")
+    
+        async with self.s_sio.session(sid) as session:
+            await self.s_sio.emit("user_left", session["username"])
+    
+    async def on_sum(self, sid, data):
+        e_name = sys._getframe().f_code.co_name
+        # Z.log and Z.log.info(data)
+        result = data["numbers"][0] + data["numbers"][1]
+        return {"result": result, "event_name": e_name}
+    
+    async def on_catch_all(event, sid, data):
+        e_name = sys._getframe().f_code.co_name
+        self.s_app.out_dbg(f"----------------------- {e_name}: {event} {data}")
+    #    # https://python-socketio.readthedocs.io/en/latest/server.html#defining-event-handlers
+
+
+    # ---------------------------------------------------------
+
 def aioMig():
     from aiohttp import web
     from aiohttp_wsgi import WSGIHandler  # pip install aiohttp_wsgi
 
     class AioSio(ServerAdapter):
+
         def __init__(self, *ar, **kw):
             super().__init__(*ar, **kw)
 
             self.certfile =  self.options.get("certfile", None)
             self.keyfile =  self.options.get("keyfile", None)
 
-            self.client_count = 0
-            self.a_count = 0
-            self.b_count = 0
-
         async def favicon_ico(self,request):
-            return web.Response( text=';)', content_type='text/html')
-        async def robots_txt(self,request):
-            return web.Response( text=';(', content_type='text/html')
+            return web.Response( text=';)', content_type='text/plain')
 
-        def run(self, app):
-            ZZ = self
+        async def robots_txt(self,request):
+            return web.Response( text=';(', content_type='text/plain')
+
+        def run(self, py4web_apps):
             self.log= None
             if not self.quiet:
                 self.log = logging_conf( self.options["logging_level"], "aiohttp"  )
             
-            s_app = MultiSio( app, host = self.host, port = self.port, certfile=self.certfile, 
-                    keyfile=self.keyfile,log= self.log, sio_mode="aiohttp")
+            s_app = MultiSio( py4web_apps, host = self.host, port = self.port, 
+                    certfile=self.certfile, keyfile=self.keyfile,
+                    log= self.log, sio_mode="aiohttp")
+
             sio = s_app.get_sio
+            sio.register_namespace(MigNsp('/', k_app=s_app, k_sio=sio))
 
-            # ---------------------------------------------------------
-            
-            async def period_task(sid):
-                e_name = sys._getframe().f_code.co_name
-                count = 0
-                while True:
-                    if not sid in s_app.sids_connected:
-                        break
-                    count += 1
-                    await sio.emit( "my_response", { "data": f"period_task 7-sec-counter-to-all {count} to {sid}  " },)
-                    await sio.sleep(7)
-
-            async def debug_task(sid):
-                e_name = sys._getframe().f_code.co_name
-                count = 0
-                while True:
-                    if not sid in s_app.sids_connected:
-                        break
-
-                    count += 1
-                    await s_app.ctrl_emit( sid, "ctrl_emit", data={"orig_e": e_name, "bcast": False},)
-                    await s_app.ctrl_emit( sid, "xxx_cmd", data={"sid": sid, "count": count})
-                    await s_app.post_dispatcher( sid, e_name, data={"sid": sid, "count": count})
-                    s_app.out_dbg( f"================= s_app.sids_connected: {len(s_app.sids_connected)}", "cyan",)
-                    await sio.sleep(10)
-
-
-            async def simple_task(sid):
-                e_name = sys._getframe().f_code.co_name
-                am = random.randint(1, 9)
-                bm = random.randint(1, 9)
-                await sio.sleep(5)
-
-                try:
-                    result = await sio.call("mult", {"numbers": [am, bm]}, to=sid)
-                    s_app.log_info(f"result from js-mult: {result}")
-                except socketio.exceptions.TimeoutError: #asyncio.TimeoutError:
-                    s_app.out_dbg(f"------------------ timeout error on js-mult {e_name}")
-
-                try:
-                    r = await s_app.ctrl_call_mult( sid, "ctrl_call_mult", data={"numbers": [am, bm]},)
-                except socketio.exceptions.TimeoutError: #asyncio.TimeoutError:
-                    s_app.log_info(f"timeout error on {e_name} ctrl_call_mult")
-
-                s_app.out_dbg(f"+++++++++++++++++ {r}")
-
-            # https://github.com/miguelgrinberg/python-socketio/issues/142
-            # https://github.com/miguelgrinberg/python-socketio/issues/461
-            # https://github.com/miguelgrinberg/python-socketio/issues/1101
-            class SioNsp(socketio.AsyncNamespace,):
-                def __init__(self, *ar, **kw):
-                     super().__init__(*ar, )
-
-                #@sio.event
-                async def on_close_room(self, sid, message):
-                    e_name = sys._getframe().f_code.co_name
-                    await sio.emit( "my_response", {"data": "Room " + message["room"] + " is closing."}, room=message["room"],)
-                    await sio.close_room(message["room"])
-    
-                #@sio.event
-                async def on_connect(self, sid, environ,):
-                    e_name = sys._getframe().f_code.co_name
-    
-                    url, ctrl_nm, app_nm = None, None, None
-    
-                    try:
-                        url = environ["HTTP_REFERER"]
-                    except KeyError:
-                        url = environ["HTTP_ORIGIN"]
-                        s_app.log_info(f"bad url {url}")
-                        return False
-    
-                    url_items = url.rsplit("/")
-                    app_nm = url_items[3] if len(url_items) >= 4 else None
-                    if not app_nm in s_app.post_to:  # Z.p4w_apps_names:
-                        s_app.log_info(f"bad app_nm: {app_nm}")
-                        return False
-    
-                    ctrl_nm = url_items[4] if len(url_items) >= 5 else None
-    
-                    username = environ.get("HTTP_X_USERNAME")
-                    s_app.log_info(f"HTTP_X_USERNAME: {username} {app_nm}")
-                    if not username:
-                        # raise ConnectionRefusedError('authentication failed')
-                        return False
-                    async with sio.session(sid) as session:
-                        session["username"] = username
-                        # session["qu"] = asyncio.Queue()
-                    await sio.emit("user_joined", f"{username} sid: {sid}")
-    
-                    # end auth etc
-    
-                    ZZ.client_count += 1
-                    s_app.log_info(f"{sid} connected")
-    
-                    myroom = None
-                    if random.random() > 0.5:
-                        sio.enter_room(sid, "a")
-                        myroom = "a"
-                        ZZ.a_count += 1
-                        await sio.emit("room_count", ZZ.a_count, to="a")
-                    else:
-                        sio.enter_room(sid, "b")
-                        myroom = "b"
-                        ZZ.b_count += 1
-                        await sio.emit("room_count", ZZ.b_count, to="b")
-    
-                    s_app.sids_connected[sid] = { 
-                        "sid": sid, 
-                        "app_nm": app_nm,
-                        "ctrl_nm": ctrl_nm,
-                        "username": username,
-                        "room": myroom,
-                    }
-    
-                    await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
-                        "inout": "in", "orig_e": e_name, "app_nm": app_nm, "ctrl_nm": ctrl_nm},)
-    
-                    await sio.emit( "client_count", f"{ZZ.client_count} {set(s_app.sids_connected.keys())}",)
-    
-                    sio.start_background_task(simple_task, sid)
-                    sio.start_background_task(period_task, sid)
-                    sio.start_background_task(debug_task, sid)
-    
-                    await s_app.post_dispatcher( sid, e_name,)
-    
-                #@sio.event
-                async def on_disconnect_request(self, sid):
-                    e_name = sys._getframe().f_code.co_name
-                    await sio.disconnect(sid)
-    
-                #@sio.event
-                async def on_disconnect(self, sid):
-                    e_name = sys._getframe().f_code.co_name
-    
-                    if not sid in s_app.sids_connected:
-                        return
-    
-                    ar = random.randint(1, 9)
-                    br = random.randint(1, 9)
-    
-                    await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
-                        "inout": "out", "orig_e": e_name, },)
-    
-                    #await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
-                    #    "counter": ['hello', 'world', ar, {'counter': br}], "orig_e": e_name, },)
-    
-                    #await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
-                    #    "counter":  {'counter': br}, "orig_e": e_name, },)
-    
-                    await s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
-                        "counter": br, "orig_e": e_name, },)
-    
-                    #await s_app.db_run( sid, "db_run", data={ "cmd": "UPDATE", "table": "sio_log", 
-                    #    "id": 12, "inout": "----", "orig_e": '+++++', },)
-    
-                    #r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_log", "id": 1 } )
-                    #s_app.out_dbg (f"{r}", 'cyan')
-    
-                    r = await s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_data", "id": 1 } )
-                    #s_app.out_dbg (type(r))
-                    #s_app.out_dbg (f"{r}!!!!!", 'cyan')
-                    s_app.out_dbg (json.loads(r)[0])
-    
-                    #await s_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_log", "id": 7 } )
-    
-                    del s_app.sids_connected[sid]
-    
-                    ZZ.client_count -= 1
-                    s_app.log_info(f"{sid} disconnected")
-                    await sio.emit("client_count", ZZ.client_count)
-                    if "a" in sio.rooms(sid):
-                        ZZ.a_count -= 1
-                        await sio.emit("room_count", ZZ.a_count, to="a")
-                    else:
-                        ZZ.b_count -= 1
-                        await sio.emit("room_count", ZZ.b_count, to="b")
-    
-                    async with sio.session(sid) as session:
-                        await sio.emit("user_left", session["username"])
-    
-                #@sio.event
-                async def on_sum(self, sid, data):
-                    e_name = sys._getframe().f_code.co_name
-                    # Z.log and Z.log.info(data)
-                    result = data["numbers"][0] + data["numbers"][1]
-                    return {"result": result, "event_name": e_name}
-    
-                #@sio.on("*")
-                async def on_catch_all(event, sid, data):
-                    e_name = sys._getframe().f_code.co_name
-                    s_app.out_dbg(f"----------------------- {e_name}: {event} {data}")
-                #    # https://python-socketio.readthedocs.io/en/latest/server.html#defining-event-handlers
-
-
-           # ---------------------------------------------------------
-            sio.register_namespace(SioNsp('/', xxx='111111111'))
-
-            wsgi_apps = WSGIHandler(app)
+            wsgi_box = WSGIHandler(py4web_apps)
             aio_app = web.Application()
 
             sio.attach( aio_app)
 
-            ssl_ctx = None # dict()
-            if self.keyfile and self.certfile:
+            ssl_ctx = None 
+            if self.certfile and self.keyfile:
                 ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                ssl_ctx.load_cert_chain(keyfile=self.keyfile, certfile=self.certfile)
+                ssl_ctx.load_cert_chain(certfile=self.certfile, keyfile=self.keyfile)
 
             aio_app.router.add_routes([web.get("/favicon.ico", self.favicon_ico )])
             aio_app.router.add_routes([web.get("/robots.txt", self.robots_txt )])
-            aio_app.router.add_route("*", "/{path_info:.*}", wsgi_apps)
+            aio_app.router.add_route("*", "/{path_info:.*}", wsgi_box)
+
             web.run_app(aio_app, host=self.host, port=self.port , ssl_context = ssl_ctx )
 
     return AioSio
 
 # https://stackoverflow.com/questions/54165443/how-to-return-html-response-from-aiohttp-web-server
 # curl -k "http://192.168.1.161:9000/socket.io/?EIO=4&transport=polling"
-
-# END aiohttp 
-
 
 
 # https://stackoverflow.com/questions/63528951/how-to-make-a-logging-handler-log-to-flask-socketio
@@ -1224,21 +1227,20 @@ logger.warning(set_color("test", level=30))
 logger.error(set_color("test", level=40))
 logger.fatal(set_color("test", level=50))
 
-_sa_lock = Lock() 
 _srv_log=None
 
 def log_info(mess, dbg=True, ):
     def salog(pat='SA:'):
-        global _srv_log, _sa_lock
+        global _srv_log
         if _srv_log and isinstance( _srv_log, logging.Logger ):
            return _srv_log
         hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
         if len(hs) == 0:
             return logger
 
-        _sa_lock.acquire()    
-        _srv_log = logging.getLogger(hs[0])
-        _sa_lock.release()    
+        _sa_lock = Lock() 
+        with _sa_lock:
+            _srv_log = logging.getLogger(hs[0])
 
         return _srv_log
 

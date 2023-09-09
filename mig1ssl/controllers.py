@@ -15,6 +15,17 @@ from .ahelp import log_info, log_warn, log_debug
 from .settings import APP_NAME
 
 
+# https://github.com/khanhhua/singaporeweather/tree/master
+# https://stackoverflow.com/questions/45984167/mixing-sses-into-tornado
+# https://github.com/mivade/tornadose
+
+
+# https://florian-dahlitz.de/articles/introduction-to-pythons-functools-module
+
+def xex():
+    ...
+
+
 log_info('1'* 30)
 log_warn('2'* 30)
 

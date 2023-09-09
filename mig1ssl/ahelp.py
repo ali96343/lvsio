@@ -25,26 +25,23 @@ logger.error(set_color("test", level=40))
 logger.fatal(set_color("test", level=50))
 
 
-sa_lock = Lock()
-__srv_log=None
+_srv_log=None
 
 def log_info(mess, dbg=True, ):
-    def salog(pat="SA:"):
-        global __srv_log
-        if __srv_log: # and isinstance( __srv_log, logging.Logger ):
-           return __srv_log
+    sa_lock = Lock()
+    def salog(lk, pat="SA:"):
+        global _srv_log
+        if _srv_log and isinstance( _srv_log, logging.Logger ):
+           return _srv_log
         hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
         if len(hs) == 0:
             return logger
 
-        sa_lock.acquire()
-        __srv_log = logging.getLogger(hs[0])
-        sa_lock.release()
+        with lk:
+           _srv_log = logging.getLogger(hs[0])
 
-
-        
-        return __srv_log
-    dbg and salog().info(str(mess))
+        return _srv_log
+    dbg and salog(sa_lock).info(str(mess))
 
 log_warn=log_info    
 log_debug=log_info    
@@ -66,5 +63,17 @@ def cprint(mess="mess", color="green", dbg=True, to_file=True):
         dbg and print(c_fmt.format(str(mess)))
     else:
         dbg and log_info(str(mess))
+
+
+def log_decorator(func):
+    def wrapper():
+        print("Starting operation...")
+        func()
+        print("Operation finished.")
+    return wrapper
+
+@log_decorator
+def perform_operation():
+    print("Performing operation...")
 
 
