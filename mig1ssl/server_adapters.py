@@ -2,7 +2,7 @@ import logging, ssl, sys, os
 
 from ombott.server_adapters import ServerAdapter
 
-# sa_version 0.0.40 ab96343@gmail.com
+# sa_version 0.0.42 ab96343@gmail.com
 
 try:
     from .utils.wsservers import *
@@ -437,11 +437,13 @@ def wsgirefThreadingServer():
                     return self.client_address[0]
 
                 def log_request(*args, **kw):
-                    if not self_run.quiet:
+                    #if not self_run.quiet:
+                    if self_run.log:
                         return WSGIRequestHandler.log_request(*args, **kw)
 
                 def log_message(self, format, *args):
-                    if not self_run.quiet:  # and ( not args[1] in ['200', '304']) :
+                    #if not self_run.quiet:  # and ( not args[1] in ['200', '304']) :
+                    if self_run.log:  # and ( not args[1] in ['200', '304']) :
                         msg = "%s - - [%s] %s" % (
                             self.client_address[0],
                             self.log_date_time_string(),
@@ -553,6 +555,7 @@ class MultiSio:
         Z.sio = None
         Z.post_to = None
         Z.red_param = None, None
+        Z.setup()
 
     def cprint(Z, mess="mess", color="green", dbg=True, to_file =True):
         c_fmt = "--- {}"
@@ -605,8 +608,7 @@ class MultiSio:
                     return var_value
         sys.exit(f"stop! can not find app with {vars_pattern}")
 
-    @property
-    def get_sio(Z):
+    def setup(Z):
         Z.post_to = Z.get_post_tbl()
         Z.red_param = Z.get_red_param()
         # Z.sio = socketio.AsyncServer(async_mode="tornado")
@@ -622,12 +624,6 @@ class MultiSio:
             # logger=True,
             # engineio_logger=True,
         )
-
-        return Z.sio
-
-    @property
-    def get_handl(Z):
-        return socketio.get_tornado_handler(Z.sio)
 
     def out_dbg(Z, data, color="yellow", to_file=True):
         if to_file == False:
@@ -646,7 +642,6 @@ class MultiSio:
 
     async def ctrl_call_mult( Z, sid, e_name, data={"from": "ctrl_call_mult"},):
         return await Z.post_dispatcher( sid, e_name, data,)
-
 
     # https://blog.jonlu.ca/posts/async-python-http
     async def post_dispatcher( Z, sid, event_name="unk", data=None,):
@@ -697,8 +692,9 @@ def torMig():
                 ZZ.log.propagate = True
 
             s_app = MultiSio( py4web_apps_handler, host = ZZ.host, port = ZZ.port, 
-                         certfile=ZZ.certfile, keyfile=ZZ.keyfile,log= ZZ.log)
-            sio = s_app.get_sio
+                              certfile=ZZ.certfile, keyfile=ZZ.keyfile,
+                              log= ZZ.log, sio_mode = 'tornado')
+            sio = s_app.sio
 
             async def period_task(sid):
                 e_name = sys._getframe().f_code.co_name
@@ -706,7 +702,7 @@ def torMig():
                 while True:
                     async with sio.session(sid) as session:
                        if not sid in session:
-                            break
+                           break
                     count += 1
                     await sio.emit( "my_response", { "data": f"period_task 7-sec-counter-to-all {count} to {sid}  " },)
                     await sio.sleep(7)
@@ -717,7 +713,7 @@ def torMig():
                 while True:
                     async with sio.session(sid) as session:
                        if not sid in session:
-                            break
+                           break
                     count += 1
                     await s_app.ctrl_emit( sid, "ctrl_emit", data={"orig_e": e_name, "bcast": False},)
                     await s_app.ctrl_emit( sid, "xxx_cmd", data={"sid": sid, "count": count})
@@ -858,9 +854,6 @@ def torMig():
 
                 #await s_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_log", "id": 7 } )
 
-
-
-
                 ZZ.client_count -= 1
                 s_app.log_info(f"{sid} disconnected")
                 await sio.emit("client_count", ZZ.client_count)
@@ -898,7 +891,7 @@ def torMig():
                     [
                         #(r'/favicon.ico', tornado.web.StaticFileHandler, {"path": ""}),
                         (r"/favicon.ico", Favicon_ico),
-                        (r"/socket.io/", s_app.get_handl),
+                        (r"/socket.io/", socketio.get_tornado_handler ( s_app.sio) ),
                         (r".*", tornado.web.FallbackHandler, dict(fallback=wsgi_box)),
                     ],
                 )
@@ -939,49 +932,49 @@ def torMig():
 class MigNsp(socketio.AsyncNamespace,):
     def __init__(self, *ar, **kw):
          super().__init__(*ar, )
+
          self.s_app=kw['k_app']
-         self.s_sio=self.s_app.sio #kw['k_sio']
+         self.sio=self.s_app.sio #kw['k_sio']
 
          self.client_count = 0
          self.a_count = 0
          self.b_count = 0
-
 
     async def debug_task(self, sid):
         e_name = sys._getframe().f_code.co_name
         count = 0
         while True:
 
-            async with self.s_sio.session(sid) as session:
+            async with self.sio.session(sid) as session:
                 if not sid in session:
-                    return
+                    break
     
             count += 1
             await self.s_app.ctrl_emit( sid, "ctrl_emit", data={"orig_e": e_name, "bcast": False},)
             await self.s_app.ctrl_emit( sid, "xxx_cmd", data={"sid": sid, "count": count})
             await self.s_app.post_dispatcher( sid, e_name, data={"sid": sid, "count": count})
             self.s_app.out_dbg( f"================= self.client_count: {self.client_count}", "cyan",)
-            await self.s_sio.sleep(10)
+            await self.sio.sleep(10)
 
     async def period_task(self, sid):
         e_name = sys._getframe().f_code.co_name
         count = 0
         while True:
-            async with self.s_sio.session(sid) as session:
+            async with self.sio.session(sid) as session:
                 if not sid in session:
-                    return
+                    break
             count += 1
-            await self.s_sio.emit( "my_response", { "data": f"period_task 7-sec-counter-to-all {count} to {sid}  " },)
-            await self.s_sio.sleep(7)
+            await self.sio.emit( "my_response", { "data": f"period_task 7-sec-counter-to-all {count} to {sid}  " },)
+            await self.sio.sleep(7)
     
     async def simple_task(self, sid):
         e_name = sys._getframe().f_code.co_name
         am = random.randint(1, 9)
         bm = random.randint(1, 9)
-        await self.s_sio.sleep(5)
+        await self.sio.sleep(5)
     
         try:
-            result = await self.s_sio.call("mult", {"numbers": [am, bm]}, to=sid)
+            result = await self.sio.call("mult", {"numbers": [am, bm]}, to=sid)
             self.s_app.log_info(f"result from js-mult: {result}")
         except socketio.exceptions.TimeoutError:
             self.s_app.out_dbg(f"------------------ timeout error on js-mult {e_name}")
@@ -996,8 +989,8 @@ class MigNsp(socketio.AsyncNamespace,):
     
     async def on_close_room(self, sid, message):
         e_name = sys._getframe().f_code.co_name
-        await self.s_sio.emit( "my_response", {"data": "Room " + message["room"] + " is closing."}, room=message["room"],)
-        await self.s_sio.close_room(message["room"])
+        await self.sio.emit( "my_response", {"data": "Room " + message["room"] + " is closing."}, room=message["room"],)
+        await self.sio.close_room(message["room"])
     
     async def on_connect(self, sid, environ,):
         e_name = sys._getframe().f_code.co_name
@@ -1025,7 +1018,7 @@ class MigNsp(socketio.AsyncNamespace,):
             # raise ConnectionRefusedError('authentication failed')
             return False
 
-        await self.s_sio.emit("user_joined", f"{username} sid: {sid}")
+        await self.sio.emit("user_joined", f"{username} sid: {sid}")
     
         # end auth etc
     
@@ -1034,17 +1027,17 @@ class MigNsp(socketio.AsyncNamespace,):
     
         myroom = None
         if random.random() > 0.5:
-            self.s_sio.enter_room(sid, "a")
+            self.sio.enter_room(sid, "a")
             myroom = "a"
             self.a_count += 1
-            await self.s_sio.emit("room_count", self.a_count, to="a")
+            await self.sio.emit("room_count", self.a_count, to="a")
         else:
-            self.s_sio.enter_room(sid, "b")
+            self.sio.enter_room(sid, "b")
             myroom = "b"
             self.b_count += 1
-            await self.s_sio.emit("room_count", self.b_count, to="b")
+            await self.sio.emit("room_count", self.b_count, to="b")
     
-        async with self.s_sio.session(sid) as session:
+        async with self.sio.session(sid) as session:
             session[sid] = { 
                 "sid": sid, 
                 "app_nm": app_nm,
@@ -1056,22 +1049,22 @@ class MigNsp(socketio.AsyncNamespace,):
         await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
             "inout": "in", "orig_e": e_name, "app_nm": app_nm, "ctrl_nm": ctrl_nm},)
     
-        await self.s_sio.emit( "client_count", f"{self.client_count}",)
+        await self.sio.emit( "client_count", f"{self.client_count}",)
     
-        self.s_sio.start_background_task(self.simple_task, sid)
-        self.s_sio.start_background_task(self.period_task, sid)
-        self.s_sio.start_background_task(self.debug_task, sid)
+        self.sio.start_background_task(self.simple_task, sid)
+        self.sio.start_background_task(self.period_task, sid)
+        self.sio.start_background_task(self.debug_task, sid)
     
         await self.s_app.post_dispatcher( sid, e_name,)
     
     async def on_disconnect_request(self, sid):
         e_name = sys._getframe().f_code.co_name
-        await self.s_sio.disconnect(sid)
+        await self.sio.disconnect(sid)
     
     async def on_disconnect(self, sid):
         e_name = sys._getframe().f_code.co_name
     
-        async with self.s_sio.session(sid) as session:
+        async with self.sio.session(sid) as session:
             if not sid in session:
                 return
     
@@ -1105,18 +1098,18 @@ class MigNsp(socketio.AsyncNamespace,):
     
         self.client_count -= 1
         self.s_app.log_info(f"{sid} disconnected")
-        await self.s_sio.emit("client_count", self.client_count)
-        if "a" in self.s_sio.rooms(sid):
+        await self.sio.emit("client_count", self.client_count)
+        if "a" in self.sio.rooms(sid):
             self.a_count -= 1
-            await self.s_sio.emit("room_count", self.a_count, to="a")
+            await self.sio.emit("room_count", self.a_count, to="a")
         else:
             self.b_count -= 1
-            await self.s_sio.emit("room_count", self.b_count, to="b")
+            await self.sio.emit("room_count", self.b_count, to="b")
     
-        async with self.s_sio.session(sid) as session:
-            await self.s_sio.emit("user_left", session[sid]["username"])
+        async with self.sio.session(sid) as session:
+            await self.sio.emit("user_left", session[sid]["username"])
 
-        async with self.s_sio.session(sid) as session:
+        async with self.sio.session(sid) as session:
             del session[sid] 
     
     async def on_sum(self, sid, data):
@@ -1160,7 +1153,8 @@ def aioMig():
                     certfile=self.certfile, keyfile=self.keyfile,
                     log= self.log, sio_mode="aiohttp")
 
-            sio = s_app.get_sio
+            sio = s_app.sio
+
             sio.register_namespace(MigNsp('/', k_app=s_app, k_sio=sio))
 
             wsgi_box = WSGIHandler(py4web_apps_handler)
