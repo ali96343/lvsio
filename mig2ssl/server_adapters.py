@@ -2,7 +2,7 @@ import logging, ssl, sys, os
 
 from ombott.server_adapters import ServerAdapter
 
-# sa_version 0.0.42 ab96343@gmail.com
+# sa_version 0.0.45 ab96343@gmail.com
 
 try:
     from .utils.wsservers import *
@@ -87,22 +87,27 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
     time_msg = '%H:%M:%S'
     #date_time_msg = '%Y-%m-%d %H:%M:%S'
 
-    logging.basicConfig(
-        format=short_msg,
-        datefmt=time_msg,
-        level=check_level(level),
-        **log_to,
-    )
+    try:
+        logging.basicConfig(
+            format=short_msg,
+            datefmt=time_msg,
+            level=check_level(level),
+            **log_to,
+        )
+    except ( OSError, ValueError, LookupError, KeyError ) as ex:
+        print(f"{ex}, {__file__}")
+        print(f'cannot open {log_file}')
+        logging.basicConfig( format="%(message)s [%(levelname)s] %(asctime)s", level=check_level(level),)
+
 
     if logger_name is None:
         return None
 
-    logger_name = "SA:" + logger_name
-    log = logging.getLogger(logger_name)
+    log = logging.getLogger('SA:' + logger_name)
     log.propagate = True
-    log.info( f'info start logger {logger_name}' )
-    log.warn( f'warn start logger {logger_name}' )
-    log.debug( f'debug start logger {logger_name}' )
+
+    #for func in (log.debug, log.info, log.warn, log.error, log.critical, ) :
+    #    func('func: ' + func.__name__ )
 
     return log
 
@@ -132,21 +137,14 @@ def gevent():
 
     class GeventServer(ServerAdapter):
         def run(self, py4web_apps_handler):
-            log_file = get_log_file()
             logger = "default"  
 
             if not self.quiet:
-                logger = logging.getLogger("SA:gevent")
-                fh = (
-                    logging.FileHandler()
-                    if not log_file
-                    else logging.FileHandler(log_file, mode='w')
+                logger = logging_conf(
+                    self.options["logging_level"], "gevent",
                 )
-                logger.setLevel(check_level(self.options["logging_level"]))
-                logger.addHandler(fh)
+
                 #logger.addHandler(logging.StreamHandler())
-                logger.propagate = True
-                logerr.info('start SA:gevent')
 
             certfile = self.options.get("certfile", None)
 
