@@ -100,7 +100,7 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
     except ( OSError, ValueError, LookupError, KeyError ) as ex:
         print(f"{ex}, {__file__}")
         print(f'cannot open {log_file}')
-        logging.basicConfig( format="%(message)s [%(levelname)s] %(asctime)s", level=check_level(level),)
+        logging.basicConfig( format="%(message)s", level=check_level(level),)
 
 
     if logger_name is None:
