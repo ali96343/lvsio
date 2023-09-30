@@ -87,9 +87,12 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
     time_msg = '%H:%M:%S'
     #date_time_msg = '%Y-%m-%d %H:%M:%S'
 
+
+    msg_format = None if 'gevent' in logger_name else short_msg
+
     try:
         logging.basicConfig(
-            format=short_msg,
+            format=msg_format,
             datefmt=time_msg,
             level=check_level(level),
             **log_to,
@@ -121,7 +124,7 @@ def get_workers(opts, default=10):
 
 
 def gevent():
-    # gevent version 23.7.0
+    # gevent version 23.9.1
 
     from gevent import pywsgi, local  # pip install gevent
     import threading
