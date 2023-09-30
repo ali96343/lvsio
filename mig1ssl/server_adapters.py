@@ -11,16 +11,16 @@ except ImportError:
 
 __all__ = [
     "gevent",
-    "geventWebSocketServer",
-    "wsgirefThreadingServer",
-    "rocketServer",
+    "geventWebSocketServer", "geventWs", # short_name
+    "wsgirefThreadingServer", "wsgiTh", # short_name
+    "rocketServer", 
     # plus 
-    "Pyruvate",
+    "Pyruvate", "Pyru", # short_name
     "torMig",
     "aioMig",
 ] + wsservers_list
 
-
+#  curl -N --http2 -H "Accept:text/event-stream" http://192.168.1.161:10000/ssep4w/sse_time_data
 # ---------------------- note -----------------------------------------------
 # https://www.bitecode.dev/p/asyncio-twisted-tornado-gevent-walk
 # https://testdriven.io/guides/flask-deep-dive/
@@ -87,7 +87,6 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
     time_msg = '%H:%M:%S'
     #date_time_msg = '%Y-%m-%d %H:%M:%S'
 
-
     msg_format = None if 'gevent' in logger_name else short_msg
 
     try:
@@ -102,7 +101,6 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
         print(f'cannot open {log_file}')
         logging.basicConfig( format="%(message)s", level=check_level(level),)
 
-
     if logger_name is None:
         return None
 
@@ -110,7 +108,7 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
     log.propagate = True
 
     #for func in (log.debug, log.info, log.warn, log.error, log.critical, ) :
-    #    func('func: ' + func.__name__ )
+    #    func('func: ' + func.__name__ ) 
 
     return log
 
@@ -121,7 +119,6 @@ def get_workers(opts, default=10):
     except KeyError:
         return default
 # ---------------------------------------------------------------------
-
 
 def gevent():
     # gevent version 23.9.1
@@ -137,6 +134,7 @@ def gevent():
     #
     # ./py4web.py run apps -s gevent --watch=off --port=8443 --ssl_cert=cert.pem --ssl_key=key.pem -L 0
     # ./py4web.py run apps -s gevent --watch=off --host=192.168.1.161 --port=8443 --ssl_cert=server.pem -L 0
+    # for i in {1..5}; do curl -k https://192.168.1.161:9000/todo ; done
 
     class GeventServer(ServerAdapter):
         def run(self, py4web_apps_handler):
@@ -144,10 +142,8 @@ def gevent():
 
             if not self.quiet:
                 logger = logging_conf(
-                    self.options["logging_level"], "gevent",
+                    self.options["logging_level"], "gevent", 
                 )
-
-                #logger.addHandler(logging.StreamHandler())
 
             certfile = self.options.get("certfile", None)
 
@@ -192,6 +188,7 @@ def geventWebSocketServer():
     # vi apps/_websocket/templates/index.html    set: ws, wss, host, port
     # firefox http://localhost:8000/_websocket
     # firefox https://192.168.1.161:9000/_websocket  test wss
+    # for i in {1..4};  do curl -k https://192.168.1.161:9000/todo;  done
 
     # wss-ssl-test.sh
     # HOST=192.168.1.161:9000
@@ -234,6 +231,8 @@ def geventWebSocketServer():
             server.serve_forever()
 
     return GeventWebSocketServer
+
+geventWs=geventWebSocketServer
 
 
 def wsgirefThreadingServer():
@@ -438,13 +437,11 @@ def wsgirefThreadingServer():
                     return self.client_address[0]
 
                 def log_request(*args, **kw):
-                    #if not self_run.quiet:
-                    if self_run.log:
+                    if not self_run.quiet:
                         return WSGIRequestHandler.log_request(*args, **kw)
 
                 def log_message(self, format, *args):
-                    #if not self_run.quiet:  # and ( not args[1] in ['200', '304']) :
-                    if self_run.log:  # and ( not args[1] in ['200', '304']) :
+                    if not self_run.quiet:  # and ( not args[1] in ['200', '304']) :
                         msg = "%s - - [%s] %s" % (
                             self.client_address[0],
                             self.log_date_time_string(),
@@ -464,6 +461,8 @@ def wsgirefThreadingServer():
             srv.serve_forever()
 
     return WSGIRefThreadingServer
+
+wsgiTh=wsgirefThreadingServer
 
 
 def rocketServer():
@@ -527,6 +526,8 @@ def Pyruvate():
             )
 
     return srvPyruvate
+Pyru=Pyruvate
+
 
 
 # --------------------------------------- Mig --------------------------------
@@ -553,10 +554,11 @@ class MultiSio:
         Z.log = log
         Z.dbg = dbg
         Z.sio_mode=sio_mode
+
         Z.sio = None
         Z.post_to = None
         Z.red_param = None, None
-        Z.setup()
+        Z.setup0()
 
     def cprint(Z, mess="mess", color="green", dbg=True, to_file =True):
         c_fmt = "--- {}"
@@ -609,18 +611,17 @@ class MultiSio:
                     return var_value
         sys.exit(f"stop! can not find app with {vars_pattern}")
 
-    def setup(Z):
+    def setup0(Z):
         Z.post_to = Z.get_post_tbl()
         Z.red_param = Z.get_red_param()
         # Z.sio = socketio.AsyncServer(async_mode="tornado")
-        r_mgr = socketio.AsyncRedisManager(
-            Z.red_param[0], channel=Z.red_param[1], write_only=False
-        )
+        r_mgr = socketio.AsyncRedisManager( Z.red_param[0], channel=Z.red_param[1], write_only=False)
 
         Z.sio = socketio.AsyncServer(
             async_mode=Z.sio_mode, #"tornado",
             client_manager=r_mgr,
             cors_allowed_origins="*",
+            async_handlers=True,
             # SameSite=None,
             # logger=True,
             # engineio_logger=True,
@@ -701,9 +702,9 @@ def torMig():
                 e_name = sys._getframe().f_code.co_name
                 count = 0
                 while True:
-                    async with sio.session(sid) as session:
-                       if not sid in session:
-                           break
+                    #async with sio.session(sid) as session:
+                    #   if not sid in session:
+                    #       break
                     count += 1
                     await sio.emit( "my_response", { "data": f"period_task 7-sec-counter-to-all {count} to {sid}  " },)
                     await sio.sleep(7)
@@ -712,9 +713,9 @@ def torMig():
                 e_name = sys._getframe().f_code.co_name
                 count = 0
                 while True:
-                    async with sio.session(sid) as session:
-                       if not sid in session:
-                           break
+                    #async with sio.session(sid) as session:
+                    #   if not sid in session:
+                    #       break
                     count += 1
                     await s_app.ctrl_emit( sid, "ctrl_emit", data={"orig_e": e_name, "bcast": False},)
                     await s_app.ctrl_emit( sid, "xxx_cmd", data={"sid": sid, "count": count})
@@ -934,8 +935,8 @@ class MigNsp(socketio.AsyncNamespace,):
     def __init__(self, *ar, **kw):
          super().__init__(*ar, )
 
-         self.s_app=kw['k_app']
-         self.sio=self.s_app.sio #kw['k_sio']
+         self.ms_app=kw['k_app']
+         self.sio=self.ms_app.sio #kw['k_sio']
 
          self.client_count = 0
          self.a_count = 0
@@ -946,24 +947,24 @@ class MigNsp(socketio.AsyncNamespace,):
         count = 0
         while True:
 
-            async with self.sio.session(sid) as session:
-                if not sid in session:
-                    break
+            #async with self.sio.session(sid) as session:
+            #    if not sid in session:
+            #        break
     
             count += 1
-            await self.s_app.ctrl_emit( sid, "ctrl_emit", data={"orig_e": e_name, "bcast": False},)
-            await self.s_app.ctrl_emit( sid, "xxx_cmd", data={"sid": sid, "count": count})
-            await self.s_app.post_dispatcher( sid, e_name, data={"sid": sid, "count": count})
-            self.s_app.out_dbg( f"================= self.client_count: {self.client_count}", "cyan",)
+            await self.ms_app.ctrl_emit( sid, "ctrl_emit", data={"orig_e": e_name, "bcast": False},)
+            await self.ms_app.ctrl_emit( sid, "xxx_cmd", data={"sid": sid, "count": count})
+            await self.ms_app.post_dispatcher( sid, e_name, data={"sid": sid, "count": count})
+            self.ms_app.out_dbg( f"================= self.client_count: {self.client_count}", "cyan",)
             await self.sio.sleep(10)
 
     async def period_task(self, sid):
         e_name = sys._getframe().f_code.co_name
         count = 0
         while True:
-            async with self.sio.session(sid) as session:
-                if not sid in session:
-                    break
+            # async with self.sio.session(sid) as session:
+            #     if not sid in session:
+            #         break
             count += 1
             await self.sio.emit( "my_response", { "data": f"period_task 7-sec-counter-to-all {count} to {sid}  " },)
             await self.sio.sleep(7)
@@ -976,16 +977,16 @@ class MigNsp(socketio.AsyncNamespace,):
     
         try:
             result = await self.sio.call("mult", {"numbers": [am, bm]}, to=sid)
-            self.s_app.log_info(f"result from js-mult: {result}")
+            self.ms_app.log_info(f"result from js-mult: {result}")
         except socketio.exceptions.TimeoutError:
-            self.s_app.out_dbg(f"------------------ timeout error on js-mult {e_name}")
+            self.ms_app.out_dbg(f"------------------ timeout error on js-mult {e_name}")
     
         try:
-            r = await self.s_app.ctrl_call_mult( sid, "ctrl_call_mult", data={"numbers": [am, bm]},)
+            r = await self.ms_app.ctrl_call_mult( sid, "ctrl_call_mult", data={"numbers": [am, bm]},)
         except socketio.exceptions.TimeoutError:
-            self.s_app.log_info(f"timeout error on {e_name} ctrl_call_mult")
+            self.ms_app.log_info(f"timeout error on {e_name} ctrl_call_mult")
     
-        self.s_app.out_dbg(f"+++++++++++++++++ {r}")
+        self.ms_app.out_dbg(f"+++++++++++++++++ {r}")
        
     
     async def on_close_room(self, sid, message):
@@ -1002,19 +1003,19 @@ class MigNsp(socketio.AsyncNamespace,):
             url = environ["HTTP_REFERER"]
         except KeyError:
             url = environ["HTTP_ORIGIN"]
-            self.s_app.log_info(f"bad url {url}")
+            self.ms_app.log_info(f"bad url {url}")
             return False
     
         url_items = url.rsplit("/")
         app_nm = url_items[3] if len(url_items) >= 4 else None
-        if not app_nm in self.s_app.post_to:  # Z.p4w_apps_names:
-            self.s_app.log_info(f"bad app_nm: {app_nm}")
+        if not app_nm in self.ms_app.post_to:  # Z.p4w_apps_names:
+            self.ms_app.log_info(f"bad app_nm: {app_nm}")
             return False
     
         ctrl_nm = url_items[4] if len(url_items) >= 5 else None
     
         username = environ.get("HTTP_X_USERNAME")
-        self.s_app.log_info(f"HTTP_X_USERNAME: {username} {app_nm}")
+        self.ms_app.log_info(f"HTTP_X_USERNAME: {username} {app_nm}")
         if not username:
             # raise ConnectionRefusedError('authentication failed')
             return False
@@ -1024,7 +1025,7 @@ class MigNsp(socketio.AsyncNamespace,):
         # end auth etc
     
         self.client_count += 1
-        self.s_app.log_info(f"{sid} connected")
+        self.ms_app.log_info(f"{sid} connected")
     
         myroom = None
         if random.random() > 0.5:
@@ -1046,8 +1047,9 @@ class MigNsp(socketio.AsyncNamespace,):
                 "username": username,
                 "room": myroom,
                 }
-    
-        await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
+   
+            print ('+++ ',session)
+        await self.ms_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
             "inout": "in", "orig_e": e_name, "app_nm": app_nm, "ctrl_nm": ctrl_nm},)
     
         await self.sio.emit( "client_count", f"{self.client_count}",)
@@ -1056,7 +1058,7 @@ class MigNsp(socketio.AsyncNamespace,):
         self.sio.start_background_task(self.period_task, sid)
         self.sio.start_background_task(self.debug_task, sid)
     
-        await self.s_app.post_dispatcher( sid, e_name,)
+        await self.ms_app.post_dispatcher( sid, e_name,)
     
     async def on_disconnect_request(self, sid):
         e_name = sys._getframe().f_code.co_name
@@ -1065,40 +1067,40 @@ class MigNsp(socketio.AsyncNamespace,):
     async def on_disconnect(self, sid):
         e_name = sys._getframe().f_code.co_name
     
-        async with self.sio.session(sid) as session:
-            if not sid in session:
-                return
+        #async with self.sio.session(sid) as session:
+        #    if not sid in session:
+        #        return
     
         ar = random.randint(1, 9)
         br = random.randint(1, 9)
     
-        await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
+        await self.ms_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_log", 
             "inout": "out", "orig_e": e_name, },)
     
-        #await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
+        #await self.ms_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
         #    "counter": ['hello', 'world', ar, {'counter': br}], "orig_e": e_name, },)
     
-        #await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
+        #await self.ms_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
         #    "counter":  {'counter': br}, "orig_e": e_name, },)
     
-        await self.s_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
+        await self.ms_app.db_run( sid, "db_run", data={ "cmd": "PUT", "table": "sio_data", 
             "counter": br, "orig_e": e_name, },)
     
-        #await self.s_app.db_run( sid, "db_run", data={ "cmd": "UPDATE", "table": "sio_log", 
+        #await self.ms_app.db_run( sid, "db_run", data={ "cmd": "UPDATE", "table": "sio_log", 
         #    "id": 12, "inout": "----", "orig_e": '+++++', },)
     
-        #r = await self.s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_log", "id": 1 } )
-        #self.s_app.out_dbg (f"{r}", 'cyan')
+        #r = await self.ms_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_log", "id": 1 } )
+        #self.ms_app.out_dbg (f"{r}", 'cyan')
     
-        r = await self.s_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_data", "id": 1 } )
-        #self.s_app.out_dbg (type(r))
-        #self.s_app.out_dbg (f"{r}!!!!!", 'cyan')
-        self.s_app.out_dbg (json.loads(r)[0])
+        r = await self.ms_app.db_run( sid, "db_run", data={ "cmd": "GET", "table": "sio_data", "id": 1 } )
+        #self.ms_app.out_dbg (type(r))
+        #self.ms_app.out_dbg (f"{r}!!!!!", 'cyan')
+        self.ms_app.out_dbg (json.loads(r)[0])
     
-        #await self.s_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_log", "id": 7 } )
+        #await self.ms_app.db_run( sid, "db_run", data={ "cmd": "DEL", "table": "sio_log", "id": 7 } )
     
         self.client_count -= 1
-        self.s_app.log_info(f"{sid} disconnected")
+        self.ms_app.log_info(f"{sid} disconnected")
         await self.sio.emit("client_count", self.client_count)
         if "a" in self.sio.rooms(sid):
             self.a_count -= 1
@@ -1111,6 +1113,7 @@ class MigNsp(socketio.AsyncNamespace,):
             await self.sio.emit("user_left", session[sid]["username"])
 
         async with self.sio.session(sid) as session:
+            print ('--- ',session)
             del session[sid] 
     
     async def on_sum(self, sid, data):
@@ -1121,7 +1124,7 @@ class MigNsp(socketio.AsyncNamespace,):
     
     async def on_catch_all(event, sid, data):
         e_name = sys._getframe().f_code.co_name
-        self.s_app.out_dbg(f"----------------------- {e_name}: {event} {data}")
+        self.ms_app.out_dbg(f"----------------------- {e_name}: {event} {data}")
     #    # https://python-socketio.readthedocs.io/en/latest/server.html#defining-event-handlers
 
 
@@ -1130,6 +1133,15 @@ class MigNsp(socketio.AsyncNamespace,):
 def aioMig():
     from aiohttp import web
     from aiohttp_wsgi import WSGIHandler  # pip install aiohttp_wsgi
+    from concurrent.futures import ThreadPoolExecutor  # pip install futures
+    from concurrent.futures import ProcessPoolExecutor
+
+
+    class MCW(WSGIHandler):
+        def _get_environ(self, request, body, content_length):
+           environ = super()._get_environ(request, body, content_length)
+           #print (request)
+           return environ
 
     class AioSio(ServerAdapter):
 
@@ -1150,15 +1162,18 @@ def aioMig():
             if not self.quiet:
                 self.log = logging_conf( self.options["logging_level"], "aiohttp"  )
             
-            s_app = MultiSio( py4web_apps_handler, host = self.host, port = self.port, 
+            ms_app = MultiSio( py4web_apps_handler, host = self.host, port = self.port, 
                     certfile=self.certfile, keyfile=self.keyfile,
                     log= self.log, sio_mode="aiohttp")
 
-            sio = s_app.sio
+            sio = ms_app.sio
 
-            sio.register_namespace(MigNsp('/', k_app=s_app, k_sio=sio))
+            sio.register_namespace(MigNsp('/', k_app=ms_app, ))
 
-            wsgi_box = WSGIHandler(py4web_apps_handler)
+
+            #pool=ThreadPoolExecutor(max_workers=7)
+            #wsgi_box = MCW(py4web_apps_handler, )
+            wsgi_box = WSGIHandler(py4web_apps_handler, )
             aio_app = web.Application()
 
             sio.attach( aio_app)
@@ -1229,7 +1244,7 @@ logger.info(set_color("test"))
 logger.debug(set_color("test", level=10))
 logger.warning(set_color("test", level=30))
 logger.error(set_color("test", level=40))
-logger.fatal(set_color("test", level=50))
+logger.critical(set_color("test", level=50))
 
 _srv_log=None
 
@@ -1238,15 +1253,16 @@ def log_info(mess, dbg=True, ):
         global _srv_log
         if _srv_log and isinstance( _srv_log, logging.Logger ):
            return _srv_log
+
         hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
+
         if len(hs) == 0:
             return logger
 
-        _sa_lock = Lock() 
-        with _sa_lock:
+        sa_lock = Lock() 
+        with sa_lock:
             _srv_log = logging.getLogger(hs[0])
-
-        return _srv_log
+            return _srv_log
 
     dbg and salog().info(str(mess))
 
