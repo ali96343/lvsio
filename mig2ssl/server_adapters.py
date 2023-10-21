@@ -2,7 +2,7 @@ import logging, ssl, sys, os
 
 from ombott.server_adapters import ServerAdapter
 
-# sa_version 0.0.45 ab96343@gmail.com
+# sa_version 0.0.47 ab96343@gmail.com
 
 try:
     from .utils.wsservers import *
@@ -16,6 +16,7 @@ __all__ = [
     "rocketServer", 
     # plus 
     "Pyruvate", "Pyru", # short_name
+    "guni",
     "torMig",
     "aioMig",
 ] + wsservers_list
@@ -31,13 +32,13 @@ __all__ = [
 # https://stackoverflow.com/questions/42009202/how-to-call-a-async-function-contained-in-a-class
 
 
-# ---------------------- utils -----------------------------------------------
+# ---------------------- sa_utils.py -----------------------------------------------
 
 # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
-def get_log_file():
+def get_log_file(out_banner = True):
     log_dir = os.environ.get("PY4WEB_LOGS", None)
-    log_file =  os.path.join (log_dir, 'server-py4web.log') if log_dir else None
-    if log_file:
+    log_file = os.path.join (log_dir, 'server-py4web.log') if log_dir else None
+    if log_file and out_banner:
         print(f"log_file: {log_file}")
     return log_file    
 
@@ -68,7 +69,7 @@ def check_level(level):
 
 # https://stackoverflow.com/questions/35048921/format-log-messages-as-a-tree
 
-def logging_conf(level=logging.WARN, logger_name=__name__):
+def logging_conf(level=logging.WARN, logger_name=__name__, test_log = False):
 
     log_file = get_log_file()
     log_to = dict()
@@ -87,11 +88,9 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
     time_msg = '%H:%M:%S'
     #date_time_msg = '%Y-%m-%d %H:%M:%S'
 
-    msg_format = None if 'gevent' in logger_name else short_msg
-
     try:
         logging.basicConfig(
-            format=msg_format,
+            format=short_msg,
             datefmt=time_msg,
             level=check_level(level),
             **log_to,
@@ -107,8 +106,9 @@ def logging_conf(level=logging.WARN, logger_name=__name__):
     log = logging.getLogger('SA:' + logger_name)
     log.propagate = True
 
-    #for func in (log.debug, log.info, log.warn, log.error, log.critical, ) :
-    #    func('func: ' + func.__name__ ) 
+    if test_log:
+        for func in (log.debug, log.info, log.warn, log.error, log.critical, ) :
+            func('func: ' + func.__name__ ) 
 
     return log
 
@@ -118,6 +118,46 @@ def get_workers(opts, default=10):
         return opts["workers"] if opts["workers"] else default
     except KeyError:
         return default
+# ---------------------------------------------------------------------
+
+def guni():
+
+    class GunicornServer(ServerAdapter):
+        """ https://docs.gunicorn.org/en/stable/settings.html """
+        # https://pawamoy.github.io/posts/unify-logging-for-a-gunicorn-uvicorn-app/
+    
+        def run(self, py4web_apps_handler):
+            from gunicorn.app.base import BaseApplication
+            log_file = get_log_file ( out_banner= False)
+
+            config = {
+                     "bind": f"{self.host}:{self.port}", 
+                     "reload": False,
+                     "worker_class" : "sync",
+                     "workers": get_workers(self.options), 
+                     "certfile": self.options.get("certfile", None),
+                     "keyfile": self.options.get("keyfile", None),
+                     }
+
+            if ( not self.quiet) and log_file :
+                  logger = logging_conf( self.options["logging_level"], )
+                  config.update({
+                     "loglevel": logging.getLevelName( self.options["logging_level"] ),
+                     "access_log_format" : '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"' ,
+                     "accesslog": log_file,
+                     "errorlog": log_file,
+                  })
+    
+            class GunicornApplication(BaseApplication):
+                def load_config(self):
+                    for key, value in config.items():
+                        self.cfg.set(key, value)
+    
+                def load(self):
+                    return py4web_apps_handler
+    
+            GunicornApplication().run()
+    return GunicornServer 
 # ---------------------------------------------------------------------
 
 def gevent():
@@ -132,13 +172,14 @@ def gevent():
 
     # ./py4web.py run apps --watch=off -s gevent -L 20  # look into server-py4web.log
     #
-    # ./py4web.py run apps -s gevent --watch=off --port=8443 --ssl_cert=cert.pem --ssl_key=key.pem -L 0
-    # ./py4web.py run apps -s gevent --watch=off --host=192.168.1.161 --port=8443 --ssl_cert=server.pem -L 0
+    # ./py4web.py run apps -s gevent --watch=off --port=9000 --ssl_cert=cert.pem --ssl_key=key.pem -L 0
+    # ./py4web.py run apps -s gevent --watch=off --host=192.168.1.161 --port=9000 --ssl_cert=server.pem -L 0
     # for i in {1..5}; do curl -k https://192.168.1.161:9000/todo ; done
 
     class GeventServer(ServerAdapter):
         def run(self, py4web_apps_handler):
-            logger = "default"  
+            logger = None 
+            #logger = "default" 
 
             if not self.quiet:
                 logger = logging_conf(
@@ -201,7 +242,8 @@ def geventWebSocketServer():
 
     class GeventWebSocketServer(ServerAdapter):
         def run(self, py4web_apps_handler):
-            logger = "default"  
+            logger = None 
+            #logger = "default"  
 
             if not self.quiet:
                 logger = logging_conf(
@@ -232,7 +274,7 @@ def geventWebSocketServer():
 
     return GeventWebSocketServer
 
-geventWs=geventWebSocketServer
+geventWs = geventWebSocketServer
 
 
 def wsgirefThreadingServer():
@@ -462,7 +504,7 @@ def wsgirefThreadingServer():
 
     return WSGIRefThreadingServer
 
-wsgiTh=wsgirefThreadingServer
+wsgiTh = wsgirefThreadingServer
 
 
 def rocketServer():
@@ -475,7 +517,7 @@ def rocketServer():
         def run(self, py4web_apps_handler):
             if not self.quiet:
                 logger = logging_conf(
-                    self.options["logging_level"], "Rocket",
+                    self.options["logging_level"], 
                 )
 
             interface = (
@@ -526,7 +568,7 @@ def Pyruvate():
             )
 
     return srvPyruvate
-Pyru=Pyruvate
+Pyru = Pyruvate
 
 
 
@@ -1262,7 +1304,8 @@ def log_info(mess, dbg=True, ):
         sa_lock = Lock() 
         with sa_lock:
             _srv_log = logging.getLogger(hs[0])
-            return _srv_log
+
+        return _srv_log
 
     dbg and salog().info(str(mess))
 
