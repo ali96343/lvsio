@@ -1,6 +1,7 @@
 import sys
 import logging
 from .common import logger
+from .settings import APP_NAME
 from threading import Lock
 
 print (logger.level)
@@ -28,20 +29,27 @@ logger.fatal(set_color("test", level=50))
 _srv_log=None
 
 def log_info(mess, dbg=True, ):
-    sa_lock = Lock()
-    def salog(lk, pat="SA:"):
+    def salog(pat="SA:"):
         global _srv_log
+
         if _srv_log and isinstance( _srv_log, logging.Logger ):
            return _srv_log
+
         hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
+
         if len(hs) == 0:
             return logger
 
-        with lk:
+        sa_lock = Lock()
+        with sa_lock:
            _srv_log = logging.getLogger(hs[0])
 
+        #print (_srv_log.getEffectiveLevel())
+        #print ( vars(_srv_log ) )
         return _srv_log
-    dbg and salog(sa_lock).info(str(mess))
+
+    caller = f" > {APP_NAME} > {sys._getframe().f_back.f_code.co_name}"
+    dbg and salog().info(mess + caller)
 
 log_warn=log_info    
 log_debug=log_info    
@@ -75,5 +83,4 @@ def log_decorator(func):
 @log_decorator
 def perform_operation():
     print("Performing operation...")
-
 

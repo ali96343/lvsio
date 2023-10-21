@@ -10,9 +10,9 @@ from .left_menu import l_menu
 from .ctrlpost import *
 from .dbadm import *
 from .sadm import *
+from .flog import *
 
 from .ahelp import log_info, log_warn, log_debug
-from .settings import APP_NAME
 
 
 # https://github.com/khanhhua/singaporeweather/tree/master
@@ -35,8 +35,8 @@ def index():
     # curl -k -I  https://192.168.1.161:9000/mig1ssl/index
     user = auth.get_user()
 
-    log_warn('7'* 30 + ' ' +APP_NAME)
-    log_info('9'* 30 + ' ' +APP_NAME)
+    log_warn('7'* 30 )
+    log_info('9'* 30 )
 
     #sio_users = ['userAAA', 'userBBB', 'userCCC', 'userDDD' ]
     sio_users = ['userWWW','userXXX', 'userYYY', 'userZZZ', ]

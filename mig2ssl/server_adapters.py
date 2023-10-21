@@ -2,7 +2,7 @@ import logging, ssl, sys, os
 
 from ombott.server_adapters import ServerAdapter
 
-# sa_version 0.0.48 ab96343@gmail.com
+# sa_version 0.0.49 ab96343@gmail.com
 
 try:
     from .utils.wsservers import *
@@ -83,7 +83,8 @@ def logging_conf(level=logging.WARN, logger_name=__name__, test_log = False):
         if sys.version_info >= (3, 9):
             log_to["encoding"] = "utf-8"
 
-    short_msg = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d"
+    short_msg = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d > %(levelname)s"
+    mass_msg="%(asctime)s > %(levelname)s > %(filename)s:%(lineno)d > %(message)s"
     #long_msg = short_msg + " > %(funcName)s > %(filename)s:%(lineno)d > %(levelname)s"
 
     time_msg = '%H:%M:%S'
@@ -91,6 +92,7 @@ def logging_conf(level=logging.WARN, logger_name=__name__, test_log = False):
 
     try:
         logging.basicConfig(
+            #format=mass_msg,
             format=short_msg,
             datefmt=time_msg,
             level=check_level(level),
@@ -99,7 +101,7 @@ def logging_conf(level=logging.WARN, logger_name=__name__, test_log = False):
     except ( OSError, ValueError, LookupError, KeyError ) as ex:
         print(f"{ex}, {__file__}")
         print(f'cannot open {log_file}')
-        logging.basicConfig( format="%(message)s", level=check_level(level),)
+        logging.basicConfig( format="%(message)s > %(levelname)s", level=check_level(level),)
 
     if logger_name is None:
         return None
@@ -1330,20 +1332,22 @@ def log_info(mess, dbg=True, ):
 
         return _srv_log
 
-    dbg and salog().info(str(mess))
+    caller = f" > {APP_NAME} > {sys._getframe().f_back.f_code.co_name}"
+    dbg and salog().info(mess + caller)
 
 log_warn=log_info
 log_debug=log_info
 
-log_warn('0'* 30 + ' ' +APP_NAME)
+log_warn('0'* 30 )
+log_info('0'* 30 )
 
 @action('index')
 @action.uses('index.html', auth, T, )
 def index():
     # curl -k -I  https://192.168.1.161:9000/mig1ssl/index
 
-    log_warn('7'* 30 + ' ' +APP_NAME)
-    log_info('9'* 30 + ' ' +APP_NAME)
+    log_warn('7'* 30 )
+    log_info('9'* 30 )
 
 """
 

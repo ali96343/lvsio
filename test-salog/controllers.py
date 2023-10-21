@@ -37,25 +37,27 @@ from .settings import APP_NAME
 from threading import Lock
 
 
-_sa_lock = Lock()
 _srv_log=None
 
 def log_info(mess, dbg=True, ):
     def salog(pat='SA:'):
-        global _srv_log, _sa_lock
-        if _srv_log and isinstance( _srv_log, logging.Logger ):
+        global _srv_log
+        if _srv_log: # and isinstance( __srv_log, logging.Logger ):
            return _srv_log
+
         hs= [e for e in logging.root.manager.loggerDict if e.startswith(pat) ]
         if len(hs) == 0:
             return logger
 
-        _sa_lock.acquire()
-        _srv_log = logging.getLogger(hs[0])
-        _sa_lock.release()
+        sa_lock = Lock()
+        with sa_lock:
+            _srv_log = logging.getLogger(hs[0])
 
         return _srv_log
 
-    dbg and salog().info(str(mess))
+    caller = f" > {APP_NAME} > {sys._getframe().f_back.f_code.co_name}"
+    dbg and salog().info(mess + caller)
+
 
 log_warn=log_info
 log_debug=log_info
