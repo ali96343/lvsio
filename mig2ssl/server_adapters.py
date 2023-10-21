@@ -2,7 +2,7 @@ import logging, ssl, sys, os
 
 from ombott.server_adapters import ServerAdapter
 
-# sa_version 0.0.47 ab96343@gmail.com
+# sa_version 0.0.48 ab96343@gmail.com
 
 try:
     from .utils.wsservers import *
@@ -17,6 +17,7 @@ __all__ = [
     # plus 
     "Pyruvate", "Pyru", # short_name
     "guni",
+    "bjoe",
     "torMig",
     "aioMig",
 ] + wsservers_list
@@ -76,8 +77,8 @@ def logging_conf(level=logging.WARN, logger_name=__name__, test_log = False):
 
     if log_file:
 
-        log_to["filename" ] = log_file
-        log_to["filemode" ] = "w"
+        log_to["filename"] = log_file
+        log_to["filemode"] = "w"
 
         if sys.version_info >= (3, 9):
             log_to["encoding"] = "utf-8"
@@ -120,11 +121,33 @@ def get_workers(opts, default=10):
         return default
 # ---------------------------------------------------------------------
 
+def bjoe():
+    class BjoernServer(ServerAdapter):
+        """ Fast server written in C: https://github.com/jonashaag/bjoern """
+        # sudo apt install libev-dev   # ubuntu
+        # pip install bjoern
+        # ./py4web.py run apps -H 192.168.1.161 -P 9000 -s bjoe -L 20
+        # ./py4web.py run apps -H 192.168.1.161 -P 9000 -s bjoe -Q
+        # test sa_log
+        # for i in {1..5}; do curl -k http://192.168.1.161:9000/mig1ssl ; done
+
+
+        def run(self, py4web_apps_handler):
+            from bjoern import run
+            if not self.quiet:
+                logger = logging_conf( self.options["logging_level"],)
+
+            run(py4web_apps_handler, self.host, self.port, reuse_port=True)
+    return BjoernServer        
+
+
 def guni():
 
     class GunicornServer(ServerAdapter):
         """ https://docs.gunicorn.org/en/stable/settings.html """
         # https://pawamoy.github.io/posts/unify-logging-for-a-gunicorn-uvicorn-app/
+        # https://dev.to/lsena/gunicorn-worker-types-how-to-choose-the-right-one-4n2c
+        # https://stackoverflow.com/questions/69372896/gunicorn-with-gevent-performance-gain
     
         def run(self, py4web_apps_handler):
             from gunicorn.app.base import BaseApplication
@@ -133,7 +156,7 @@ def guni():
             config = {
                      "bind": f"{self.host}:{self.port}", 
                      "reload": False,
-                     "worker_class" : "sync",
+                     "worker_class" : "gthread", #"sync",
                      "workers": get_workers(self.options), 
                      "certfile": self.options.get("certfile", None),
                      "keyfile": self.options.get("keyfile", None),
