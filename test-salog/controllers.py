@@ -62,7 +62,7 @@ def log_info(mess, dbg=True, ):
 log_warn=log_info
 log_debug=log_info
 
-log_warn('0'* 30 + ' ' +APP_NAME)
+log_warn('0'* 30 )
 
 
 @action("index")
@@ -71,8 +71,8 @@ def index():
 
 
 
-    log_warn('7'* 30 + ' ' +APP_NAME)
-    log_info('9'* 30 + ' ' +APP_NAME)
+    log_warn('7'* 30 )
+    log_info('9'* 30 )
 
     user = auth.get_user()
     message = T("Hello {first_name}").format(**user) if user else T("Hello")
