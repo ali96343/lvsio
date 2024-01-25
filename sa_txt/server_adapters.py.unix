@@ -133,7 +133,7 @@ def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' 
            pass
 
     if host.startswith('unix:/'):
-        srv_set = { 'GunicornServer', 'GeventServer', 'WSGIRefThreadingServer' }
+        srv_set = { 'GunicornServer', 'GeventServer', 'GeventWebSocketServer', 'WSGIRefThreadingServer' }
         if caller_class not in  srv_set :
             sys.exit(f'Error: try {srv_set}  with {host}')
 
@@ -142,7 +142,7 @@ def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' 
         if os.path.exists(socket_path):
             os_cmd ( f"echo -n 'file exists > '  && ls -alFi {socket_path}" )
 
-            if caller_class in ( 'GeventServer', 'WSGIRefThreadingServer' ) and (not port in (0, 1, 2, 3)):
+            if caller_class in ( 'GeventServer','GeventWebSocketServer', 'WSGIRefThreadingServer' ) and (not port in (0, 1, 2, 3)):
                 port = 2
 
             if port == 0:
@@ -216,8 +216,6 @@ def gunicorn():
                 "config": "sa_config",
                 # ( 'sa_config',  'GUNICORN_', 'gunicorn.saenv', 'gunicorn.conf.py' )
                 #"worker_tmp_dir":"/dev/shm",
-                #"wsgi_app" : str(app_handler),
-                #"preload_app": True,
             }
 
             if not self.quiet:
@@ -364,6 +362,8 @@ def gevent():
         def run(self, app_handler):
             from gevent import socket as gev_socket
 
+            check_port(self.host, self.port, self.quiet, self.__class__.__name__ )
+
             logger = None  # "default"
 
             if not self.quiet:
@@ -376,7 +376,6 @@ def gevent():
                      } if certfile else {} 
 
 
-            check_port(self.host, self.port, self.quiet, self.__class__.__name__ )
 
             listener = self.host, self.port 
 
@@ -424,6 +423,8 @@ def geventWebSocketServer():
 
     class GeventWebSocketServer(ServerAdapter):
         def run(self, app_handler):
+            from gevent import socket as gev_socket
+
             logger = None  # "default"
 
             if not self.quiet:
@@ -434,8 +435,23 @@ def geventWebSocketServer():
             ssl_args={'certfile':certfile,'keyfile':self.options.get("keyfile", None),
                      } if certfile else {} 
 
+            listener = self.host, self.port
+
+            if self.host.startswith('unix:/'):
+                listener = gev_socket.socket(gev_socket.AF_UNIX, gev_socket.SOCK_STREAM)
+                try:
+                    old_umask = os.umask(0)
+                    listener.bind( self.host[5:] )
+                    os.umask(old_umask)
+                except OSError as ex:
+                    sys.exit(f'{ex}\ncannot set umask')
+                listener.listen(1)
+
+
+
             server = pywsgi.WSGIServer(
-                (self.host, self.port),
+                #(self.host, self.port),
+                listener,
                 app_handler,
                 handler_class=WebSocketHandler,
                 log=logger,
@@ -456,16 +472,15 @@ def wsgirefThreadingServer():
 
     import socket
     from concurrent.futures import ThreadPoolExecutor  # pip install futures
-    #from socketserver import ThreadingMixIn
-    import socketserver
-    from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, ServerHandler #, make_server
+    from socketserver import ThreadingMixIn, TCPServer
+    from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, ServerHandler
 
     """
 
 p4w_path="$HOME/py4web-w/py4web"
 
-alias agev="cd $p4w_path && ./py4web.py run apps  -H 'unix:/tmp/p4w.sock' -s gevent --watch=off -L 20"
-alias agun="cd $p4w_path && ./py4web.py run apps  -H 'unix:/tmp/p4w.sock'  -w 4 -L 10"
+alias sgev="cd $p4w_path && ./py4web.py run apps  -H 'unix:/tmp/p4w.sock' -s gevent --watch=off -L 20"
+alias sgun="cd $p4w_path && ./py4web.py run apps  -H 'unix:/tmp/p4w.sock'  -w 4 -L 10"
 alias swsgi="cd $p4w_path &&  ./py4web.py run apps -H 'unix:/tmp/p4w.sock' -s wsgirefThreadingServer -w 10 -L 10"
 alias hwsgi="cd $p4w_path &&  ./py4web.py run apps -s wsgirefThreadingServer -w 10 -L 10"
 
@@ -482,19 +497,22 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
     """
 
     # https://etherealwake.com/2020/12/wsgiref-unix-domain-sockets/
-
-
     class NewServerHandler(ServerHandler):
         os_environ = {}
     
     class NewWSGIServer(WSGIServer):
-        def get_addr_family(self, addr):
-            host=addr[0]
+        def get_addr_family(self, server_address):
+
+            #if not isinstance( server_address, tuple ):
+            #    raise RuntimeError( f"Bad {server_address} type" )
+
+            host=server_address[0]
             if host.startswith('unix:/'):
                 return host[5:] , socket.AF_UNIX 
             elif ":" in host:  
-                return addr, socket.AF_INET6
-            return addr, socket.AF_INET
+                return server_address, socket.AF_INET6
+            else:
+                return server_address, socket.AF_INET
 
         def __init__(self, server_address, RequestHandlerClass, ):
             # Override Address Family
@@ -508,10 +526,10 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
             #self.server_address, self.address_family  = self.get_addr_family( self.server_address ) 
             try:
                 old_umask = os.umask(0)
-                socketserver.TCPServer.server_bind(self)
+                TCPServer.server_bind(self)
                 os.umask(old_umask)
             except OSError as ex:
-                sys.exit(f'{ex}\ncannot set umask')
+                sys.exit(f'{ex}\nCannot set umask')
 
             if self.address_family == socket.AF_UNIX:
                 server_name = socket.gethostname() # jin
@@ -529,7 +547,6 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                 client_address = '<unix>', 0
             WSGIRequestHandler.__init__(self, request, client_address, server)            
 
-        # mv quiet_handle to  handle :  won’t leak your environment.
         def quiet_handle(self):
             self.raw_requestline = self.rfile.readline(65537)
             if len(self.raw_requestline) > 65536:
@@ -551,14 +568,15 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
         def run(self, app_handler):
 
             check_port(self.host, self.port, self.quiet, self.__class__.__name__ )
-            self.log = None
+
+            self.logger = None
 
             if not self.quiet:
-                self.log = logging_conf(self.options["logging_level"], )
+                self.logger = logging_conf(self.options["logging_level"], )
 
             self_run = self  # used in internal classes to access options and logger
 
-            class PoolMixIn(socketserver.ThreadingMixIn):
+            class PoolMixIn(ThreadingMixIn):
                 def process_request(self, request, client_address):
                     self.pool.submit( self.process_request_thread, request, client_address )
 
@@ -567,20 +585,20 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                 pool = ThreadPoolExecutor( max_workers=get_workers(self.options, default=40))
 
             class Server(NewWSGIServer):
-                def __init__( self, server_address=("127.0.0.1", 8000), handler_cls=None, ):
+                def __init__( self, server_address=("127.0.0.1", 8000), request_handler=None, ):
                     self.wsgi_app = None
                     self.server_address = server_address
-                    self.handler_cls = handler_cls
+                    self.request_handler = request_handler
 
-                def set_app(self, app):
-                    self.wsgi_app = app
+                def set_app(self, wsgi_app):
+                    self.wsgi_app = wsgi_app
 
                 def get_app(self):
                     return self.wsgi_app
 
                 def serve_forever(self):
 
-                    self.server = ThreadingWSGIServer(self.server_address,  self.handler_cls,  )
+                    self.server = ThreadingWSGIServer(self.server_address,  self.request_handler,  )
                     self.server.set_app(app_handler)
 
 
@@ -617,15 +635,15 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                         return NewWSGIRequestHandler.log_request(self, *args, **kw)
 
                 def log_message(self, format, *args):
-                    if not self_run.quiet :  # and ( not args[1] in ['200', '304']) :
+                    if self_run.logger and ( not self_run.quiet) :  # and ( not args[1] in ['200', '304']) :
                         agent = self.headers['User-Agent'] 
                         msg = f"{self.client_address[0]} - - \"{args[0][0:-9]}\" " \
                         f"{args[1]} {args[2]} [{agent}]"
-                        self_run.log.info(msg)
+                        self_run.logger.info(msg)
 
             srv = Server((self.host,self.port), LogHandler,  )
             srv.set_app(app_handler)
-            srv.serve_forever()
+            srv.serve_forever(  )
 
     return WSGIRefThreadingServer
 
@@ -641,6 +659,8 @@ def rocketServer():
 
     class RocketServer(ServerAdapter):
         def run(self, app_handler):
+
+            check_port(self.host, self.port, self.quiet, self.__class__.__name__ )
 
             if not self.quiet:
 
