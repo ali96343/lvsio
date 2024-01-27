@@ -142,7 +142,7 @@ def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' 
         if os.path.exists(socket_path):
             os_cmd ( f"echo -n 'file exists > '  && ls -alFi {socket_path}" )
 
-            if caller_class in ( 'GeventServer', 'WSGIRefThreadingServer' ) and (not port in (0, 1, 2, 3)):
+            if caller_class in ( 'GeventServer','GeventWebSocketServer', 'WSGIRefThreadingServer' ) and (not port in (0, 1, 2, 3)):
                 port = 2
 
             if port == 0:
