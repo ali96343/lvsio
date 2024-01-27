@@ -133,7 +133,7 @@ def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' 
            pass
 
     if host.startswith('unix:/'):
-        srv_set = { 'GunicornServer', 'GeventServer', 'GeventWebSocketServer', 'WSGIRefThreadingServer' }
+        srv_set = { 'GunicornServer', 'GeventServer', 'WSGIRefThreadingServer' }
         if caller_class not in  srv_set :
             sys.exit(f'Error: try {srv_set}  with {host}')
 
@@ -142,7 +142,7 @@ def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' 
         if os.path.exists(socket_path):
             os_cmd ( f"echo -n 'file exists > '  && ls -alFi {socket_path}" )
 
-            if caller_class in ( 'GeventServer','GeventWebSocketServer', 'WSGIRefThreadingServer' ) and (not port in (0, 1, 2, 3)):
+            if caller_class in ( 'GeventServer', 'WSGIRefThreadingServer' ) and (not port in (0, 1, 2, 3)):
                 port = 2
 
             if port == 0:
@@ -180,6 +180,16 @@ def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' 
         else:
             sys.exit(f"{e}\n{host}:{port} cannot be acessed")
     s.close()
+
+def set_bind_Umask(bind_func, bind_param):
+    try:
+        old_umask = os.umask(0)
+        bind_func(bind_param)
+        #TCPServer.server_bind(self)
+        os.umask(old_umask)
+    except OSError as ex:
+        sys.exit(f'{ex}\nCannot set umask')
+
 
 # ---------------------- servers -----------------------------------------------
 
@@ -375,18 +385,11 @@ def gevent():
             ssl_args={'certfile':certfile,'keyfile':self.options.get("keyfile", None),
                      } if certfile else {} 
 
-
-
             listener = self.host, self.port 
 
             if self.host.startswith('unix:/'):
                 listener = gev_socket.socket(gev_socket.AF_UNIX, gev_socket.SOCK_STREAM)
-                try:
-                    old_umask = os.umask(0)
-                    listener.bind( self.host[5:] )
-                    os.umask(old_umask)
-                except OSError as ex:
-                    sys.exit(f'{ex}\ncannot set umask')
+                set_bind_Umask(  listener.bind , self.host[5:] )    
                 listener.listen(1)
 
             # https://docs.gevent.org/examples/unixsocket_server.html
@@ -439,19 +442,13 @@ def geventWebSocketServer():
 
             if self.host.startswith('unix:/'):
                 listener = gev_socket.socket(gev_socket.AF_UNIX, gev_socket.SOCK_STREAM)
-                try:
-                    old_umask = os.umask(0)
-                    listener.bind( self.host[5:] )
-                    os.umask(old_umask)
-                except OSError as ex:
-                    sys.exit(f'{ex}\ncannot set umask')
+                set_bind_Umask(  listener.bind , self.host[5:] )    
                 listener.listen(1)
-
 
 
             server = pywsgi.WSGIServer(
                 #(self.host, self.port),
-                listener,
+                listener, 
                 app_handler,
                 handler_class=WebSocketHandler,
                 log=logger,
@@ -504,7 +501,7 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
         def get_addr_family(self, server_address):
 
             #if not isinstance( server_address, tuple ):
-            #    raise RuntimeError( f"Bad {server_address} type" )
+            #    raise RuntimeError( f"Bad type: {server_address}" )
 
             host=server_address[0]
             if host.startswith('unix:/'):
@@ -517,20 +514,13 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
         def __init__(self, server_address, RequestHandlerClass, ):
             # Override Address Family
             _ , self.address_family = self.get_addr_family( server_address ) 
-            #self.server_address, self.address_family = self.get_addr_family( server_address ) 
             WSGIServer.__init__(self, server_address, RequestHandlerClass)
     
         def server_bind(self):
             # Expand HTTPServer's handling of address families
             self.server_address, _  = self.get_addr_family( self.server_address ) 
-            #self.server_address, self.address_family  = self.get_addr_family( self.server_address ) 
-            try:
-                old_umask = os.umask(0)
-                TCPServer.server_bind(self)
-                os.umask(old_umask)
-            except OSError as ex:
-                sys.exit(f'{ex}\nCannot set umask')
-
+            set_bind_Umask(  TCPServer.server_bind, self )    
+    
             if self.address_family == socket.AF_UNIX:
                 server_name = socket.gethostname() # jin
                 self.server_port = 0
@@ -569,10 +559,10 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
 
             check_port(self.host, self.port, self.quiet, self.__class__.__name__ )
 
-            self.logger = None
+            logger = None
 
             if not self.quiet:
-                self.logger = logging_conf(self.options["logging_level"], )
+                logger = logging_conf(self.options["logging_level"], )
 
             self_run = self  # used in internal classes to access options and logger
 
@@ -635,13 +625,13 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                         return NewWSGIRequestHandler.log_request(self, *args, **kw)
 
                 def log_message(self, format, *args):
-                    if self_run.logger and ( not self_run.quiet) :  # and ( not args[1] in ['200', '304']) :
+                    if  not self_run.quiet :  # and ( not args[1] in ['200', '304']) :
                         agent = self.headers['User-Agent'] 
                         msg = f"{self.client_address[0]} - - \"{args[0][0:-9]}\" " \
                         f"{args[1]} {args[2]} [{agent}]"
-                        self_run.logger.info(msg)
+                        logger.info(msg)
 
-            srv = Server((self.host,self.port), LogHandler,  )
+            srv = Server((self_run.host,self_run.port), LogHandler,  )
             srv.set_app(app_handler)
             srv.serve_forever(  )
 
