@@ -122,6 +122,16 @@ def get_workers(opts, default=10):
     except KeyError:
         return default
 
+# ---------------------- support unix:/tmp/p4w.sock  -------------------------------
+
+def unlink_file(path, log):        
+    try:
+        path and os.unlink( path )
+    except ( IOError, OSError) as ex:
+       if log is None:
+           sys.exit( f'{ex}\nError: {path}' )
+       log.info ( f"{ex}\nFailed to delete {path}" )
+
 
 def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' ):
     import socket, errno, subprocess
@@ -133,17 +143,19 @@ def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' 
            pass
 
     if host.startswith('unix:/'):
-        srv_set = { 'GunicornServer', 'GeventServer', 'WSGIRefThreadingServer' }
-        if caller_class not in  srv_set :
+        srv_set = { 'GunicornServer', 'GeventServer', 
+                    'GeventWebSocketServer', 'WSGIRefThreadingServer' }
+
+        if caller_class not in srv_set :
             sys.exit(f'Error: try {srv_set}  with {host}')
 
-        # https://www.baeldung.com/linux/python-unix-sockets
+        if caller_class in ('GeventServer', 'GeventWebSocketServer', 
+                   'WSGIRefThreadingServer') and (not port in (0, 1, 2, 3)):
+            port = 2
+
         socket_path = host[5:]
         if os.path.exists(socket_path):
             os_cmd ( f"echo -n 'file exists > '  && ls -alFi {socket_path}" )
-
-            if caller_class in ( 'GeventServer', 'WSGIRefThreadingServer' ) and (not port in (0, 1, 2, 3)):
-                port = 2
 
             if port == 0:
                 print (os.stat(socket_path))
@@ -153,17 +165,9 @@ def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' 
                 os_cmd ("ps -ef | head -1; ps -ef | grep py4web | grep -v grep")
                 os_cmd (f"lsof -w {socket_path}")
             elif port == 2:
-                try:
-                    os.unlink(socket_path)
-                except ( PermissionError, FileNotFoundError, OSError) as ex:
-                    sys.exit( f"{ex}\nFailed to delete socket {socket_path}" )
+                unlink_file( socket_path, None )
             elif port == 3:
-                lf = get_log_file(out_banner = False)
-                try:
-                    lf and os.unlink( lf )
-                    sys.exit(f'deleted: {lf}')
-                except ( PermissionError, FileNotFoundError, OSError) as ex:
-                    sys.exit( f"{ex}\nFailed to delete {lf}" )
+                unlink_file( get_log_file( out_banner = False ) , None )
 
         (not quiet) and print (f'Listening at: {host}')
         return
@@ -185,10 +189,10 @@ def set_bind_Umask(bind_func, bind_param):
     try:
         old_umask = os.umask(0)
         bind_func(bind_param)
-        #TCPServer.server_bind(self)
         os.umask(old_umask)
     except OSError as ex:
-        sys.exit(f'{ex}\nCannot set umask')
+        sys.exit(f'{ex}\nCannot set umask=0')
+
 
 
 # ---------------------- servers -----------------------------------------------
@@ -380,21 +384,28 @@ def gevent():
                 logger = logging_conf(self.options["logging_level"], "gevent",)
                 # logger.addHandler(logging.StreamHandler())
 
+            ssl_args = dict()
             certfile = self.options.get("certfile", None)
 
-            ssl_args={'certfile':certfile,'keyfile':self.options.get("keyfile", None),
-                     } if certfile else {} 
+            if certfile:
+                ssl_args.update ({
+                    'certfile': certfile,
+                    'keyfile': self.options.get("keyfile", None),
+                    'ssl_version': ssl.PROTOCOL_SSLv23,
+                    'server_side': True,
+                    'do_handshake_on_connect':False,
+                })
 
             listener = self.host, self.port 
 
+            socket_path = None 
             if self.host.startswith('unix:/'):
                 listener = gev_socket.socket(gev_socket.AF_UNIX, gev_socket.SOCK_STREAM)
-                set_bind_Umask(  listener.bind , self.host[5:] )    
+                socket_path = self.host[5:]
+                set_bind_Umask(  listener.bind , socket_path )    
                 listener.listen(1)
 
-            # https://docs.gevent.org/examples/unixsocket_server.html
             server = pywsgi.WSGIServer(
-                #(self.host, self.port),
                 listener,
                 app_handler,
                 log=logger,
@@ -402,7 +413,10 @@ def gevent():
                 **ssl_args,
             )
 
-            server.serve_forever()
+            try:
+                server.serve_forever()
+            finally:
+                unlink_file(socket_path, logger)
 
     return GeventServer
 
@@ -433,21 +447,29 @@ def geventWebSocketServer():
             if not self.quiet:
                 logger = logging_conf(self.options["logging_level"], "gevent-ws",)
 
+            ssl_args = dict()
             certfile = self.options.get("certfile", None)
 
-            ssl_args={'certfile':certfile,'keyfile':self.options.get("keyfile", None),
-                     } if certfile else {} 
+            if certfile:
+                ssl_args.update ({
+                    'certfile': certfile,
+                    'keyfile': self.options.get("keyfile", None),
+                    'ssl_version': ssl.PROTOCOL_SSLv23,
+                    'server_side': True,
+                    'do_handshake_on_connect':False,
+                })
 
             listener = self.host, self.port
 
+            socket_path = None 
             if self.host.startswith('unix:/'):
                 listener = gev_socket.socket(gev_socket.AF_UNIX, gev_socket.SOCK_STREAM)
-                set_bind_Umask(  listener.bind , self.host[5:] )    
+                socket_path = self.host[5:] 
+                set_bind_Umask(  listener.bind , socket_path )    
                 listener.listen(1)
 
 
             server = pywsgi.WSGIServer(
-                #(self.host, self.port),
                 listener, 
                 app_handler,
                 handler_class=WebSocketHandler,
@@ -456,7 +478,10 @@ def geventWebSocketServer():
                 **ssl_args,
             )
 
-            server.serve_forever()
+            try:
+                server.serve_forever()
+            finally:
+                unlink_file(socket_path, logger)
 
     return GeventWebSocketServer
 
@@ -498,6 +523,9 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
         os_environ = {}
     
     class NewWSGIServer(WSGIServer):
+
+        socket_path = None
+
         def get_addr_family(self, server_address):
 
             #if not isinstance( server_address, tuple ):
@@ -505,7 +533,8 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
 
             host=server_address[0]
             if host.startswith('unix:/'):
-                return host[5:] , socket.AF_UNIX 
+                NewWSGIServer.socket_path = host[5:]
+                return host[5:], socket.AF_UNIX 
             elif ":" in host:  
                 return server_address, socket.AF_INET6
             else:
@@ -520,7 +549,7 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
             # Expand HTTPServer's handling of address families
             self.server_address, _  = self.get_addr_family( self.server_address ) 
             set_bind_Umask(  TCPServer.server_bind, self )    
-    
+
             if self.address_family == socket.AF_UNIX:
                 server_name = socket.gethostname() # jin
                 self.server_port = 0
@@ -529,7 +558,8 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                 self.server_port = self.server_address[1]
             self.server_name = socket.getfqdn(server_name)
             self.setup_environ()
-    
+
+
     class NewWSGIRequestHandler(WSGIRequestHandler):
         def __init__(self, request, client_address, server):
             self.address_family = server.address_family
@@ -575,6 +605,7 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                 pool = ThreadPoolExecutor( max_workers=get_workers(self.options, default=40))
 
             class Server(NewWSGIServer):
+                timeout = 33
                 def __init__( self, server_address=("127.0.0.1", 8000), request_handler=None, ):
                     self.wsgi_app = None
                     self.server_address = server_address
@@ -586,30 +617,34 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                 def get_app(self):
                     return self.wsgi_app
 
+                def server_close(self):
+                    #print (self.server.socket.gettimeout() )
+                    self.server.socket.close()
+                    unlink_file(super().socket_path, logger)
+
                 def serve_forever(self):
 
-                    self.server = ThreadingWSGIServer(self.server_address,  self.request_handler,  )
-                    self.server.set_app(app_handler)
+                    with ThreadingWSGIServer(self.server_address,  self.request_handler,) as self.server:
+                        self.server.socket.settimeout(self.timeout)
+                        self.server.set_app(app_handler)
+                    
+                        # openssl req -newkey rsa:4096 -new -x509 -keyout server.pem -out server.pem -days 365 -nodes
+                        # openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365
+                        # openssl s_client -showcerts -connect 127.0.0.1:8443
 
+                        certfile = self_run.options.get("certfile", None)
 
-                    # openssl req -newkey rsa:4096 -new -x509 -keyout server.pem -out server.pem -days 365 -nodes
-                    # openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365
-                    # ./py4web.py run apps -s wsgirefThreadingServer --watch=off --port=8443 --ssl_cert=cert.pem --ssl_key=key.pem
-                    # openssl s_client -showcerts -connect 127.0.0.1:8443
+                        if certfile:
+                            self.server.socket = ssl.wrap_socket(
+                                self.server.socket,
+                                certfile=certfile,
+                                keyfile=self_run.options.get("keyfile", None),
+                                ssl_version=ssl.PROTOCOL_SSLv23,
+                                server_side=True,
+                                do_handshake_on_connect=False,
+                            )
 
-                    certfile = self_run.options.get("certfile", None)
-
-                    if certfile:
-                        self.server.socket = ssl.wrap_socket(
-                            self.server.socket,
-                            certfile=certfile,
-                            keyfile=self_run.options.get("keyfile", None),
-                            ssl_version=ssl.PROTOCOL_SSLv23,
-                            server_side=True,
-                            do_handshake_on_connect=False,
-                        )
-
-                    self.server.serve_forever()
+                        self.server.serve_forever()
 
             class LogHandler(NewWSGIRequestHandler):
 
@@ -622,18 +657,18 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
 
                 def log_request(self, *args, **kw):
                     if not self_run.quiet:
-                        return NewWSGIRequestHandler.log_request(self, *args, **kw)
+                        return super().log_request( *args, **kw)
 
                 def log_message(self, format, *args):
                     if  not self_run.quiet :  # and ( not args[1] in ['200', '304']) :
                         agent = self.headers['User-Agent'] 
                         msg = f"{self.client_address[0]} - - \"{args[0][0:-9]}\" " \
                         f"{args[1]} {args[2]} [{agent}]"
-                        logger.info(msg)
+                        logger and logger.info(msg)
 
-            srv = Server((self_run.host,self_run.port), LogHandler,  )
-            srv.set_app(app_handler)
-            srv.serve_forever(  )
+            with Server((self_run.host,self_run.port), LogHandler,  ) as server:
+                server.set_app(app_handler)
+                server.serve_forever()
 
     return WSGIRefThreadingServer
 
