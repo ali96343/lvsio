@@ -493,7 +493,8 @@ def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
 
     import socket
-    from concurrent.futures import ThreadPoolExecutor  # pip install futures
+    #from concurrent.futures import ThreadPoolExecutor  # pip install futures
+    from ThreadPoolExecutorPlus import ThreadPoolExecutor # pip install ThreadPoolExecutorPlus
     from socketserver import ThreadingMixIn, TCPServer
     from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, ServerHandler
 
@@ -512,8 +513,11 @@ asgi_todo_sock() { time for ((i=1;i<=$1;i++)); do curl --silent --unix-socket /t
 alias atail="tail -f /tmp/server-py4web.log"
 alias gettodo="curl --silent --unix-socket /tmp/p4w.sock localhost/todo"
 # for ((i=1;i<=10;i++)); do curl --silent --unix-socket /tmp/p4w.sock  "localhost/todo" --output /dev/null ; done
-xcurl() { time for ((i=1;i<=$1;i++)); do curl --silent --unix-socket /tmp/p4w.sock -A "$i-curl" "localhost/todo" --output /dev/null ; done }
-mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
+
+xcurl() { time for ((i=1;i<=$2;i++)); do curl --silent --unix-socket /tmp/p4w.sock -A "$1-$i-curl" "localhost/todo" --output /dev/null ; done }
+mcurl() { for ((i=0; i < $1; i++)); do xcurl $i $2  &  done  ; }
+export -f mcurl
+
 
 
     """
@@ -603,6 +607,8 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
             class ThreadingWSGIServer(PoolMixIn, NewWSGIServer):
                 daemon_threads = True
                 pool = ThreadPoolExecutor( max_workers=get_workers(self.options, default=40))
+                # https://pypi.org/project/ThreadPoolExecutorPlus/
+                # https://github.com/ftpsolutions/collapsing-thread-pool-executor/tree/master/collapsing_thread_pool_executor
 
             class Server(NewWSGIServer):
                 timeout = 33
