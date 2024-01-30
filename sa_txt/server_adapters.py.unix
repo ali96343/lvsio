@@ -220,7 +220,7 @@ def gunicorn():
             sa_bind = self.host if self.host.startswith('unix:/') else f"{self.host}:{self.port}"
 
             sa_config = {
-                "bind": sa_bind, # f"{self.host}:{self.port}",
+                "bind": sa_bind, 
                 "workers": get_workers(self.options),
                 "certfile": self.options.get("certfile", None),
                 "keyfile": self.options.get("keyfile", None),
@@ -258,12 +258,12 @@ def gunicorn():
                     env_key="GUNICORN_",
                 ):
 
-                    def get_file_data(dict_file):
+                    def get_file_data(file_name):
                         try:
-                           with open(dict_file, "r") as f:
+                            with open(file_name, "r") as f:
                                 return f.read()
                         except (IOError, OSError) as ex:
-                            sys.exit(f"{ex}\nError: {dict_file}")
+                            sys.exit(f"{ex}\nError: {file_name}")
 
 
                     gu_raw_env = dict()
@@ -279,9 +279,9 @@ def gunicorn():
                                                     for e in vx.split(',') } )
                             elif kx == 'logconfig_dict_file':
                                 # GUNICORN_logconfig_dict_file=dict_file_name
-                                # dict_file format { 'logconf_dict' :  {......} }
+                                # dict_file format: { 'logconf_dict' :  {......} }
                                 kx, vx  = 'logconfig_dict' ,  literal_eval(get_file_data (vx) ) 
-                            else :
+                            else:
                                 for ke, ve in sr_env.items():
                                     vx = vx.replace(ke, ve)
                         except (ValueError, AttributeError, IndexError ) :
@@ -495,8 +495,8 @@ def wsgirefThreadingServer():
     # https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
 
     import socket
-    #from concurrent.futures import ThreadPoolExecutor  # pip install futures
-    from ThreadPoolExecutorPlus import ThreadPoolExecutor # pip install ThreadPoolExecutorPlus
+    from concurrent.futures import ThreadPoolExecutor  # pip install futures
+    #from ThreadPoolExecutorPlus import ThreadPoolExecutor # pip install ThreadPoolExecutorPlus
     from socketserver import ThreadingMixIn, TCPServer
     from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, ServerHandler
 
@@ -666,7 +666,7 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                 def log_message(self, format, *args):
                     if  not self_run.quiet :  # and ( not args[1] in ['200', '304']) :
                         agent = self.headers['User-Agent'] 
-                        msg = f"{self.client_address[0]} - - \"{args[0][0:-9]}\" " \
+                        msg = f"{self.client_address[0]} - - \"{args[0]}\" " \
                         f"{args[1]} {args[2]} [{agent}]"
                         logger and logger.info(msg)
 
