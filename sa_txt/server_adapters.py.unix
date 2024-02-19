@@ -19,8 +19,11 @@ __all__ = [
     "wsgirefThreadingServer",
     "wsgiTh",  # short_name
     "rocketServer",
+    "rockS", # short_name
 ] + wsservers_list
 
+
+# unix: version: 17.03.2024 
 # ---------------------- utils -----------------------------------------------
 
 # export PY4WEB_LOGS=/tmp # export PY4WEB_LOGS=
@@ -79,8 +82,8 @@ def logging_conf(level=logging.WARN, logger_name=__name__, fmode="w", test_log=F
                 print(f"{ex}, bad  encoding {__file__}")
                 pass
 
-    short_msg = "%(message)s > %(asctime)s.%(msecs)03d"
-    #short_msg = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d"
+    #short_msg = "%(message)s > %(asctime)s.%(msecs)03d"
+    short_msg = "%(message)s > %(threadName)s > %(asctime)s.%(msecs)03d"
     # long_msg = short_msg + " > %(funcName)s > %(filename)s:%(lineno)d > %(levelname)s"
 
     time_msg = "%H:%M:%S"
@@ -204,6 +207,7 @@ def gunicorn():
     if isinstance(threading.local(), local.local):
         print("gunicorn: monkey.patch_all() applied")
 
+    # https://iximiuz.com/en/posts/flask-gevent-tutorial/
     class GunicornServer(ServerAdapter):
         def run(self, app_handler):
             try:
@@ -280,10 +284,20 @@ def gunicorn():
                             elif kx == 'logconfig_dict_file':
                                 # GUNICORN_logconfig_dict_file=dict_file_name
                                 # dict_file format: { 'logconf_dict' :  {......} }
-                                kx, vx  = 'logconfig_dict' ,  literal_eval(get_file_data (vx) ) 
-                            else:
+                                # export GUNICORN_logconfig_dict_file=gunicorn.logdict.file.re
+                                # https://coderzcolumn.com/tutorials/python/logging-config-simple-guide-to-configure-loggers-from-dictionary-and-config-files-in-python
+                                # https://albersdevelopment.net/2019/08/15/using-structlog-with-gunicorn/
+
+
+                                kx, vx = 'X_logconfig_dict_data' ,  get_file_data (vx) 
+
+                            if ( kx not in  ('raw_env','raw_paste_global_conf')) and isinstance(vx, str):
                                 for ke, ve in sr_env.items():
-                                    vx = vx.replace(ke, ve)
+                                       vx = vx.replace(ke, ve)
+
+                            if kx in ( 'X_logconfig_dict_data', ) :
+                               kx, vx ='logconfig_dict',  literal_eval(vx)
+                                   
                         except (ValueError, AttributeError, IndexError ) :
                             pass
                         #print (sr_env)
@@ -309,9 +323,8 @@ def gunicorn():
                             except (ValueError, AttributeError):
                                 continue
                             k, v = check_kv(k, v)
-                            if k is None:
-                                continue
-                            res_opts[k] = v
+                            if k :
+                                res_opts[k] = v
 
                         if res_opts:
                             res_opts["config"] = env_file
@@ -321,9 +334,8 @@ def gunicorn():
                         if k.startswith(env_key):
                             k = k.split("_", 1)[1].lower()
                             k, v = check_kv(k, v)
-                            if k is None:
-                                continue
-                            res_opts[k] = v
+                            if k :
+                                res_opts[k] = v
 
                     if res_opts:
                         res_opts["config"] = env_key
@@ -332,6 +344,8 @@ def gunicorn():
 
                 def load_config(self):
                     sa_config.update(self.get_gunicorn_options())
+                    if 'eventlet' in sa_config.values() :
+                        sa_config["workers"] = 1                        
                     logger and logger.debug(sa_config)
 
                     for k, v in sa_config.items():
@@ -517,41 +531,44 @@ alias gettodo="curl --silent --unix-socket /tmp/p4w.sock localhost/todo"
 # for ((i=1;i<=10;i++)); do curl --silent --unix-socket /tmp/p4w.sock  "localhost/todo" --output /dev/null ; done
 xcurl() { time for ((i=1;i<=$1;i++)); do curl --silent --unix-socket /tmp/p4w.sock -A "$i-curl" "localhost/todo" --output /dev/null ; done }
 mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
+export -f mcurl
+
+# -------------------------------------------
+alias twsgi="cd $P4WH && ./py4web.py run apps -s wsgiTh --watch=off -w 30 -L 10"
+alias twsgiqu="cd $P4WH && ./py4web.py run apps -s wsgiTh --watch=off -w 30 -Q"
+txcurl() { time for ((i=1;i<=$2;i++)); do curl --silent http://localhost:8000/todo -A "$1-$i-curl" "localhost/todo"  &>/dev/null ; done }
+tmcurl() { for ((i=0; i < $1; i++)); do txcurl $i $2  &  done  ; }
+
+export -f tmcurl
+# -------------------------------------------
 
 
     """
 
     # https://etherealwake.com/2020/12/wsgiref-unix-domain-sockets/
-    class NewServerHandler(ServerHandler):
-        os_environ = {}
     
     class NewWSGIServer(WSGIServer):
 
         socket_path = None
 
-        def get_addr_family(self, server_address):
-
-            #if not isinstance( server_address, tuple ):
-            #    raise RuntimeError( f"Bad type: {server_address}" )
-
-            host=server_address[0]
-            if host.startswith('unix:/'):
-                NewWSGIServer.socket_path = host[5:]
-                return host[5:], socket.AF_UNIX 
-            elif ":" in host:  
-                return server_address, socket.AF_INET6
-            else:
-                return server_address, socket.AF_INET
-
         def __init__(self, server_address, RequestHandlerClass, ):
             # Override Address Family
-            _ , self.address_family = self.get_addr_family( server_address ) 
-            WSGIServer.__init__(self, server_address, RequestHandlerClass)
-    
+            self.address_family =  socket.AF_INET 
+            self.server_address = server_address
+
+            host = server_address[0]
+            if host.startswith('unix:/'):
+                NewWSGIServer.socket_path = host[5:]
+                self.address_family = socket.AF_UNIX
+                self.server_address =  host[5:]
+            elif ":" in host:
+                self.address_family = socket.AF_INET6 
+
+            WSGIServer.__init__(self, self.server_address, RequestHandlerClass)
+
         def server_bind(self):
             # Expand HTTPServer's handling of address families
-            self.server_address, _  = self.get_addr_family( self.server_address ) 
-            set_bind_Umask(  TCPServer.server_bind, self )    
+            set_bind_Umask( TCPServer.server_bind, self )    
 
             if self.address_family == socket.AF_UNIX:
                 server_name = socket.gethostname() # jin
@@ -559,18 +576,24 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
             else:
                 server_name = self.server_address[0]
                 self.server_port = self.server_address[1]
+
             self.server_name = socket.getfqdn(server_name)
             self.setup_environ()
 
 
     class NewWSGIRequestHandler(WSGIRequestHandler):
+
         def __init__(self, request, client_address, server):
             self.address_family = server.address_family
             if self.address_family == socket.AF_UNIX:
                 client_address = '<unix>', 0
             WSGIRequestHandler.__init__(self, request, client_address, server)            
 
+
         def quiet_handle(self):
+            class NewServerHandler(ServerHandler):
+                os_environ = {}
+
             self.raw_requestline = self.rfile.readline(65537)
             if len(self.raw_requestline) > 65536:
                 self.requestline = ''
@@ -597,7 +620,7 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
             if not self.quiet:
                 logger = logging_conf(self.options["logging_level"], )
 
-            self_run = self  # used in internal classes to access options and logger
+            self_run = self  # used in inner classes to access options and logger
 
             class PoolMixIn(ThreadingMixIn):
                 def process_request(self, request, client_address):
@@ -605,11 +628,11 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
 
             class ThreadingWSGIServer(PoolMixIn, NewWSGIServer):
                 daemon_threads = True
-                pool = ThreadPoolExecutor( max_workers=get_workers(self.options, default=40))
+                pool = ThreadPoolExecutor( max_workers=get_workers(self_run.options, default=20))
                 #pool.set_daemon_opts(min_workers = 2 , max_workers = 40 , keep_alive_time = 20)
 
             class Server(NewWSGIServer):
-                timeout = 33
+                timeout = 17
                 def __init__( self, server_address=("127.0.0.1", 8000), request_handler=None, ):
                     self.wsgi_app = None
                     self.server_address = server_address
@@ -624,7 +647,7 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                 def server_close(self):
                     #print (self.server.socket.gettimeout() )
                     self.server.socket.close()
-                    unlink_file(super().socket_path, logger)
+                    unlink_file(self.socket_path, logger)
 
                 def serve_forever(self):
 
@@ -637,16 +660,16 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
                         # openssl s_client -showcerts -connect 127.0.0.1:8443
 
                         certfile = self_run.options.get("certfile", None)
-
                         if certfile:
-                            self.server.socket = ssl.wrap_socket(
-                                self.server.socket,
-                                certfile=certfile,
-                                keyfile=self_run.options.get("keyfile", None),
-                                ssl_version=ssl.PROTOCOL_SSLv23,
-                                server_side=True,
-                                do_handshake_on_connect=False,
-                            )
+                            ssl_args = {
+                                'certfile': certfile,
+                                'keyfile': self_run.options.get("keyfile", None),
+                                'ssl_version': ssl.PROTOCOL_SSLv23,
+                                'server_side': True,
+                                'do_handshake_on_connect': False,
+                                } 
+
+                            self.server.socket = ssl.wrap_socket( self.server.socket, **ssl_args )
 
                         self.server.serve_forever()
 
@@ -654,21 +677,21 @@ mcurl() { for ((i=0; i < $1; i++)); do xcurl $2  &  done  ; }
 
                 if self_run.quiet:
                     def handle(self):
-                        super().quiet_handle()
+                        NewWSGIRequestHandler.quiet_handle(self)
 
                 def address_string(self):  # Prevent reverse DNS lookups please.
                     return self.client_address[0]
 
                 def log_request(self, *args, **kw):
                     if not self_run.quiet:
-                        return super().log_request( *args, **kw)
+                        return NewWSGIRequestHandler.log_request(self,  *args, **kw)
 
                 def log_message(self, format, *args):
-                    if  not self_run.quiet :  # and ( not args[1] in ['200', '304']) :
+                    if not self_run.quiet :  # and ( not args[1] in ['200', '304']) :
                         agent = self.headers['User-Agent'] 
                         msg = f"{self.client_address[0]} - - \"{args[0]}\" " \
-                        f"{args[1]} {args[2]} [{agent}]"
-                        logger and logger.info(msg)
+                              f"{args[1]} {args[2]} [{agent}]"
+                        logger.info(msg)
 
             with Server((self_run.host,self_run.port), LogHandler,  ) as server:
                 server.set_app(app_handler)
@@ -714,6 +737,7 @@ def rocketServer():
 
     return RocketServer
 
+rockS = rocketServer
 
 """
 # how to write to server-adapters.log from controllers.py

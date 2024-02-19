@@ -1,0 +1,12 @@
+#   BACKLOG = 4096
+#   timeout=10 
+#     export GUNICORN_max_requests=1200
+#
+
+# print working gunicorn config
+#print_config=True
+#
+#export GUNICORN_use_python_config=myguni.conf.py
+#print_config=True
+ccc=vvvvv
+

@@ -1,0 +1,45 @@
+# export GUNICORN_raw_env="FF=/tmp/yyy.log"
+# export GUNICORN_raw_env="FF=$PY4WEB_LOGS/zzz.log"
+# export GUNICORN_logconfig_dict_file=gunicorn.logdict.ok3 
+# https://coderzcolumn.com/tutorials/python/logging-config-simple-guide-to-configure-loggers-from-dictionary-and-config-files-in-python
+#
+
+{
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'KeyValueFormatter': {
+            'format': (
+                'timestamp=%(asctime)s pid=%(process)d '
+                'loglevel=%(levelname)s msg=%(message)s'
+            )
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'KeyValueFormatter',
+        },
+         'logfile': {
+            'level':'DEBUG',
+            'class':'logging.FileHandler',
+            'filename': "FF",
+        },
+
+
+    },
+    'loggers': {
+        'gunicorn.access': {
+            'propagate': True,
+        },
+        'gunicorn.error': {
+            'propagate': True,
+        },
+    },
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console', 'logfile'],
+    }
+}
+

@@ -1,0 +1,53 @@
+https://www.electricmonk.nl/log/2016/02/15/multithreaded-dev-web-server-for-the-python-bottle-web-framework/
+Non://www.freecodecamp.org/news/multithreaded-python/
+
+
+
+Multithreaded dev web server for the Python Bottle web framework
+Ferry Boender
+2–3 минуты
+
+Monday, February 15th, 2016
+
+logo_navI’m writing a simple web application in the Bottle framework. I ran into an issue where I had a single long-running request, but needed to make some additional requests from the browser to the server. It turns out that Bottle’s built in development web server is single-threaded, and can’t handle multiple requests at the same time. This is annoying, since I don’t want to have to deploy my application each time I make a change; that’s what’s the built-in development web server is for.
+
+The solution is easy: create a very simple multithreaded WSGI web server and use that to serve the Bottle application.
+
+wsgiserver.py
+
+"""
+Simple multithreaded WSGI HTTP server.
+"""
+
+from wsgiref.simple_server import make_server, WSGIServer
+from SocketServer import ThreadingMixIn
+
+class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+    daemon_threads = True
+
+class Server:
+    def __init__(self, wsgi_app, listen='127.0.0.1', port=8080):
+        self.wsgi_app = wsgi_app
+        self.listen = listen
+        self.port = port
+        self.server = make_server(self.listen, self.port, self.wsgi_app,
+                                  ThreadingWSGIServer)
+
+    def serve_forever(self):
+        self.server.serve_forever()
+
+We then include that in the file where we create our Bottle app:
+
+app.py
+
+import bottle
+import wsgiserver
+
+wsgiapp = bottle.default_app()
+httpd = wsgiserver.Server(wsgiapp)
+httpd.serve_forever()
+
+We now have a Bottle app that can handle multiple concucrrent requests. I’m not sure how well this works with automatic reloading and such, but I think it should be fine.
+
+The text of all posts on this blog, unless specificly mentioned otherwise, are licensed under this license
+

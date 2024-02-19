@@ -1,0 +1,31 @@
+# Gunicorn configuration file myguni.conf.py
+# https://docs.gunicorn.org/en/stable/settings.html
+
+import multiprocessing
+import os
+
+max_requests = 1000
+max_requests_jitter = 50
+
+log_file = "-"
+
+workers = multiprocessing.cpu_count() * 2 + 1
+
+print ('++++++++++++++++++++++++++++++++++++++++')
+#print_config = True
+
+sa_config=dict()
+
+def get_sa_config( env_key = "GUP4W_" ):
+    res = dict()
+    for k, v in os.environ.items():
+        if k.startswith( env_key ):
+             k = k.split("_", 1)[1]
+             res[k] =  v
+    return res
+
+sa_config.update( get_sa_config() )
+
+print (sa_config)
+
+

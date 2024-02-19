@@ -1,0 +1,34 @@
+import sys
+
+def on_starting(server):
+    print("Starting Server")
+
+def pre_fork(server, worker):
+    print(f"pre-fork server {server} worker {worker}", file=sys.stderr)
+
+pre_fork = pre_fork
+
+# https://docs.gunicorn.org/en/stable/custom.html
+
+
+ef on_starting(server):
+    """
+    Do something on server start
+    """
+    print("Server has started")
+
+
+def on_reload(server):
+    """
+     Do something on reload
+    """
+    print("Server has reloaded")
+
+
+def post_worker_init(worker):
+    """
+    Do something on worker initialization
+    """
+    print("Worker has been initialized. Worker Process id –>", worker.pid)
+
+

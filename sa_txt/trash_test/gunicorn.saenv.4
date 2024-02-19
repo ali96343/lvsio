@@ -1,0 +1,40 @@
+#   BACKLOG = 4096
+#   timeout=10 
+#     export GUNICORN_max_requests=1200
+#
+
+# print working gunicorn config
+#print_config=True
+#config=None
+gunicorn_args = {'a':'a1', 'b':'b1',} 
+#pidfile = '/tmp/saenv.pid'
+
+#use_native_config=python:example
+#use_native_config=gunicorn.conf.py
+#use_native_config=guni.ini
+#use_python_config=guni.py
+#use_native_config=guni.py
+
+# None test
+certfile=None
+# dict test
+secure_scheme_headers  = {'x1':'y1'   ,    'X-FORWARDED-PROTOCOL':     'ssl',}
+#secure_scheme_headers  = {'x1':'y1','X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
+
+# test - skip bind
+bind=128.0.0.1:9000
+
+# -s gunicornGevent 
+#worker_class=gevent
+#worker_class=eventlet
+# -s gunicorn 
+#worker_class=sync
+#
+[hello]
+#
+export GUNICORN_worker_tmp_dir=/dev/shm 
+worker_class=gthread
+workers=4 
+threads=8
+max_requests = 1000
+max_requests_jitter = 50

@@ -1,0 +1,10 @@
+#   BACKLOG = 4096
+#   timeout=10 
+#     export GUNICORN_max_requests=1200
+#
+
+# print working gunicorn config
+#print_config=True
+#config=None
+use_native_config=python:example
+#use_native_config=gunicorn.conf.py

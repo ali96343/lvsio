@@ -1,0 +1,9 @@
+import server
+
+bind = '0.0.0.0:8000'
+workers = 4
+loglevel = "info"
+
+# Server Hooks
+on_starting = server.on_starting
+
