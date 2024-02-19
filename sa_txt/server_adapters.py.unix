@@ -344,14 +344,15 @@ def gunicorn():
 
                 def load_config(self):
                     sa_config.update(self.get_gunicorn_options())
-                    if 'eventlet' in sa_config.values() :
-                        sa_config["workers"] = 1                        
+                    for e in ('eventlet', 'gevent') :
+                        if e in sa_config.values() :
+                            sa_config.update( { "workers" : 1 } )                       
+                            break
                     logger and logger.debug(sa_config)
 
                     for k, v in sa_config.items():
-                        if k not in self.cfg.settings:
-                            continue
-                        self.cfg.set(k, v)
+                        if k in self.cfg.settings:
+                            self.cfg.set(k, v)
 
                     for e in (
                         "use_python_config",
