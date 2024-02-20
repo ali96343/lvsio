@@ -323,7 +323,7 @@ def gunicorn():
                             except (ValueError, AttributeError):
                                 continue
                             k, v = check_kv(k, v)
-                            if k :
+                            if k is not None:
                                 res_opts[k] = v
 
                         if res_opts:
@@ -334,7 +334,7 @@ def gunicorn():
                         if k.startswith(env_key):
                             k = k.split("_", 1)[1].lower()
                             k, v = check_kv(k, v)
-                            if k :
+                            if k is not None:
                                 res_opts[k] = v
 
                     if res_opts:
