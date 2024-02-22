@@ -172,7 +172,7 @@ def check_port(host='127.0.0.1', port=8000, quiet=False, caller_class='unknown' 
             elif port == 3:
                 unlink_file( get_log_file( out_banner = False ) , None )
 
-        (not quiet) and print (f'Listening at: {host}')
+        #(not quiet) and print (f'Listening at: {host}')
         return
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -223,6 +223,7 @@ def gunicorn():
 
             sa_bind = self.host if self.host.startswith('unix:/') else f"{self.host}:{self.port}"
 
+            # https://ru.stackoverflow.com/questions/1238798/%D0%A1%D0%BB%D1%83%D1%88%D0%B0%D1%82%D1%8C-%D0%B4%D0%B2%D0%B0-%D0%BF%D0%BE%D1%80%D1%82%D0%B0-%D1%81-%D0%BF%D0%BE%D0%BC%D0%BE%D1%89%D1%8C%D1%8E-gunicorn
             sa_config = {
                 "bind": sa_bind, 
                 "workers": get_workers(self.options),
@@ -255,6 +256,18 @@ def gunicorn():
                 )
 
             class GunicornApplication(Application):
+                # from eventlet, gevent doc
+                def set_1_workers( func):
+                     def wrap(*ar, **kw):
+                         ret = func(*ar, **kw)
+                         for e in ('eventlet', 'gevent') :
+                             if e in ret.values() :
+                                 ret.update( { "workers" : 1 } )                       
+                                 break
+                         return ret
+                     return wrap
+
+                @set_1_workers
                 def get_gunicorn_options(
                     self,
                     gu_default="gunicorn.conf.py",
@@ -269,15 +282,26 @@ def gunicorn():
                         except (IOError, OSError) as ex:
                             sys.exit(f"{ex}\nError: {file_name}")
 
+                    def parse_eval(ky, vy):
+                        try:
+    	                    return literal_eval(vy)
+                        except (ValueError, SyntaxError) as ex:
+                            sys.exit(f"{ex}\nError: {ky}='{vy}'")
 
                     gu_raw_env = dict()
                     def check_kv(kx, vx, sr_env = gu_raw_env):
-                        if ( not kx ) or ( not vx )  or ( kx in ( 'bind', 'config', 'cmd_args' )) :
+                        if ( not kx ) or ( not vx )  or ( kx in ( 'config', 'cmd_args' )) :
                             logger and logger.debug (f"gunicorn: skipped {kx}={vx}")
                             return None, None
                         try:
                             if vx in ('None','True','False') or (vx.startswith('{') and vx.endswith('}')):
-                                vx = literal_eval(vx )
+                                vx = parse_eval(kx, vx )
+                            elif kx in ('bind') :
+                                # export GUNICORN_bind="'127.0.0.1:9123','127.0.0.1:8123', ':10123', '0.0.0.0:11123'"
+                                vx = list( parse_eval(kx,vx ) )
+                                if sa_bind not in vx:
+                                    vx.append(sa_bind)
+                                print (f'Listening at: {vx}')
                             elif kx in ( 'raw_env', 'raw_paste_global_conf' ) and '=' in vx :
                                 sr_env.update ( {e.split('=',1)[0].strip(): e.split('=',1)[1].strip()
                                                     for e in vx.split(',') } )
@@ -296,7 +320,7 @@ def gunicorn():
                                        vx = vx.replace(ke, ve)
 
                             if kx in ( 'X_logconfig_dict_data', ) :
-                               kx, vx ='logconfig_dict',  literal_eval(vx)
+                               kx, vx ='logconfig_dict',  parse_eval(kx, vx)
                                    
                         except (ValueError, AttributeError, IndexError ) :
                             pass
@@ -344,10 +368,6 @@ def gunicorn():
 
                 def load_config(self):
                     sa_config.update(self.get_gunicorn_options())
-                    for e in ('eventlet', 'gevent') :
-                        if e in sa_config.values() :
-                            sa_config.update( { "workers" : 1 } )                       
-                            break
                     logger and logger.debug(sa_config)
 
                     for k, v in sa_config.items():
@@ -564,7 +584,6 @@ export -f tmcurl
                 self.server_address =  host[5:]
             elif ":" in host:
                 self.address_family = socket.AF_INET6 
-
             WSGIServer.__init__(self, self.server_address, RequestHandlerClass)
 
         def server_bind(self):
@@ -648,7 +667,7 @@ export -f tmcurl
                 def server_close(self):
                     #print (self.server.socket.gettimeout() )
                     self.server.socket.close()
-                    unlink_file(self.socket_path, logger)
+                    unlink_file(NewWSGIServer.socket_path, logger)
 
                 def serve_forever(self):
 
