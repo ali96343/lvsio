@@ -142,7 +142,7 @@ def check_port(host="127.0.0.1", port=8000):
                 os_cmd (f"ls -alFi {socket_path}")
                 os_cmd (f"lsof -w {socket_path}")
             elif port == 8000:
-                pass
+                os_cmd ("ps axw | grep sa_py4web | grep -v grep")
         return
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -174,6 +174,19 @@ def gunicorn():
         print("gunicorn: monkey.patch_all() applied")
 
     class GunicornServer(ServerAdapter):
+        def __init__(self, *ar, **kw): 
+            super().__init__( *ar, **kw)
+            self.wsgi_app = None
+            self.sio_wsgi_app = None
+            self.logger = None
+            self.sa_config = None
+            self.sa_bind = None
+
+        def set_app(self, wsgi_app):
+            self.wsgi_app = wsgi_app
+
+        def get_app(self):
+            return self.wsgi_app 
 
         def get_gunicorn_options(
             self,
@@ -195,12 +208,12 @@ def gunicorn():
                     sys.exit(f"{ex}\nError: {env_file}")
  
             def check_kv(kx, vx):
-                if ( not kx ) or ( not vx ) or ( kx in ( "config", "cmd_args") ) :
+                if ( not kx ) or ( not vx ) or ( kx in ( "config", "cmd_args",  ) ) :
                     return None, None
-                if vx in ('None', 'True', 'False') or ( vx.startswith("{") and vx.endswith("}") ):
+                if vx in ('None', 'True', 'False',) or ( vx.startswith("{") and vx.endswith("}") ): 
                     vx = parse_eval(kx, vx)
-                if kx in ('bind', 'raw_env', ):
-                    vx = list( parse_eval (kx, vx) )
+                if kx in ('bind', 'raw_env' ):
+                    vx =  list(parse_eval (kx, vx) )
                     if kx == 'bind' and self.sa_bind not in vx:
                         vx.append( self.sa_bind)
                 return kx, vx
@@ -213,6 +226,8 @@ def gunicorn():
             if os.path.isfile(env_file):
                 for line in get_file_data(env_file).splitlines():
                     line = line.strip()
+                    line = os.path.expandvars( line )
+
                     if not line or line.startswith(("#", "[")):
                         continue
                     for e in ("export ", env_key):
@@ -220,10 +235,11 @@ def gunicorn():
                     k, v = None, None
                     try:
                         k, v = line.split("=", 1)
-                        k, v = k.strip().lower(), v.strip()
+                        k, v = k.lower(), v.strip('"')
                     except (ValueError, AttributeError):
                         continue
                     k, v = check_kv(k, v)
+                    #print ('saenv ', v)
                     if k is not  None:
                         res_opts[k] = v
 
@@ -233,9 +249,10 @@ def gunicorn():
             # if env_file
     
             for k, v in os.environ.items():
-                if k.startswith(env_key):
+                if k.startswith(env_key): 
                     k = k.split("_", 1)[1].lower()
                     k, v = check_kv(k, v)
+                    #print ('GU_ ',v)
                     if k is not None:
                         res_opts[k] = v
 
@@ -244,29 +261,18 @@ def gunicorn():
 
             return res_opts
 
-        def set_app(self, wsgi_app):
-            self.wsgi_app = wsgi_app
-
-        def get_app(self):
-            return self.wsgi_app 
-
         def run(self, app_handler):
-
-            self.wsgi_app = None
-            self.sio_wsgi_app = None
 
             check_port(self.host, self.port)
 
-            self.set_app(app_handler)
-
-            logger = None
-            self_run = self
+            self.set_app(app_handler) 
+            self_run = self # used in class GunicornApplication
 
             self.sa_bind = self.host if self.host.startswith('unix:/') else f"{self.host}:{self.port}"
 
             self.sa_config = {
                 "bind": self.sa_bind, # f"{self.host}:{self.port}",
-                "workers": get_workers(self.options),
+                "workers": get_workers(self.options, default = 4),
                 "certfile": self.options.get("certfile", None),
                 "keyfile": self.options.get("keyfile", None),
                 "accesslog": None,
@@ -280,7 +286,7 @@ def gunicorn():
                 level = check_level(self.options["logging_level"])
                 log_file = get_log_file(out_banner=False)
 
-                logger = logging_conf(level)
+                self.logger = logging_conf(level)
                 log_to = "-" if log_file is None else log_file
 
                 self.sa_config.update(
@@ -292,10 +298,13 @@ def gunicorn():
                     }
                 )
 
-            logger and logger.debug( self.sa_config  )
+            self.logger and self.logger.debug( self.sa_config  )
             self.sa_config.update( self.get_gunicorn_options() )
+            #print(os.environ.get('FOO'))
 
             """
+            not tested
+
             # https://python-socketio.readthedocs.io/en/latest/client.html
             import socketio # pip install python-socketio
             sio = socketio.Server(async_mode='threading')
