@@ -168,7 +168,7 @@ def check_port(host="127.0.0.1", port=8000):
 
 def gunicorn():
 
-    # version 16.03.24 ali96343@gmail.com
+    # version 20.03.24 ali96343@gmail.com
 
     from gevent import local  # pip install gevent gunicorn setproctitle
     import threading
@@ -296,6 +296,7 @@ def gunicorn():
                 "proc_name": "sa_py4web",  # ps a | grep py4web
                 "config": "sa_config",
                 # ( 'sa_config',  'GUNICORN_', 'gunicorn.saenv', 'gunicorn.conf.py' )
+                "enable_sio": False,
             }
 
             if not self.quiet:
@@ -322,10 +323,6 @@ def gunicorn():
             # https://python-socketio.readthedocs.io/en/latest/server.html
             # https://python-socketio.readthedocs.io/en/latest/index.html
 
-            import socketio # pip install python-socketio
-            self.sio = socketio.Server(async_mode='threading')
-            sio_wsgi_app = socketio.WSGIApp(sio, self.get_app())
-            self.set_app(sio_wsgi_app)
             """
 
             self.sa_config.update( self.get_gunicorn_options() )
@@ -336,16 +333,16 @@ def gunicorn():
             except ImportError:
                socketio = None
 
-            if socketio:
-                for e in ('eventlet', 'gevent',  ) :
+            # sio not tested
+            enable_sio = self.sa_config.get ('enable_sio', False)
+            if socketio and enable_sio:
+                for e in ('eventlet', 'gevent', 'threading'):
                     if e in  self.sa_config.values() :
                         self.sio = socketio.Server(async_mode= e )
+                        sio_wsgi_app = socketio.WSGIApp(self.sio, self.get_app())
+                        self.set_app(sio_wsgi_app)
                         break
-                else:
-                    self.sio = socketio.Server(async_mode='threading')
 
-                sio_wsgi_app = socketio.WSGIApp(self.sio, self.get_app())
-                self.set_app(sio_wsgi_app)
 
             class GunicornApplication(Application):
                 def load_config(self):
