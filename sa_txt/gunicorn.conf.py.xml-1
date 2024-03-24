@@ -1,0 +1,13 @@
+import os
+
+USER = os.getenv('API_USER')
+PASSWORD = os.environ.get('API_PASSWORD')
+BIND = os.getenv('BIND')
+RAW_ENV = os.getenv('ENV')
+
+print (f'USER: {USER}')
+print (f'PASSWORD: {PASSWORD}')
+print (f'BIND: {PASSWORD}')
+print (f'RAW_ENV: {RAW_ENV}')
+
+#bind = 'unix:/tmp/p4w.sock'

@@ -132,9 +132,9 @@ def check_port(host="127.0.0.1", port=8000):
            pass
 
     if isinstance (host, list):
-        host = host[0]
+         sys.exit(f'sa_Error:\nuse bind={host}') 
 
-    os_cmd ("ps f | grep sa_py4web | grep -v grep")
+    os_cmd ("ps af | grep sa_py4web | grep -v grep")
     if host.startswith('unix:/'):
         socket_path = host[5:]
         if os.path.exists(socket_path):
@@ -168,21 +168,27 @@ def check_port(host="127.0.0.1", port=8000):
 
 def gunicorn():
 
-    # version 20.03.24 ali96343@gmail.com
+    # version 23.03.24 ab96343@gmail.com
 
     from gevent import local  # pip install gevent gunicorn setproctitle
     import threading
     from ast import literal_eval
+
+    if isinstance(threading.local(), local.local):
+        print("gunicornGevent: monkey.patch_all() applied")
 
     try:
         from gunicorn.app.base import Application
     except ImportError as ex:
         sys.exit(f"{ex}\nTry: pip install gunicorn gevent greenlet  setproctitle")
 
+    try:
+        import socketio # pip install python-socketio eventlet gevent
+    except ImportError:
+        socketio = None
+
     # https://dev.to/cwprogram/python-deployment-wsgi-with-gunicorn-3n6m
 
-    if isinstance(threading.local(), local.local):
-        print("gunicornGevent: monkey.patch_all() applied")
 
     class GunicornServer(ServerAdapter):
 
@@ -199,6 +205,25 @@ def gunicorn():
 
         def get_app(self):
             return self.wsgi_app 
+
+        def run_sio_server(self, ):
+            """
+            sio not tested
+
+            # https://python-socketio.readthedocs.io/en/latest/client.html
+            # https://python-socketio.readthedocs.io/en/latest/server.html
+            # https://python-socketio.readthedocs.io/en/latest/index.html
+
+            """
+            # export GUNICORN_enable_sio=True
+            if socketio and self.sa_config.get ('enable_sio', False):
+                # export GUNICORN_workers_th="threading"
+                for e in ('eventlet', 'gevent', 'threading'):
+                    if e in  self.sa_config.values() :
+                        self.sio = socketio.Server(async_mode= e )
+                        sio_wsgi_app = socketio.WSGIApp(self.sio, self.get_app())
+                        self.set_app(sio_wsgi_app)
+                        break
 
         def get_gunicorn_options(
             self,
@@ -240,9 +265,9 @@ def gunicorn():
             res_opts = dict()
 
             if os.path.isfile(env_file):
-                for line in get_file_data(env_file).splitlines():
+                lines = get_file_data(env_file)
+                for line in os.path.expandvars( lines ).splitlines():
                     line = line.strip()
-                    line = os.path.expandvars( line )
 
                     if not line or line.startswith(("#", "[", "//")):
                         continue
@@ -279,10 +304,11 @@ def gunicorn():
 
         def run(self, app_handler):
 
+
             check_port(self.host, self.port)
 
-            self.set_app(app_handler) 
             self_run = self # used in class GunicornApplication
+            self.set_app(app_handler) 
 
             self.sa_bind = self.host if self.host.startswith('unix:/') else f"{self.host}:{self.port}"
 
@@ -296,7 +322,6 @@ def gunicorn():
                 "proc_name": "sa_py4web",  # ps a | grep py4web
                 "config": "sa_config",
                 # ( 'sa_config',  'GUNICORN_', 'gunicorn.saenv', 'gunicorn.conf.py' )
-                "enable_sio": False,
             }
 
             if not self.quiet:
@@ -315,34 +340,10 @@ def gunicorn():
                     }
                 )
 
-
-            """
-            not tested
-
-            # https://python-socketio.readthedocs.io/en/latest/client.html
-            # https://python-socketio.readthedocs.io/en/latest/server.html
-            # https://python-socketio.readthedocs.io/en/latest/index.html
-
-            """
-
             self.sa_config.update( self.get_gunicorn_options() )
-
             self.logger and self.logger.debug( self.sa_config  )
-            try:
-               import socketio # pip install python-socketio eventlet gevent
-            except ImportError:
-               socketio = None
 
-            # sio not tested
-            enable_sio = self.sa_config.get ('enable_sio', False)
-            if socketio and enable_sio:
-                for e in ('eventlet', 'gevent', 'threading'):
-                    if e in  self.sa_config.values() :
-                        self.sio = socketio.Server(async_mode= e )
-                        sio_wsgi_app = socketio.WSGIApp(self.sio, self.get_app())
-                        self.set_app(sio_wsgi_app)
-                        break
-
+            self.run_sio_server()
 
             class GunicornApplication(Application):
                 def load_config(self):
@@ -356,11 +357,18 @@ def gunicorn():
                         "usepy",
                     ):
                         if e in self_run.sa_config:
+                            """
+                            os.environ['API_USER'] = 'username'
+                            os.environ['API_PASSWORD'] = 'secret'
+                            os.environ['BIND'] = str(self_run.sa_config['bind']) 
+                            os.environ['RAW_ENV'] = str(self_run.sa_config.get( 'raw_env', )) 
+                            """
                             Application.load_config_from_file(self, self_run.sa_config[e])
                             break
 
                 def load(self):
                     return self_run.get_app() 
+
             GunicornApplication().run()
 
     return GunicornServer

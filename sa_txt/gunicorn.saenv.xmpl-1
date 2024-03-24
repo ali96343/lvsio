@@ -1,0 +1,10 @@
+export GUNICORN_raw_env="['XX=18123','YY=19123', 'HH=$HOSTNAME']"
+export GUNICORN_raw_env="'AA=18123', 'BB=19123', 'HH=$HOSTNAME', 'UU=$USER' "
+// or
+export GUNICORN_secure_scheme_headers="{'X-FORWARDED-PROTOCOL':'ssl1111', }"
+// or
+export GUNICORN_bind="['127.0.0.1:18123','127.0.0.1:19123']"
+export GUNICORN_bind="'127.0.0.1:18123','127.0.0.1:19123'"
+//export GUNICORN_worker_class=eventlet
+export GUNICORN_enable_sio="False"
+export GUNICORN_worker_th="threading"
