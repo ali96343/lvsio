@@ -168,7 +168,7 @@ def check_port(host="127.0.0.1", port=8000):
 
 def gunicorn():
 
-    # version 23.03.24 ab96343@gmail.com
+    # version 06.04.24 ab96343@gmail.com
 
     from gevent import local  # pip install gevent gunicorn setproctitle
     import threading
@@ -249,7 +249,7 @@ def gunicorn():
             def check_kv(kx, vx):
                 if ( not kx ) or ( not vx ) or ( kx in ( "config", "cmd_args",  ) ) :
                     return None, None
-                if vx in ('None', 'True', 'False',) or ( vx.startswith("{") and vx.endswith("}") ): 
+                if vx in ('None','True','False',) or (vx.startswith("{") and vx.endswith("}")): 
                     vx = parse_eval(kx, vx)
                 if kx in ('bind', 'raw_env' ):
                     vx =  list(parse_eval (kx, vx) )
@@ -302,16 +302,9 @@ def gunicorn():
 
             return res_opts
 
-        def run(self, app_handler):
 
-
-            check_port(self.host, self.port)
-
-            self_run = self # used in class GunicornApplication
-            self.set_app(app_handler) 
-
+        def init_sa_config(self, ):
             self.sa_bind = self.host if self.host.startswith('unix:/') else f"{self.host}:{self.port}"
-
             self.sa_config = {
                 "bind": self.sa_bind, 
                 "workers": get_workers(self.options, default = 2),
@@ -340,6 +333,15 @@ def gunicorn():
                     }
                 )
 
+
+        def run(self, app_handler):
+
+            check_port(self.host, self.port)
+
+            self_run = self 
+            self.set_app(app_handler) 
+
+            self.init_sa_config()
             self.sa_config.update( self.get_gunicorn_options() )
             self.logger and self.logger.debug( self.sa_config  )
 
@@ -358,11 +360,12 @@ def gunicorn():
                     ):
                         if e in self_run.sa_config:
                             """
+                            send vars to xxxxx.conf.py
+                            """
                             os.environ['API_USER'] = 'username'
                             os.environ['API_PASSWORD'] = 'secret'
                             os.environ['BIND'] = str(self_run.sa_config['bind']) 
                             os.environ['RAW_ENV'] = str(self_run.sa_config.get( 'raw_env', )) 
-                            """
                             Application.load_config_from_file(self, self_run.sa_config[e])
                             break
 
